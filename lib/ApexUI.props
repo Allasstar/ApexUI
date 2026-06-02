@@ -1,0 +1,16 @@
+﻿<Project>
+  <!-- Auto-include all framework source files.
+       Any project that <Import>s this file gets the full ApexUI source tree. -->
+  <ItemGroup>
+    <Compile Include="$(MSBuildThisFileDirectory)**/*.cs" />
+  </ItemGroup>
+
+  <!-- All NuGet packages the framework depends on live here, not in the .csproj -->
+  <ItemGroup>
+    <PackageReference Include="Silk.NET.Windowing"           Version="2.*" />
+    <PackageReference Include="Silk.NET.Input"               Version="2.*" />
+    <PackageReference Include="Silk.NET.OpenGL"              Version="2.*" />
+    <PackageReference Include="SkiaSharp"                    Version="3.*" />
+    <PackageReference Include="SkiaSharp.NativeAssets.Win32" Version="3.*" />
+  </ItemGroup>
+</Project>
