@@ -33,6 +33,8 @@ ApexUI/
 │       └── SKCanvasExtensions.cs  ← C# 14 extension members on SKCanvas
 │
 └── src/                       ← app-specific code (untouched by framework updates)
+    ├── Examples/              ← self-contained example widgets (one class per example)
+    │   └── CounterExample.cs  ← counter + text-input demo
     ├── Screens/               ← full-screen views
     ├── Widgets/               ← app-specific widgets (not framework reusable)
     └── Models/                ← app data models
@@ -46,9 +48,10 @@ ApexUI/
 | `lib/Layout/` | `ApexUI.Layout` |
 | `lib/Widgets/` | `ApexUI.Widgets` |
 | `lib/Extensions/` | `ApexUI.Extensions` |
-| `src/Screens/` | `ApexUI.Demo.Screens` |
-| `src/Widgets/` | `ApexUI.Demo.Widgets` |
-| `src/Models/` | `ApexUI.Demo.Models` |
+| `src/Examples/` | `ApexUI.App.Examples` |
+| `src/Screens/` | `ApexUI.App.Screens` |
+| `src/Widgets/` | `ApexUI.App.Widgets` |
+| `src/Models/` | `ApexUI.App.Models` |
 
 `lib/Core/GlobalUsings.cs` adds `global using` for every `ApexUI.*` namespace and
 `SkiaSharp`, so no file in `src/` or `Program.cs` needs explicit `using` statements
@@ -66,14 +69,14 @@ Example — adding a `ProgressBar` widget:
 - Namespace: `ApexUI.Widgets`
 - No changes to `ApexUI.csproj` needed — `ApexUI.props` picks it up via wildcard.
 
-### 2. App-specific file → `src/` with `ApexUI.Demo.*` namespace
+### 2. App-specific file → `src/` with `ApexUI.App.*` namespace
 
-If the code is only relevant to this demo app (a screen, a custom widget for this
-app's UI, a data model), it lives in `src/`.
+If the code belongs to the app (a screen, a custom widget, a data model), it lives
+in `src/` under the `ApexUI.App.*` namespace matching its subfolder.
 
-Example — adding a counter screen:
-- File: `src/Screens/CounterScreen.cs`
-- Namespace: `ApexUI.Demo.Screens`
+Example — adding a settings screen:
+- File: `src/Screens/SettingsScreen.cs`
+- Namespace: `ApexUI.App.Screens`
 - No changes to `ApexUI.csproj` needed — `src/**/*.cs` glob covers it.
 
 ### 3. Never add `<Compile>` entries in `ApexUI.csproj` for lib files
@@ -95,7 +98,7 @@ Example — creating `lib/Animation/`:
 - Framework dependency (used by `lib/` code) → add to `lib/ApexUI.props`
 - App-only dependency → add directly to `ApexUI.csproj`
 
-### 6. No `using ApexUI.*` or `using SkiaSharp;` in app code
+### 6. `using` rules — framework vs app namespaces
 
 `lib/Core/GlobalUsings.cs` already declares:
 ```csharp
@@ -105,4 +108,33 @@ global using ApexUI.Widgets;
 global using ApexUI.Extensions;
 global using SkiaSharp;
 ```
-Adding them again in `src/` files or `Program.cs` is redundant — omit them.
+Do **not** repeat these in `src/` files or `Program.cs`.
+
+`ApexUI.App.*` namespaces are **not** globally imported — add an explicit `using` at
+the top of each file that references them. This keeps the imports visible, which is
+especially useful in examples where readers need to see where types come from.
+
+Example — `Program.cs` running an example:
+```csharp
+using ApexUI.App.Examples;
+
+new Application("ApexUI Demo", 800, 600) { Theme = Theme.Light }
+    .Run(new CounterExample());
+```
+
+### 7. Example → `src/Examples/` with `ApexUI.App.Examples` namespace
+
+A self-contained UI demonstration (one feature, one concept) lives in `src/Examples/`
+as a single `Widget` subclass. The example builds its entire widget tree in the
+constructor and needs no public API — `Program.cs` just instantiates it and passes it
+to `Application.Run`.
+
+Rules:
+- One class per file, named `<Topic>Example` (e.g. `CounterExample`, `FormExample`).
+- All state is private to the constructor via closures (same as top-level script style).
+- No screen-specific logic, no models — keep it minimal and focused on one concept.
+
+Example — adding a `SliderExample`:
+- File: `src/Examples/SliderExample.cs`
+- Namespace: `ApexUI.App.Examples`
+- Switch `Program.cs` to `.Run(new SliderExample())` to run it.
