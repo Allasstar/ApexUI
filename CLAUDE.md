@@ -40,7 +40,8 @@ ApexUI/
     ├── Examples/              ← self-contained example widgets (one class per example)
     │   ├── CounterExample.cs      ← counter + text-input demo
     │   ├── ImageToggleExample.cs  ← image + toggle demo
-    │   └── SliderExample.cs       ← sliders with two-way binding to text inputs
+    │   ├── SliderExample.cs       ← sliders with two-way binding to text inputs
+    │   └── ScaleExample.cs        ← UI scale demo; exposes Bindable<float> Scale
     ├── Screens/               ← full-screen views
     ├── Widgets/               ← app-specific widgets (not framework reusable)
     └── Models/                ← app data models
@@ -246,8 +247,22 @@ new TextInput { Width = 72f }.BindFloat(volume, "F2");
 ```csharp
 Application(string title = "ApexUI App", int width = 900, int height = 600)
 void Run(Widget root)       // starts the Silk.NET event loop
-Theme Theme { get; set; }   // swap at any time to re-skin
-float DpiScale { get; }
+Theme Theme    { get; set; }   // swap at any time to re-skin
+float DpiScale { get; }        // physical pixel density (OS-driven, currently 1f)
+float UiScale  { get; set; }   // user zoom level, clamped 0.1–10; default 1f
+```
+
+**UiScale** applies a `canvas.Scale(UiScale, UiScale)` transform each frame and shrinks the
+logical available size by the same factor, so the entire widget tree scales uniformly without
+any widget needing to know about it. Pointer coordinates are divided by `DpiScale × UiScale`
+to stay in sync. Changing `UiScale` automatically triggers a re-layout.
+
+**Wiring a slider to UiScale** (Program.cs pattern):
+```csharp
+var app     = new Application("My App", 900, 700);
+var example = new ScaleExample();
+example.Scale.Changed += v => app.UiScale = v;
+app.Run(example);
 ```
 
 ---

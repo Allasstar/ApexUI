@@ -29,6 +29,15 @@ public sealed class Application
     public Theme Theme { get; set; } = Theme.Light;
     public float DpiScale { get; private set; } = 1f;
 
+    public float UiScale
+    {
+        get;
+        set { field = Math.Clamp(value, 0.1f, 10f); _root?.InvalidateLayout(); }
+    } = 1f;
+
+    // Combined scale applied to layout coordinates and pointer positions.
+    private float TotalScale => DpiScale * UiScale;
+
     public Application(string title = "ApexUI App", int width = 900, int height = 600)
     {
         var options = WindowOptions.Default with
@@ -118,20 +127,20 @@ public sealed class Application
     {
         if (_root is null || _surface is null) return;
 
-        var canvas = _surface.Canvas;
-        canvas.Clear(Theme.Background);
-
-        // Layout if dirty
         if (_root.IsLayoutDirty)
             LayoutRoot();
 
-        // Tick animated widgets
         TickWidgets(_root, (float)delta);
 
-        // Draw
+        var canvas = _surface.Canvas;
+        canvas.Clear(Theme.Background);
+        canvas.Save();
+        canvas.Scale(UiScale, UiScale);
+
         var ctx = new DrawContext(canvas, Theme, DpiScale);
         _root.Draw(ctx);
 
+        canvas.Restore();
         canvas.Flush();
     }
 
@@ -139,7 +148,7 @@ public sealed class Application
     {
         if (_root is null) return;
         var size = _window.Size;
-        var available = new Size(size.X / DpiScale, size.Y / DpiScale);
+        var available = new Size(size.X / TotalScale, size.Y / TotalScale);
         _root.Measure(available);
         _root.Arrange(new Rect(0, 0, available.Width, available.Height));
     }
@@ -154,7 +163,7 @@ public sealed class Application
 
     private void OnMouseMove(IMouse mouse, System.Numerics.Vector2 pos)
     {
-        float x = pos.X / DpiScale, y = pos.Y / DpiScale;
+        float x = pos.X / TotalScale, y = pos.Y / TotalScale;
         var hit = _root?.HitTest(x, y);
 
         // Hover state
@@ -180,7 +189,7 @@ public sealed class Application
 
     private void OnMouseDown(IMouse mouse, MouseButton btn)
     {
-        float x = mouse.Position.X / DpiScale, y = mouse.Position.Y / DpiScale;
+        float x = mouse.Position.X / TotalScale, y = mouse.Position.Y / TotalScale;
         var hit = _root?.HitTest(x, y);
 
         // Focus
@@ -203,7 +212,7 @@ public sealed class Application
 
     private void OnMouseUp(IMouse mouse, MouseButton btn)
     {
-        float x = mouse.Position.X / DpiScale, y = mouse.Position.Y / DpiScale;
+        float x = mouse.Position.X / TotalScale, y = mouse.Position.Y / TotalScale;
         var hit = _root?.HitTest(x, y);
 
         if (_pressedWidget is not null)

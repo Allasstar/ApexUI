@@ -1,7 +1,6 @@
 using ApexUI.App.Examples;
 
-new Application("ApexUI Demo", 800, 600)
-{
-    Theme = Theme.Light   // swap to Theme.Dark for instant dark mode
-}
-.Run(new SliderExample());
+var app     = new Application("ApexUI — Scale Demo", 900, 700) { Theme = Theme.Light };
+var example = new ScaleExample();
+example.Scale.Changed += v => app.UiScale = v;
+app.Run(example);
