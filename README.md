@@ -14,7 +14,7 @@ Most C# UI frameworks require a project wizard, a designer, XAML files, or a pac
 ## Quick start
 
 ```bash
-git clone <repo>
+git clone https://github.com/Allasstar/ApexUI.git
 cd ApexUI
 dotnet run
 ```
