@@ -5,6 +5,9 @@ public class ScaleExample : Widget
     /// Bind this to Application.UiScale from Program.cs.
     public Bindable<float> Scale { get; } = new(1f);
 
+    /// Bind this to Application.Theme from Program.cs.
+    public Bindable<bool> DarkMode { get; } = new(false);
+
     public ScaleExample()
     {
         var opacity = new Bindable<float>(0.75f);
@@ -33,7 +36,7 @@ public class ScaleExample : Widget
                     new TextInput { Width = 220f }.AsPassword().WithValue("hunter2")),
 
                 new Row(
-                    new Toggle(true,  label: "Dark mode"),
+                    new Toggle().WithLabel("Dark mode").Bind(DarkMode),
                     new Toggle(false, label: "Notifications")
                 ).WithSpacing(24f),
 
@@ -85,7 +88,7 @@ public class ScaleExample : Widget
             ).WithSpacing(8f),
             new Thickness(16f)
         )
-        { Background = new SKColor(0xF0, 0xF4, 0xFF), CornerRadius = 12f };
+        { BackgroundSource = t => t.Surface, CornerRadius = 12f };
 
     // ── Validation ────────────────────────────────────────────────────────────
 

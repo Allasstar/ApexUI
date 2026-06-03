@@ -152,13 +152,15 @@ The framework is a single `<Import>` in the `.csproj`. Updating it means replaci
 The project is **self-contained** — the .NET runtime is bundled, users need nothing installed.
 Platform is auto-detected from the build machine (`win-x64`, `linux-x64`, `osx-arm64`, …).
 
-| Profile | Command | Output |
-|---------|---------|--------|
-| **Full** (default) | `dotnet publish` | exe + all DLLs (~100 MB) |
-| **SingleFile** | `dotnet publish -p:BuildProfile=SingleFile` | one `.exe`, clean root (~100 MB) |
-| **MinSize** | `dotnet publish -p:BuildProfile=MinSize` | one `.exe`, trimmed + compressed (~20–40 MB) |
+| Profile | Command | Output folder | Size |
+|---------|---------|---------------|------|
+| **Full** (default) | `dotnet publish` | `bin/Publish/Full/` | ~100 MB |
+| **SingleFile** | `dotnet publish -p:BuildProfile=SingleFile` | `bin/Publish/SingleFile/` | ~100 MB (one `.exe`) |
+| **MinSize** | `dotnet publish -p:BuildProfile=MinSize` | `bin/Publish/MinSize/` | ~20–40 MB (one `.exe`) |
 
-`SingleFile` packs everything (managed DLLs, native libs, runtime) into the exe.
+All profiles output to `bin/Publish/`, separate from build artifacts in `bin/Debug/` and `bin/Release/`.
+
+`SingleFile` packs everything (managed DLLs, native libs, runtime) into one exe.
 Native libs are extracted to a system temp folder on first launch.
 
 > **MinSize + SkiaSharp**: aggressive trimming may remove reflection-accessed code.

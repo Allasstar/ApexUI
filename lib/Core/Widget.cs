@@ -86,6 +86,9 @@ public abstract class Widget
         set { field = value; Invalidate(); }
     } = SkiaSharp.SKColor.Empty;
 
+    /// When set, overrides Background at draw time using the current theme.
+    public Func<Theme, SkiaSharp.SKColor>? BackgroundSource { get; set; }
+
     public float CornerRadius
     {
         get;
@@ -228,9 +231,10 @@ public abstract class Widget
         }
 
         // Background
-        if (Background != SkiaSharp.SKColor.Empty)
+        var bg = BackgroundSource?.Invoke(ctx.Theme) ?? Background;
+        if (bg != SkiaSharp.SKColor.Empty)
         {
-            using var paint = new SkiaSharp.SKPaint { Color = Background };
+            using var paint = new SkiaSharp.SKPaint { Color = bg };
             if (CornerRadius > 0)
                 ctx.Canvas.DrawRoundRect(LayoutBounds.ToSKRect(), CornerRadius, CornerRadius, paint);
             else

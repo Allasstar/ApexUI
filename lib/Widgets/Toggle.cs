@@ -35,6 +35,14 @@ public class Toggle : Widget
     public Toggle WithChecked(bool value)        { IsChecked = value; return this; }
     public Toggle OnChange(Action<bool> action)  { OnChanged = action; return this; }
 
+    public Toggle Bind(Bindable<bool> source)
+    {
+        IsChecked  = source.Value;
+        OnChanged += v => source.Value = v;
+        source.Changed += v => { IsChecked = v; Invalidate(); };
+        return this;
+    }
+
     // ── Layout ───────────────────────────────────────────────────────────────
 
     protected override Size MeasureCore(Size available)

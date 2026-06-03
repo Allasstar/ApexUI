@@ -165,21 +165,23 @@ be re-read from scratch every session.
 Configured in `ApexUI.csproj` via the `$(BuildProfile)` MSBuild property.
 Pass it on the command line — no file edits needed.
 
-| Profile | Command | Output | Use when |
+| Profile | Command | Publish output | Use when |
 |---|---|---|---|
-| `Full` (default) | `dotnet build` / `dotnet publish` | exe + all DLLs in output folder | development, easy debugging |
-| `SingleFile` | `dotnet publish -p:BuildProfile=SingleFile` | one self-contained `.exe` | distribution, clean root folder |
-| `MinSize` | `dotnet publish -p:BuildProfile=MinSize` | one trimmed + compressed `.exe` | smallest possible distributable |
+| `Full` (default) | `dotnet publish` | `bin/Publish/Full/` — exe + all DLLs | distribution, easy debugging |
+| `SingleFile` | `dotnet publish -p:BuildProfile=SingleFile` | `bin/Publish/SingleFile/` — one `.exe` | clean single-file distribution |
+| `MinSize` | `dotnet publish -p:BuildProfile=MinSize` | `bin/Publish/MinSize/` — one trimmed + compressed `.exe` | smallest possible distributable |
+
+All publish outputs land in `bin/Publish/<Profile>/`, separate from `bin/Debug/` and `bin/Release/` build artifacts.
+
+**Development**: use `dotnet run` / `dotnet build` — framework-dependent, fast, no RID suffix.
 
 **Runtime**: always `$(NETCoreSdkRuntimeIdentifier)` — auto-detects the build machine's platform (`win-x64`, `linux-x64`, `osx-arm64`, …). No manual change needed per OS.
 
-**Self-contained**: always `true` — the .NET runtime is bundled so end-users need nothing installed.
+**Self-contained**: always `true` for publish — the .NET runtime is bundled so end-users need nothing installed.
 
 **SingleFile note**: native libs (glfw3, SkiaSharp) are embedded and extracted to a temp folder on first launch (`IncludeNativeLibrariesForSelfExtract=true`).
 
 **MinSize note**: uses `TrimMode=link` (aggressive). SkiaSharp relies on reflection — add `TrimmerRootDescriptor` entries if you hit `MissingMethodException` after trimming.
-
-**Libs-subfolder**: .NET self-contained builds cannot redirect managed DLLs to a `libs/` subfolder — the runtime resolver requires them next to the exe. `SingleFile` is the practical equivalent (clean root, one file).
 
 ---
 
@@ -222,6 +224,7 @@ VAlign VAlign;   // Top  | Center | Bottom | Stretch
 
 // Visual properties
 SKColor Background;
+Func<Theme, SKColor>? BackgroundSource;   // overrides Background at draw time; use for theme-aware colors
 float   CornerRadius;
 float   Opacity;       // 0..1
 bool    IsVisible;
@@ -503,6 +506,7 @@ Action<bool>? OnChanged
 Toggle WithLabel(string label)
 Toggle WithChecked(bool value)
 Toggle OnChange(Action<bool> action)
+Toggle Bind(Bindable<bool> source)    // two-way binding
 ```
 
 ---

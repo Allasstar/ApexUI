@@ -38,6 +38,7 @@
     <SelfContained>true</SelfContained>
     <PublishSingleFile>false</PublishSingleFile>
     <PublishTrimmed>false</PublishTrimmed>
+    <PublishDir>$(MSBuildProjectDirectory)\bin\Publish\Full\</PublishDir>
   </PropertyGroup>
 
   <!-- ── SingleFile ──────────────────────────────────────────────────────── -->
@@ -48,6 +49,7 @@
     <PublishSingleFile>true</PublishSingleFile>
     <PublishTrimmed>false</PublishTrimmed>
     <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
+    <PublishDir>$(MSBuildProjectDirectory)\bin\Publish\SingleFile\</PublishDir>
   </PropertyGroup>
   -->
 
@@ -62,6 +64,7 @@
     <PublishCompressed>true</PublishCompressed>
     <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
     <InvariantGlobalization>true</InvariantGlobalization>
+    <PublishDir>$(MSBuildProjectDirectory)\bin\Publish\MinSize\</PublishDir>
   </PropertyGroup>
   -->
 
