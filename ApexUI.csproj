@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <OutputType>Exe</OutputType>
+    <OutputType>WinExe</OutputType>
     <TargetFramework>net10.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
@@ -11,6 +11,10 @@
     <RootNamespace>ApexUI</RootNamespace>
     <!-- Disable SDK glob so lib/ and src/ are controlled explicitly below -->
     <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+    <!-- Flatten win-x64 native DLLs (glfw3, SkiaSharp) next to the exe so
+         double-clicking works without dotnet run. Keep output in the same folder. -->
+    <RuntimeIdentifier>win-x64</RuntimeIdentifier>
+    <AppendRuntimeIdentifierToOutputPath>false</AppendRuntimeIdentifierToOutputPath>
   </PropertyGroup>
 
   <!-- Framework source + NuGet packages (everything in lib/) -->
