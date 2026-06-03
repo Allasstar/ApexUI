@@ -50,6 +50,40 @@ ApexUI/
     └── Models/                ← app data models
 ```
 
+## Planned widgets (TODO)
+
+Widgets not yet implemented, in priority order.
+
+### Layout
+| Widget | File | Notes |
+|--------|------|-------|
+| `Spacer` | `lib/Layout/Spacer.cs` | Flexible gap in Row/Column; fills remaining space (Width/Height = ∞ while siblings size to content) |
+| `Grid` | `lib/Layout/Grid.cs` | 2D column/row alignment; needed for form layouts where labels and inputs must align across rows |
+| `Wrap` | `lib/Layout/Wrap.cs` | Children reflow to next line when they overflow (tag lists, icon grids) |
+
+### Core primitives
+| Widget | File | Notes |
+|--------|------|-------|
+| `Overlay` | `lib/Core/Overlay.cs` | **Highest priority.** Floating z-layer anchored to a widget, renders above everything. Required by Dropdown, Tooltip, Dialog, ContextMenu |
+| `ProgressBar` | `lib/Widgets/ProgressBar.cs` | Read-only `float` in `0..1` → filled bar; trivial to implement |
+| `Separator` | `lib/Widgets/Separator.cs` | 1 px horizontal or vertical divider line |
+
+### Composite widgets (depend on Overlay)
+| Widget | File | Notes |
+|--------|------|-------|
+| `Dropdown` / `ComboBox` | `lib/Widgets/Dropdown.cs` | Pick one item from a list; opens an Overlay with a ListView |
+| `Tooltip` | `lib/Widgets/Tooltip.cs` | Overlay shown on hover after a short delay |
+| `Dialog` / `Modal` | `lib/Widgets/Dialog.cs` | Blocking Overlay with a content widget and an optional backdrop |
+| `ContextMenu` | `lib/Widgets/ContextMenu.cs` | Right-click Overlay with a list of actions |
+
+### Other input widgets
+| Widget | File | Notes |
+|--------|------|-------|
+| `RadioGroup` | `lib/Widgets/RadioGroup.cs` | Mutually-exclusive Toggles sharing a `Bindable<T>`; composable from existing widgets but ergonomic as a unit |
+| `NumberInput` | `lib/Widgets/NumberInput.cs` | TextInput + increment/decrement buttons; composable from existing widgets |
+
+---
+
 ## Namespaces
 
 | Folder | Namespace |
