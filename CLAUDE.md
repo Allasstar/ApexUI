@@ -27,14 +27,17 @@ ApexUI/
 │   ├── Widgets/
 │   │   ├── Label.cs           ← Label widget
 │   │   ├── Button.cs          ← Button widget
-│   │   └── TextInput.cs       ← TextInput widget
+│   │   ├── TextInput.cs       ← TextInput widget
+│   │   ├── Toggle.cs          ← Toggle widget
+│   │   └── Image.cs           ← Image widget (raster + SVG)
 │   └── Extensions/
 │       ├── SKColorExtensions.cs   ← C# 14 extension members on SKColor
 │       └── SKCanvasExtensions.cs  ← C# 14 extension members on SKCanvas
 │
 └── src/                       ← app-specific code (untouched by framework updates)
     ├── Examples/              ← self-contained example widgets (one class per example)
-    │   └── CounterExample.cs  ← counter + text-input demo
+    │   ├── CounterExample.cs      ← counter + text-input demo
+    │   └── ImageToggleExample.cs  ← image + toggle demo
     ├── Screens/               ← full-screen views
     ├── Widgets/               ← app-specific widgets (not framework reusable)
     └── Models/                ← app data models
@@ -138,3 +141,336 @@ Example — adding a `SliderExample`:
 - File: `src/Examples/SliderExample.cs`
 - Namespace: `ApexUI.App.Examples`
 - Switch `Program.cs` to `.Run(new SliderExample())` to run it.
+
+### 8. CLAUDE.md must be updated when adding new scripts
+
+Whenever you add, rename, or delete a `.cs` file anywhere in `lib/` or `src/`, you
+**must** update this file in the same change:
+
+1. **Folder layout tree** — add/remove/rename the file entry with a short description.
+2. **API Reference section below** — add the new type's key signatures, or remove the
+   entry for a deleted type.
+
+This keeps CLAUDE.md usable as a quick-reference index so entire files don't need to
+be re-read from scratch every session.
+
+---
+
+## API Reference
+
+Signatures only — read the source for full implementation detail.
+
+### `Widget` · `lib/Core/Widget.cs`
+
+Base class for every UI element.
+
+```csharp
+// Override these three in subclasses
+protected virtual Size MeasureCore(Size available);   // report desired size
+protected virtual void ArrangeCore(Rect finalRect);   // position children
+protected virtual void DrawCore(DrawContext ctx);      // render content
+
+// Called by the layout system (do not override)
+void Measure(Size available);     // sets DesiredSize
+void Arrange(Rect finalRect);     // sets LayoutBounds
+void Draw(DrawContext ctx);       // clips, draws background, calls DrawCore, draws children
+
+// Hit-testing
+Widget? HitTest(float x, float y);   // deepest visible+enabled widget at point
+
+// Invalidation
+void Invalidate();         // visual-only dirty, bubbles to root
+void InvalidateLayout();   // layout+visual dirty, bubbles to root
+
+// Child management (protected)
+void AddChild(Widget child);
+void RemoveChild(Widget child);
+
+// Layout properties
+float  Width, Height;           // NaN = auto (size to content)
+float  MinWidth, MaxWidth, MinHeight, MaxHeight;
+Thickness Margin, Padding;
+HAlign HAlign;   // Left | Center | Right | Stretch
+VAlign VAlign;   // Top  | Center | Bottom | Stretch
+
+// Visual properties
+SKColor Background;
+float   CornerRadius;
+float   Opacity;       // 0..1
+bool    IsVisible;
+
+// Interaction properties (read-only externally, set by Application)
+bool IsEnabled, IsHovered, IsPressed, IsHitTestVisible;
+
+// Layout state (set by layout system)
+Size DesiredSize;      // set during Measure
+Rect LayoutBounds;     // set during Arrange
+
+// Events
+Action<PointerEvent>? OnClick, OnPointerDown, OnPointerUp, OnPointerMove, OnPointerEnter, OnPointerExit;
+Action<KeyEvent>?     OnKeyDown, OnKeyUp;
+
+// Enums
+enum HAlign { Left, Center, Right, Stretch }
+enum VAlign { Top, Center, Bottom, Stretch }
+```
+
+---
+
+### `Application` · `lib/Core/Application.cs`
+
+```csharp
+Application(string title = "ApexUI App", int width = 900, int height = 600)
+void Run(Widget root)       // starts the Silk.NET event loop
+Theme Theme { get; set; }   // swap at any time to re-skin
+float DpiScale { get; }
+```
+
+---
+
+### `DrawContext` · `lib/Core/DrawContext.cs`
+
+Passed into every `DrawCore()` call.
+
+```csharp
+SKCanvas Canvas   { get; }
+Theme    Theme    { get; }
+float    DpiScale { get; }
+
+SKPaint MakePaint(SKColor color, bool antialias = true)
+SKFont  MakeTextFont(float sizePx, bool bold = false)
+SKPaint MakeTextPaint(SKColor color)
+
+// Input event records (also defined in this file)
+record struct PointerEvent(float X, float Y, PointerButton Button, bool IsDown)
+record struct KeyEvent(string Key, bool IsDown, bool Ctrl, bool Shift, bool Alt)
+enum PointerButton { None, Left, Right, Middle }
+```
+
+---
+
+### `Rect` · `lib/Core/Rect.cs`
+
+```csharp
+readonly record struct Rect(float X, float Y, float Width, float Height)
+static Rect Rect.Zero
+
+float Right, Bottom, CenterX, CenterY   // computed
+
+bool Contains(float px, float py)
+bool Intersects(Rect other)
+Rect Deflate(Thickness t)
+Rect Translate(float dx, float dy)
+Rect WithSize(float w, float h)
+SKRect ToSKRect()
+```
+
+---
+
+### `Size` · `lib/Core/Size.cs`
+
+```csharp
+readonly record struct Size(float Width, float Height)
+static Size Size.Zero, Size.Infinite
+
+Size Constrain(Size constraint)   // clamps to min of both dimensions
+```
+
+---
+
+### `Thickness` · `lib/Core/Thickness.cs`
+
+```csharp
+readonly record struct Thickness(float Left, float Top, float Right, float Bottom)
+Thickness(float uniform)
+Thickness(float horizontal, float vertical)
+static Thickness Thickness.Zero
+
+float Horizontal   // Left + Right
+float Vertical     // Top + Bottom
+```
+
+---
+
+### `Theme` · `lib/Core/Theme.cs`
+
+```csharp
+static Theme Theme.Light, Theme.Dark   // pre-built instances
+
+// Colors (all SKColor, init-only)
+Background, Surface, SurfaceHover, SurfacePressed
+OnSurface, OnSurfaceMuted
+Primary, PrimaryHover, OnPrimary
+Success, Warning, Danger
+Border
+
+// Typography
+string FontFamily      // default "Segoe UI"
+float  FontSizeBase, FontSizeSmall, FontSizeLarge, FontSizeTitle
+
+// Shape
+float CornerRadiusSm, CornerRadiusMd, CornerRadiusLg
+
+// Spacing
+float SpacingXs, SpacingSm, SpacingMd, SpacingLg
+```
+
+---
+
+### `Label` · `lib/Widgets/Label.cs`
+
+```csharp
+Label()
+string   Text      { get; set; }
+float    FontSize  { get; set; }   // NaN = Theme.FontSizeBase
+bool     Bold      { get; set; }
+SKColor? Color     { get; set; }   // null = Theme.OnSurface
+
+// Fluent
+Label WithText(string text)
+Label WithSize(float size)
+Label WithColor(SKColor color)
+Label AsBold()
+```
+
+---
+
+### `Button` · `lib/Widgets/Button.cs`
+
+```csharp
+Button(string text = "", Action? onPressed = null)
+string        Text    { get; set; }
+ButtonVariant Variant { get; set; }   // Primary | Secondary | Ghost
+Action?       OnPressed
+
+// Fluent
+Button WithText(string text)
+Button WithVariant(ButtonVariant v)
+Button OnPress(Action action)
+
+enum ButtonVariant { Primary, Secondary, Ghost }
+```
+
+---
+
+### `TextInput` · `lib/Widgets/TextInput.cs`
+
+```csharp
+TextInput(string placeholder = "")
+string Value       { get; set; }   // setting fires OnChanged
+string Placeholder { get; set; }
+bool   IsFocused   { get; }        // set by Application
+
+Action<string>? OnChanged   // fires on every keystroke
+Action<string>? OnSubmit    // fires on Enter
+
+// Fluent
+TextInput WithPlaceholder(string ph)
+TextInput WithValue(string v)
+TextInput OnChange(Action<string> a)
+
+void Tick(float deltaSeconds)   // called by Application each frame (cursor blink)
+```
+
+---
+
+### `Toggle` · `lib/Widgets/Toggle.cs`
+
+```csharp
+Toggle(bool isChecked = false, string label = "", Action<bool>? onChanged = null)
+bool   IsChecked { get; set; }
+string Label     { get; set; }
+Action<bool>? OnChanged
+
+// Fluent
+Toggle WithLabel(string label)
+Toggle WithChecked(bool value)
+Toggle OnChange(Action<bool> action)
+```
+
+---
+
+### `Image` · `lib/Widgets/Image.cs`
+
+```csharp
+// Static factories (constructor is private)
+static Image FromFile(string path)               // auto-detects raster vs .svg by extension
+static Image FromBitmap(SKBitmap bitmap)
+static Image FromSvgString(string svgXml)
+
+ImageStretch Stretch { get; set; }   // None | Fill | Uniform | UniformToFill
+
+// Fluent
+Image WithStretch(ImageStretch s)
+Image WithSize(float w, float h)
+
+// Implements IDisposable — call Dispose() when removing from tree
+enum ImageStretch { None, Fill, Uniform, UniformToFill }
+```
+
+---
+
+### `Stack` · `lib/Layout/Stack.cs`
+
+```csharp
+Stack(params Widget[] children)
+// All children occupy the same bounds; drawn in order (last child = on top)
+```
+
+---
+
+### `Column` · `lib/Layout/Column.cs`
+
+```csharp
+Column(params Widget[] children)
+float Spacing { get; set; }   // gap between children
+
+Column WithSpacing(float spacing)
+```
+
+---
+
+### `Row` · `lib/Layout/Row.cs`
+
+```csharp
+Row(params Widget[] children)
+float Spacing { get; set; }   // gap between children
+
+Row WithSpacing(float spacing)
+```
+
+---
+
+### `PaddingBox` · `lib/Layout/PaddingBox.cs`
+
+```csharp
+PaddingBox(Widget child, Thickness padding)
+PaddingBox(Widget child, float all)   // uniform padding shorthand
+// Wraps exactly one child; applies Padding on all sides
+```
+
+---
+
+### `SKColorExtensions` · `lib/Extensions/SKColorExtensions.cs`
+
+C# 14 extension members on `SKColor`.
+
+```csharp
+static SKColor SKColor.FromHex(string hex)   // "#RRGGBB" or "#RRGGBBAA"
+bool    color.IsTransparent                  // Alpha == 0
+SKColor color.WithAlpha(float alpha)         // float 0..1
+SKColor color.Lighten(float ratio)           // 0..1
+SKColor color.Darken(float ratio)            // 0..1
+```
+
+---
+
+### `SKCanvasExtensions` · `lib/Extensions/SKCanvasExtensions.cs`
+
+C# 14 extension members on `SKCanvas`.
+
+```csharp
+void canvas.FillRoundRect(SKRect rect, float rx, SKColor color)
+void canvas.StrokeRoundRect(SKRect rect, float rx, SKColor color, float strokeWidth = 1f)
+void canvas.DrawTextCentered(string text, SKRect bounds, SKFont font, SKPaint paint)
+```
