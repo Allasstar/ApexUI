@@ -162,8 +162,11 @@ Example — `Program.cs` running an example:
 ```csharp
 using ApexUI.App.Examples;
 
-new Application("ApexUI Demo", 800, 600) { Theme = Theme.Light }
-    .Run(new CounterExample());
+var example = new TabsExample();
+new Application("ApexUI Demo", 900, 700)
+    .BindUiScale(example.Scale)
+    .BindDarkMode(example.DarkMode)
+    .Run(example);
 ```
 
 ### 7. Example → `src/Examples/` with `ApexUI.App.Examples` namespace
@@ -314,6 +317,10 @@ void Run(Widget root)       // starts the Silk.NET event loop
 Theme Theme    { get; set; }   // swap at any time to re-skin
 float DpiScale { get; }        // physical pixel density (OS-driven, currently 1f)
 float UiScale  { get; set; }   // user zoom level, clamped 0.1–10; default 1f
+
+// Fluent binding — syncs initial value then subscribes; returns this for chaining
+Application BindUiScale(Bindable<float> source)   // source.Value → UiScale; changes forwarded
+Application BindDarkMode(Bindable<bool> isDark)   // true → Theme.Dark, false → Theme.Light
 ```
 
 **UiScale** applies a `canvas.Scale(UiScale, UiScale)` transform each frame and shrinks the
@@ -321,12 +328,13 @@ logical available size by the same factor, so the entire widget tree scales unif
 any widget needing to know about it. Pointer coordinates are divided by `DpiScale × UiScale`
 to stay in sync. Changing `UiScale` automatically triggers a re-layout.
 
-**Wiring a slider to UiScale** (Program.cs pattern):
+**Program.cs pattern:**
 ```csharp
-var app     = new Application("My App", 900, 700);
-var example = new ScaleExample();
-example.Scale.Changed += v => app.UiScale = v;
-app.Run(example);
+var example = new TabsExample();
+new Application("My App", 900, 700)
+    .BindUiScale(example.Scale)
+    .BindDarkMode(example.DarkMode)
+    .Run(example);
 ```
 
 ---

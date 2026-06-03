@@ -57,6 +57,20 @@ public sealed class Application
 
     // ── Public API ────────────────────────────────────────────────────────────
 
+    public Application BindUiScale(Bindable<float> source)
+    {
+        UiScale = source.Value;
+        source.Changed += v => UiScale = v;
+        return this;
+    }
+
+    public Application BindDarkMode(Bindable<bool> isDark)
+    {
+        Theme = isDark.Value ? Theme.Dark : Theme.Light;
+        isDark.Changed += v => Theme = v ? Theme.Dark : Theme.Light;
+        return this;
+    }
+
     /// Set the root widget tree and start the event loop.
     public void Run(Widget root)
     {
