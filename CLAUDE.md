@@ -31,7 +31,9 @@ ApexUI/
 │   │   ├── TextInput.cs       ← TextInput widget (+ BindFloat/BindInt)
 │   │   ├── Toggle.cs          ← Toggle widget
 │   │   ├── Image.cs           ← Image widget (raster + SVG)
-│   │   └── Slider.cs          ← Slider widget (float/int, optional step)
+│   │   ├── Slider.cs          ← Slider widget (float/int, optional step)
+│   │   ├── Scroll.cs          ← Scroll widget (vertical/horizontal/both, optional scrollbar)
+│   │   └── Tabs.cs            ← Tabs widget (Top/Bottom/Left/Right, scrollable tab bar)
 │   └── Extensions/
 │       ├── SKColorExtensions.cs   ← C# 14 extension members on SKColor
 │       └── SKCanvasExtensions.cs  ← C# 14 extension members on SKCanvas
@@ -41,7 +43,8 @@ ApexUI/
     │   ├── CounterExample.cs      ← counter + text-input demo
     │   ├── ImageToggleExample.cs  ← image + toggle demo
     │   ├── SliderExample.cs       ← sliders with two-way binding to text inputs
-    │   └── ScaleExample.cs        ← UI scale demo; exposes Bindable<float> Scale
+    │   ├── ScaleExample.cs        ← UI scale demo; exposes Bindable<float> Scale
+    │   └── TabsExample.cs         ← all examples as tabs; exposes Scale + DarkMode bindables
     ├── Screens/               ← full-screen views
     ├── Widgets/               ← app-specific widgets (not framework reusable)
     └── Models/                ← app data models
@@ -239,6 +242,7 @@ Rect LayoutBounds;     // set during Arrange
 // Events
 Action<PointerEvent>? OnClick, OnPointerDown, OnPointerUp, OnPointerMove, OnPointerEnter, OnPointerExit;
 Action<KeyEvent>?     OnKeyDown, OnKeyUp;
+Action<float, float>? OnScroll;   // (deltaX, deltaY); Application bubbles up the tree to first handler
 
 // Enums
 enum HAlign { Left, Center, Right, Stretch }
@@ -569,6 +573,51 @@ PaddingBox(Widget child, Thickness padding)
 PaddingBox(Widget child, float all)   // uniform padding shorthand
 // Wraps exactly one child; applies Padding on all sides
 ```
+
+---
+
+### `Scroll` · `lib/Widgets/Scroll.cs`
+
+Scrollable single-child container. Clips content to viewport. Scrollbar thumb drawn on the right (vertical) or bottom (horizontal) edge. Mouse-wheel events bubble up from any child to the nearest ancestor `Scroll`.
+
+```csharp
+Scroll(Widget content)
+bool            ShowScrollbar { get; set; }   // default true
+ScrollDirection Direction     { get; set; }   // Vertical | Horizontal | Both
+
+// Fluent
+Scroll WithDirection(ScrollDirection dir)
+Scroll HideScrollbar()
+
+enum ScrollDirection { Vertical, Horizontal, Both }
+```
+
+**Scrollbar geometry:** for `Vertical`, the right `8px` strip is reserved for the scrollbar (content is `Width − 8`). For `Horizontal`, the bottom `8px` strip is reserved. The scrollbar is drawn in `DrawCore`; only the Scroll widget occupies the strip (no child can be clicked there).
+
+**Mouse wheel:** the `OnScroll` event bubbles up the widget tree from the hovered widget. The first ancestor with `OnScroll` set handles the event — `Scroll` sets it in its constructor. For `Horizontal`-only direction, both wheel axes scroll horizontally (so a vertical-wheel mouse still scrolls).
+
+**Content sizing:** content is measured with `(Width, ∞)` for vertical, `(∞, Height)` for horizontal. The base `Widget.MeasureCore` now reports the max of its children's sizes (Stack semantics), so app-level widgets that don't override `MeasureCore` still report their natural size to the Scroll.
+
+---
+
+### `Tabs` · `lib/Widgets/Tabs.cs`
+
+Tabbed container with a scrollable tab bar and a swappable content panel.
+
+```csharp
+Tabs(TabPosition position = TabPosition.Top)
+Tabs AddTab(string title, Widget content)   // fluent; content shown/hidden by visibility toggle
+int  SelectedIndex { get; set; }
+Action<int>? OnTabChanged
+
+enum TabPosition { Top, Bottom, Left, Right }
+```
+
+**Tab bar:** internally a `Scroll` widget (Direction=Horizontal for Top/Bottom, Vertical for Left/Right, `ShowScrollbar=false`). Mouse-wheel scrolls the bar when hovering over it. Tab bar height/width is fixed at `40px`.
+
+**Content:** all tab content widgets are children of `Tabs`. Only the active tab's `IsVisible = true`. Switching tabs calls `InvalidateLayout()` so the newly-visible content is arranged before the next draw.
+
+**Active indicator:** a `2px` Primary-colored line on the content-facing edge of the active tab button.
 
 ---
 

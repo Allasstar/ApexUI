@@ -110,6 +110,8 @@ public abstract class Widget
     public Action<PointerEvent>? OnClick;
     public Action<KeyEvent>?     OnKeyDown;
     public Action<KeyEvent>?     OnKeyUp;
+    /// deltaX, deltaY — scroll wheel deltas; bubbles to parent if not handled.
+    public Action<float, float>? OnScroll;
 
     // ── Layout state (set by parent during Arrange) ───────────────────────
 
@@ -199,7 +201,19 @@ public abstract class Widget
     }
 
     // Override in subclasses to measure content.
-    protected virtual Size MeasureCore(Size available) => Size.Zero;
+    // Default: measures all children as overlapping (Stack semantics), returns max bounds.
+    protected virtual Size MeasureCore(Size available)
+    {
+        float w = 0f, h = 0f;
+        foreach (var child in _children)
+        {
+            if (!child.IsVisible) continue;
+            child.Measure(available);
+            w = Math.Max(w, child.DesiredSize.Width);
+            h = Math.Max(h, child.DesiredSize.Height);
+        }
+        return new Size(w, h);
+    }
 
     // Override in subclasses to position children.
     protected virtual void ArrangeCore(Rect finalRect)

@@ -227,7 +227,16 @@ public sealed class Application
         }
     }
 
-    private void OnScroll(IMouse mouse, ScrollWheel wheel) { /* TODO */ }
+    private void OnScroll(IMouse mouse, ScrollWheel wheel)
+    {
+        // Walk up from the hovered widget to find the nearest scroll handler.
+        var w = _hoveredWidget;
+        while (w is not null)
+        {
+            if (w.OnScroll is not null) { w.OnScroll(wheel.X, wheel.Y); return; }
+            w = w.Parent;
+        }
+    }
 
     private void OnKeyDown(IKeyboard kb, Key key, int _)
     {
