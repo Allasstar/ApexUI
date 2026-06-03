@@ -414,6 +414,14 @@ string Value       { get; set; }   // setting fires OnChanged
 string Placeholder { get; set; }
 bool   IsFocused   { get; }        // set by Application
 
+// Validation state
+InputMode InputMode  { get; set; }          // Any | Integer | Float  (char-level filter)
+bool      IsPassword { get; set; }          // masks display as '•'; Value holds real text
+string?   AllowedChars { get; set; }        // whitelist of accepted chars (after InputMode)
+string?   BlockedChars { get; set; }        // blacklist of rejected chars (after InputMode)
+Func<string, bool>? Validate { get; set; } // full-string predicate → red border when false
+bool IsValid { get; }                       // = Validate is null || Validate(Value)
+
 Action<string>? OnChanged   // fires on every keystroke
 Action<string>? OnSubmit    // fires on Enter
 
@@ -421,13 +429,27 @@ Action<string>? OnSubmit    // fires on Enter
 TextInput WithPlaceholder(string ph)
 TextInput WithValue(string v)
 TextInput OnChange(Action<string> a)
+TextInput AsPassword()                          // IsPassword = true
+TextInput AsInteger()                           // InputMode = Integer
+TextInput AsFloat()                             // InputMode = Float
+TextInput WithAllowedChars(string chars)
+TextInput WithBlockedChars(string chars)
+TextInput WithValidation(Func<string, bool> fn) // fn(Value) → false shows red border
 
 void Tick(float deltaSeconds)   // called by Application each frame (cursor blink)
 
-// Binding (uses InvariantCulture for locale-safe parsing)
+// Binding — uses InvariantCulture; source.Changed skipped while IsFocused (no typing interruption)
 TextInput BindFloat(Bindable<float> source, string format = "F2")
 TextInput BindInt(Bindable<int> source)
+
+enum InputMode { Any, Integer, Float }
 ```
+
+**Integer mode:** digits + optional leading `-`. **Float mode:** digits + optional leading `-` + one `.`.
+`AllowedChars`/`BlockedChars` are applied *after* `InputMode`, so they can further restrict an `AsFloat()` field.
+`Validate` only controls the border color — it never blocks typing. Pair with `AsFloat()` for both filtering and feedback.
+
+**Binding note:** `source.Changed` → TextInput update is suppressed while `IsFocused` is true, so dragging the bound slider does not interrupt the user mid-type. After every external value write (initial bind + slider update), `_cursorPos` is set to `Value.Length` so the caret is always at the end when the user next focuses the field.
 
 ---
 
