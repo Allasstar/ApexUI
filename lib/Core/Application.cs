@@ -174,7 +174,8 @@ public sealed class Application
                 _hoveredWidget.Invalidate();
             }
         }
-        hit?.OnPointerMove?.Invoke(new PointerEvent(x, y, PointerButton.None, false));
+        // Route move to the pressed (captured) widget so drags work outside bounds
+        (_pressedWidget ?? hit)?.OnPointerMove?.Invoke(new PointerEvent(x, y, PointerButton.None, false));
     }
 
     private void OnMouseDown(IMouse mouse, MouseButton btn)

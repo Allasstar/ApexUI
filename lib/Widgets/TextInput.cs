@@ -1,3 +1,5 @@
+using System.Globalization;
+
 namespace ApexUI.Widgets;
 
 public class TextInput : Widget
@@ -37,6 +39,22 @@ public class TextInput : Widget
     public TextInput WithPlaceholder(string ph) { Placeholder = ph; return this; }
     public TextInput WithValue(string v)         { Value = v; _cursorPos = v.Length; return this; }
     public TextInput OnChange(Action<string> a)  { OnChanged = a; return this; }
+
+    public TextInput BindFloat(Bindable<float> source, string format = "F2")
+    {
+        Value = source.Value.ToString(format, CultureInfo.InvariantCulture);
+        OnChanged      += s => { if (float.TryParse(s, NumberStyles.Float, CultureInfo.InvariantCulture, out var v)) source.Value = v; };
+        source.Changed += v => Value = v.ToString(format, CultureInfo.InvariantCulture);
+        return this;
+    }
+
+    public TextInput BindInt(Bindable<int> source)
+    {
+        Value = source.Value.ToString();
+        OnChanged      += s => { if (int.TryParse(s, out var v)) source.Value = v; };
+        source.Changed += v => Value = v.ToString();
+        return this;
+    }
 
     protected override Size MeasureCore(Size available)
     {

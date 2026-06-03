@@ -17,6 +17,7 @@ ApexUI/
 │   │   ├── Size.cs            ← Size value type
 │   │   ├── Thickness.cs       ← Thickness value type
 │   │   ├── DrawContext.cs     ← canvas + theme passed into every Draw()
+│   │   ├── Bindable.cs        ← Bindable<T> for two-way widget binding
 │   │   ├── FrameworkInfo.cs   ← ApexUI.Version constant
 │   │   └── GlobalUsings.cs    ← global using for all ApexUI namespaces + SkiaSharp
 │   ├── Layout/
@@ -27,9 +28,10 @@ ApexUI/
 │   ├── Widgets/
 │   │   ├── Label.cs           ← Label widget
 │   │   ├── Button.cs          ← Button widget
-│   │   ├── TextInput.cs       ← TextInput widget
+│   │   ├── TextInput.cs       ← TextInput widget (+ BindFloat/BindInt)
 │   │   ├── Toggle.cs          ← Toggle widget
-│   │   └── Image.cs           ← Image widget (raster + SVG)
+│   │   ├── Image.cs           ← Image widget (raster + SVG)
+│   │   └── Slider.cs          ← Slider widget (float/int, optional step)
 │   └── Extensions/
 │       ├── SKColorExtensions.cs   ← C# 14 extension members on SKColor
 │       └── SKCanvasExtensions.cs  ← C# 14 extension members on SKCanvas
@@ -37,7 +39,8 @@ ApexUI/
 └── src/                       ← app-specific code (untouched by framework updates)
     ├── Examples/              ← self-contained example widgets (one class per example)
     │   ├── CounterExample.cs      ← counter + text-input demo
-    │   └── ImageToggleExample.cs  ← image + toggle demo
+    │   ├── ImageToggleExample.cs  ← image + toggle demo
+    │   └── SliderExample.cs       ← sliders with two-way binding to text inputs
     ├── Screens/               ← full-screen views
     ├── Widgets/               ← app-specific widgets (not framework reusable)
     └── Models/                ← app data models
@@ -217,6 +220,27 @@ enum VAlign { Top, Center, Bottom, Stretch }
 
 ---
 
+### `Bindable<T>` · `lib/Core/Bindable.cs`
+
+Observable value holder for two-way binding. Cycle-safe: equality guard + re-entrancy
+suppression prevent infinite update loops. Add `Bind(Bindable<T>)` to any widget to
+participate in the binding graph.
+
+```csharp
+Bindable<T>(T initial = default!)
+T Value { get; set; }          // set fires Changed; same-value sets are no-ops
+event Action<T>? Changed
+```
+
+**Pattern — wiring two widgets together:**
+```csharp
+var volume = new Bindable<float>(0.5f);
+new Slider().WithMin(0f).WithMax(1f).Bind(volume);
+new TextInput { Width = 72f }.BindFloat(volume, "F2");
+```
+
+---
+
 ### `Application` · `lib/Core/Application.cs`
 
 ```csharp
@@ -353,6 +377,35 @@ enum ButtonVariant { Primary, Secondary, Ghost }
 
 ---
 
+### `Slider` · `lib/Widgets/Slider.cs`
+
+```csharp
+Slider()
+float Min    { get; set; }   // default 0
+float Max    { get; set; }   // default 1
+float Step   { get; set; }   // 0 = continuous; >0 snaps to that interval
+float Value  { get; set; }   // clamped to Min..Max, snapped to Step; fires OnChanged
+
+Action<float>? OnChanged
+
+// Fluent
+Slider WithMin(float min)
+Slider WithMax(float max)
+Slider WithStep(float step)
+Slider WithValue(float value)
+Slider OnChange(Action<float> a)
+
+// Binding
+Slider Bind(Bindable<float> source)     // float two-way binding
+Slider BindInt(Bindable<int> source)    // int two-way binding (rounds on change)
+```
+
+**Int slider:** set `Step = 1` and use `BindInt(Bindable<int>)`.
+**Note:** `Application` routes `OnPointerMove` to the pressed widget (pointer capture),
+so dragging outside the slider bounds continues to update the value.
+
+---
+
 ### `TextInput` · `lib/Widgets/TextInput.cs`
 
 ```csharp
@@ -370,6 +423,10 @@ TextInput WithValue(string v)
 TextInput OnChange(Action<string> a)
 
 void Tick(float deltaSeconds)   // called by Application each frame (cursor blink)
+
+// Binding (uses InvariantCulture for locale-safe parsing)
+TextInput BindFloat(Bindable<float> source, string format = "F2")
+TextInput BindInt(Bindable<int> source)
 ```
 
 ---
