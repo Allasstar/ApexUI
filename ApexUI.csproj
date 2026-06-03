@@ -9,6 +9,8 @@
     <PublishAot>false</PublishAot>
     <AssemblyName>ApexUI</AssemblyName>
     <RootNamespace>ApexUI</RootNamespace>
+    <!-- Exe file icon (shown in Explorer / taskbar pinning). Must be .ico format. -->
+    <ApplicationIcon>res\AppIcon.ico</ApplicationIcon>
     <!-- Disable SDK glob so lib/ and src/ are controlled explicitly below -->
     <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
   </PropertyGroup>
@@ -75,6 +77,10 @@
   <ItemGroup>
     <Compile Include="Program.cs" />
     <Compile Include="src/**/*.cs" />
+  </ItemGroup>
+  <!-- Everything in res/ is copied to the output folder, preserving subfolder structure. -->
+  <ItemGroup>
+    <None Include="res\**\*" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
 </Project>

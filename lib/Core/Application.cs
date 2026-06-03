@@ -4,6 +4,7 @@
 // Creates the OS window, runs the event loop, and drives Measure→Arrange→Draw
 // every frame.  App developers never touch Silk.NET or SkiaSharp directly.
 
+using Silk.NET.Core;
 using Silk.NET.Input;
 using Silk.NET.Maths;
 using Silk.NET.Windowing;
@@ -25,6 +26,7 @@ public sealed class Application
     private Widget?    _hoveredWidget;
     private Widget?    _focusedWidget;
     private Widget?    _pressedWidget;
+    private string?    _pendingIconPath;
 
     public Theme Theme { get; set; } = Theme.Light;
     public float DpiScale { get; private set; } = 1f;
@@ -56,6 +58,14 @@ public sealed class Application
     }
 
     // ── Public API ────────────────────────────────────────────────────────────
+
+    /// Set the window icon from a raster or SVG file (auto-detected by extension).
+    /// SVG is rendered at 16, 32, and 48 px so the OS can pick the best size.
+    public Application SetIcon(string path)
+    {
+        _pendingIconPath = path;
+        return this;
+    }
 
     public Application BindUiScale(Bindable<float> source)
     {
@@ -89,6 +99,9 @@ public sealed class Application
         _grContext = GRContext.CreateGl(glInterface);
 
         SetupSurface(_window.Size.X, _window.Size.Y);
+
+        if (_pendingIconPath is not null)
+            ApplyIcon(_pendingIconPath);
 
         // Wire up input
         var input = _window.CreateInput();
@@ -298,4 +311,72 @@ public sealed class Application
         Key.Escape     => "Escape",
         _ => k.ToString(),
     };
+
+    // ── Icon ──────────────────────────────────────────────────────────────────
+
+    private void ApplyIcon(string path)
+    {
+        if (!Path.IsPathRooted(path))
+            path = Path.Combine(AppContext.BaseDirectory, path);
+
+        if (!File.Exists(path))
+        {
+            Console.Error.WriteLine($"[ApexUI] Icon not found: {path}");
+            return;
+        }
+
+        bool isSvg = Path.GetExtension(path).Equals(".svg", StringComparison.OrdinalIgnoreCase);
+
+        if (isSvg)
+        {
+            var svg = new Svg.Skia.SKSvg();
+            if (svg.Load(path) is null) return;
+            var pic  = svg.Picture!;
+            int[] sizes = [16, 32, 48];
+            var rawImages = new RawImage[sizes.Length];
+            for (int i = 0; i < sizes.Length; i++)
+                rawImages[i] = RenderSvgToRaw(pic, sizes[i]);
+            _window.SetWindowIcon(rawImages);
+            svg.Dispose();
+        }
+        else
+        {
+            // ICO files contain multiple sizes — extract every frame so the OS picks the best one.
+            // For single-image formats (PNG, JPG) SKCodec.FrameCount == 1, so this path works for all raster.
+            using var codec = SKCodec.Create(path);
+            if (codec is null) return;
+            int count = Math.Max(1, codec.FrameCount);
+            var rawImages = new RawImage[count];
+            for (int i = 0; i < count; i++)
+            {
+                var info = codec.Info.WithColorType(SKColorType.Rgba8888).WithAlphaType(SKAlphaType.Unpremul);
+                using var bmp = new SKBitmap(info);
+                codec.GetPixels(info, bmp.GetPixels(), new SKCodecOptions(i));
+                rawImages[i] = new RawImage(bmp.Width, bmp.Height, new Memory<byte>(bmp.Bytes));
+            }
+            _window.SetWindowIcon(rawImages);
+        }
+    }
+
+    private static RawImage RenderSvgToRaw(SKPicture pic, int size)
+    {
+        float scale = size / Math.Max(pic.CullRect.Width, pic.CullRect.Height);
+        var info = new SKImageInfo(size, size, SKColorType.Rgba8888, SKAlphaType.Unpremul);
+        using var bmp    = new SKBitmap(info);
+        using var canvas = new SKCanvas(bmp);
+        canvas.Clear(SKColors.Transparent);
+        canvas.Scale(scale, scale);
+        canvas.DrawPicture(pic);
+        return new RawImage(size, size, new Memory<byte>(bmp.Bytes));
+    }
+
+    private static RawImage BitmapToRaw(SKBitmap src)
+    {
+        var info = new SKImageInfo(src.Width, src.Height, SKColorType.Rgba8888, SKAlphaType.Unpremul);
+        using var dst    = new SKBitmap(info);
+        using var canvas = new SKCanvas(dst);
+        canvas.Clear(SKColors.Transparent);
+        canvas.DrawBitmap(src, 0, 0);
+        return new RawImage(dst.Width, dst.Height, new Memory<byte>(dst.Bytes));
+    }
 }

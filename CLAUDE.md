@@ -7,6 +7,9 @@ ApexUI/
 ├── ApexUI.csproj             ← imports lib/ApexUI.props; adds src/**/*.cs
 ├── Program.cs                 ← app entrypoint (no using ApexUI.* needed)
 │
+├── res/                       ← runtime assets; every file copied to output preserving subfolders
+│   └── ApexIcon.svg           ← app icon (loaded via Application.SetIcon("res/ApexIcon.svg"))
+│
 ├── lib/                       ← framework source (versioned, replaceable as a unit)
 │   ├── ApexUI.props          ← auto-includes lib/**/*.cs + all NuGet packages
 │   ├── Core/
@@ -317,6 +320,9 @@ void Run(Widget root)       // starts the Silk.NET event loop
 Theme Theme    { get; set; }   // swap at any time to re-skin
 float DpiScale { get; }        // physical pixel density (OS-driven, currently 1f)
 float UiScale  { get; set; }   // user zoom level, clamped 0.1–10; default 1f
+
+// Icon — call before Run(); auto-detects .svg by extension; SVG rendered at 16/32/48 px
+Application SetIcon(string path)                  // raster (PNG/JPG/…) or .svg file
 
 // Fluent binding — syncs initial value then subscribes; returns this for chaining
 Application BindUiScale(Bindable<float> source)   // source.Value → UiScale; changes forwarded
