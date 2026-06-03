@@ -8,7 +8,8 @@ ApexUI/
 ├── Program.cs                 ← app entrypoint (no using ApexUI.* needed)
 │
 ├── res/                       ← runtime assets; every file copied to output preserving subfolders
-│   └── ApexIcon.svg           ← app icon (loaded via Application.SetIcon("res/ApexIcon.svg"))
+│   ├── ApexIcon.svg           ← window icon source (SVG, loaded at runtime via SetIcon)
+│   └── AppIcon.ico            ← exe file icon (embedded at compile time via <ApplicationIcon>)
 │
 ├── lib/                       ← framework source (versioned, replaceable as a unit)
 │   ├── ApexUI.props          ← auto-includes lib/**/*.cs + all NuGet packages
@@ -321,8 +322,15 @@ Theme Theme    { get; set; }   // swap at any time to re-skin
 float DpiScale { get; }        // physical pixel density (OS-driven, currently 1f)
 float UiScale  { get; set; }   // user zoom level, clamped 0.1–10; default 1f
 
-// Icon — call before Run(); auto-detects .svg by extension; SVG rendered at 16/32/48 px
-Application SetIcon(string path)                  // raster (PNG/JPG/…) or .svg file
+// Icon — call before Run(); path is relative to AppContext.BaseDirectory if not rooted
+// .svg  → rendered at 16/32/48 px and passed as three RawImage sizes to Silk.NET
+// .ico  → all frames extracted via SKCodec (each size in the file passed separately)
+// other → single raster frame (PNG, JPG, …)
+Application SetIcon(string path)
+
+// Exe file icon (shown in Explorer / taskbar pinning) is separate — set in ApexUI.csproj:
+//   <ApplicationIcon>res\AppIcon.ico</ApplicationIcon>
+// Must be a .ico file; drop it in res/ and the build picks it up automatically.
 
 // Fluent binding — syncs initial value then subscribes; returns this for chaining
 Application BindUiScale(Bindable<float> source)   // source.Value → UiScale; changes forwarded
