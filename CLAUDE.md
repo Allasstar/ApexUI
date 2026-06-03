@@ -160,6 +160,29 @@ be re-read from scratch every session.
 
 ---
 
+## Build profiles
+
+Configured in `ApexUI.csproj` via the `$(BuildProfile)` MSBuild property.
+Pass it on the command line — no file edits needed.
+
+| Profile | Command | Output | Use when |
+|---|---|---|---|
+| `Full` (default) | `dotnet build` / `dotnet publish` | exe + all DLLs in output folder | development, easy debugging |
+| `SingleFile` | `dotnet publish -p:BuildProfile=SingleFile` | one self-contained `.exe` | distribution, clean root folder |
+| `MinSize` | `dotnet publish -p:BuildProfile=MinSize` | one trimmed + compressed `.exe` | smallest possible distributable |
+
+**Runtime**: always `$(NETCoreSdkRuntimeIdentifier)` — auto-detects the build machine's platform (`win-x64`, `linux-x64`, `osx-arm64`, …). No manual change needed per OS.
+
+**Self-contained**: always `true` — the .NET runtime is bundled so end-users need nothing installed.
+
+**SingleFile note**: native libs (glfw3, SkiaSharp) are embedded and extracted to a temp folder on first launch (`IncludeNativeLibrariesForSelfExtract=true`).
+
+**MinSize note**: uses `TrimMode=link` (aggressive). SkiaSharp relies on reflection — add `TrimmerRootDescriptor` entries if you hit `MissingMethodException` after trimming.
+
+**Libs-subfolder**: .NET self-contained builds cannot redirect managed DLLs to a `libs/` subfolder — the runtime resolver requires them next to the exe. `SingleFile` is the practical equivalent (clean root, one file).
+
+---
+
 ## API Reference
 
 Signatures only — read the source for full implementation detail.

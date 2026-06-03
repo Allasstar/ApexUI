@@ -9,7 +9,7 @@ Most C# UI frameworks require a project wizard, a designer, XAML files, or a pac
 - **Zero setup** — clone, open, run. `dotnet run` is all you need.
 - **Open source core** — the entire framework lives in `lib/`. Read it, understand it, change it.
 - **Pure C#** — no XAML, no markup, no DSL. Your UI is just C# code.
-- **Cross-platform future** — built on Silk.NET (GLFW) + SkiaSharp (OpenGL). The groundwork for Windows, macOS, and Linux is already there.
+- **Cross-platform** — built on Silk.NET (GLFW) + SkiaSharp (OpenGL). Windows, macOS, and Linux.
 
 ## Quick start
 
@@ -21,23 +21,18 @@ dotnet run
 
 ## What an app looks like
 
-This is the entire entry point for a working counter app:
-
 ```csharp
 using ApexUI.App.Examples;
 
-new Application("My App", 800, 600)
-{
-    Theme = Theme.Dark
-}
-.Run(new CounterExample());
+var app     = new Application("My App", 900, 700) { Theme = Theme.Dark };
+var example = new ScaleExample();
+example.Scale.Changed += v => app.UiScale = v;
+app.Run(example);
 ```
 
-And the UI itself is just a widget:
+The UI tree is plain C# — no designer, no markup:
 
 ```csharp
-namespace ApexUI.App.Examples;
-
 public class CounterExample : Widget
 {
     public CounterExample()
@@ -60,13 +55,16 @@ public class CounterExample : Widget
 }
 ```
 
-## Included widgets
+## Widgets
 
 | Widget | Description |
 |--------|-------------|
 | `Label` | Text with size, color, bold |
 | `Button` | Three variants: `Primary`, `Secondary`, `Ghost` |
-| `TextInput` | Single-line text field with placeholder |
+| `TextInput` | Single-line input with placeholder, input modes, validation, password masking |
+| `Toggle` | On/off switch with optional label |
+| `Slider` | Draggable track — float or integer, optional step snapping |
+| `Image` | Raster (PNG/JPG) and SVG; stretch modes: `None`, `Fill`, `Uniform`, `UniformToFill` |
 
 ## Layout panels
 
@@ -74,23 +72,57 @@ public class CounterExample : Widget
 |-------|-------------|
 | `Column` | Vertical stack with configurable spacing |
 | `Row` | Horizontal stack with configurable spacing |
-| `Stack` | Overlapping layers |
+| `Stack` | Overlapping layers, last child on top |
 | `PaddingBox` | Wraps a single child with padding |
+
+## Two-way binding
+
+`Bindable<T>` connects any two widgets without glue code:
+
+```csharp
+var volume = new Bindable<float>(0.5f);
+
+new Slider().WithMin(0f).WithMax(1f).Bind(volume);
+new TextInput { Width = 72f }.AsFloat().BindFloat(volume, "F2");
+```
+
+Changing either widget updates the other. Cycle-safe: same-value writes are no-ops.
+
+## TextInput validation
+
+```csharp
+new TextInput()
+    .AsFloat()                                           // only digits, '-', '.'
+    .WithValidation(s => string.IsNullOrEmpty(s)
+                      || float.TryParse(s, out var v) && v is >= 0 and <= 1)
+    .WithPlaceholder("0.0 – 1.0")
+
+new TextInput().AsPassword()                             // value masked as •••
+new TextInput().WithAllowedChars("0123456789abcdefABCDEF")  // hex only
+new TextInput().WithBlockedChars(" \t")                  // no whitespace
+```
+
+`Validate` shows a red border when false — it never blocks typing.
+
+## UI scaling
+
+```csharp
+var app   = new Application("App", 900, 700);
+var scale = new Bindable<float>(1f);
+scale.Changed += v => app.UiScale = v;      // 0.1 – 10, default 1.0
+```
+
+A single `canvas.Scale()` transform — every widget scales for free, no code changes needed.
 
 ## Theming
 
-Two built-in themes, swap with one property:
-
 ```csharp
-new Application("My App") { Theme = Theme.Dark }.Run(root);
-```
+new Application("App") { Theme = Theme.Dark }.Run(root);
 
-Custom theme — override only what you need:
-
-```csharp
+// Custom — override only what you need
 var myTheme = new Theme
 {
-    Primary   = SKColor.FromHex("#6C63FF"),
+    Primary    = SKColor.FromHex("#6C63FF"),
     FontFamily = "JetBrains Mono",
 };
 ```
@@ -98,22 +130,39 @@ var myTheme = new Theme
 ## Project structure
 
 ```
-lib/        ← framework (open, readable, replaceable as a unit)
-  Core/     ← Widget base, Application, Theme, layout primitives
-  Layout/   ← Column, Row, Stack, PaddingBox
-  Widgets/  ← Label, Button, TextInput
-  Extensions/
+lib/          ← framework (open, readable, replaceable as a unit)
+  Core/       ← Widget, Application, Theme, Bindable, layout primitives
+  Layout/     ← Column, Row, Stack, PaddingBox
+  Widgets/    ← Label, Button, TextInput, Toggle, Slider, Image
+  Extensions/ ← SKColor and SKCanvas helpers (C# 14 extension members)
 
-src/        ← your app code
-  Examples/ ← self-contained demos (one widget per example)
-  Screens/  ← full-screen views
-  Widgets/  ← app-specific widgets
-  Models/   ← data models
+src/          ← your app code
+  Examples/   ← self-contained demos (one widget per example)
+  Screens/    ← full-screen views
+  Widgets/    ← app-specific widgets
+  Models/     ← data models
 
-Program.cs  ← entry point (pick a root widget and run)
+Program.cs    ← entry point
 ```
 
 The framework is a single `<Import>` in the `.csproj`. Updating it means replacing the `lib/` folder.
+
+## Distribution
+
+The project is **self-contained** — the .NET runtime is bundled, users need nothing installed.
+Platform is auto-detected from the build machine (`win-x64`, `linux-x64`, `osx-arm64`, …).
+
+| Profile | Command | Output |
+|---------|---------|--------|
+| **Full** (default) | `dotnet publish` | exe + all DLLs (~100 MB) |
+| **SingleFile** | `dotnet publish -p:BuildProfile=SingleFile` | one `.exe`, clean root (~100 MB) |
+| **MinSize** | `dotnet publish -p:BuildProfile=MinSize` | one `.exe`, trimmed + compressed (~20–40 MB) |
+
+`SingleFile` packs everything (managed DLLs, native libs, runtime) into the exe.
+Native libs are extracted to a system temp folder on first launch.
+
+> **MinSize + SkiaSharp**: aggressive trimming may remove reflection-accessed code.
+> Add `TrimmerRootDescriptor` entries if you hit `MissingMethodException` at runtime.
 
 ## Tech stack
 

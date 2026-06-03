@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
@@ -11,11 +11,59 @@
     <RootNamespace>ApexUI</RootNamespace>
     <!-- Disable SDK glob so lib/ and src/ are controlled explicitly below -->
     <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
-    <!-- Flatten win-x64 native DLLs (glfw3, SkiaSharp) next to the exe so
-         double-clicking works without dotnet run. Keep output in the same folder. -->
-    <RuntimeIdentifier>win-x64</RuntimeIdentifier>
-    <AppendRuntimeIdentifierToOutputPath>false</AppendRuntimeIdentifierToOutputPath>
   </PropertyGroup>
+
+  <!--
+  ╔══════════════════════════════════════════════════════════════════════════════╗
+  ║  BUILD PROFILES                                                              ║
+  ║                                                                              ║
+  ║  Usage:  dotnet publish -p:BuildProfile=<name>                               ║
+  ║                                                                              ║
+  ║  Full        (default)  All libs alongside the exe. Best for development     ║
+  ║                         and debugging — no trimming, symbols intact.         ║
+  ║                                                                              ║
+  ║  SingleFile             Everything packed into one exe (DLLs + native libs   ║
+  ║                         + .NET runtime). Cleanest folder for distribution.   ║
+  ║                         First launch extracts native libs to a temp folder.  ║
+  ║                                                                              ║
+  ║  MinSize                SingleFile + aggressive trimming + compression.      ║
+  ║                         Smallest output. SkiaSharp uses reflection so add   ║
+  ║                         trim roots if you hit MissingMethodException.        ║
+  ╚══════════════════════════════════════════════════════════════════════════════╝
+  -->
+
+  <!-- ── Full (default) ───────────────────────────────────────────────────── -->
+  <PropertyGroup Condition="'$(BuildProfile)' == '' or '$(BuildProfile)' == 'Full'">
+    <RuntimeIdentifier>$(NETCoreSdkRuntimeIdentifier)</RuntimeIdentifier>
+    <SelfContained>true</SelfContained>
+    <PublishSingleFile>false</PublishSingleFile>
+    <PublishTrimmed>false</PublishTrimmed>
+  </PropertyGroup>
+
+  <!-- ── SingleFile ──────────────────────────────────────────────────────── -->
+  <!--
+  <PropertyGroup Condition="'$(BuildProfile)' == 'SingleFile'">
+    <RuntimeIdentifier>$(NETCoreSdkRuntimeIdentifier)</RuntimeIdentifier>
+    <SelfContained>true</SelfContained>
+    <PublishSingleFile>true</PublishSingleFile>
+    <PublishTrimmed>false</PublishTrimmed>
+    <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
+  </PropertyGroup>
+  -->
+
+  <!-- ── MinSize ─────────────────────────────────────────────────────────── -->
+  <!--
+  <PropertyGroup Condition="'$(BuildProfile)' == 'MinSize'">
+    <RuntimeIdentifier>$(NETCoreSdkRuntimeIdentifier)</RuntimeIdentifier>
+    <SelfContained>true</SelfContained>
+    <PublishSingleFile>true</PublishSingleFile>
+    <PublishTrimmed>true</PublishTrimmed>
+    <TrimMode>link</TrimMode>
+    <PublishCompressed>true</PublishCompressed>
+    <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
+    <InvariantGlobalization>true</InvariantGlobalization>
+  </PropertyGroup>
+  -->
 
   <!-- Framework source + NuGet packages (everything in lib/) -->
   <Import Project="lib/ApexUI.props" />
