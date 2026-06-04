@@ -1,14 +1,14 @@
 namespace ApexUI.Widgets;
 
-/// Pick-one-from-a-list widget. Opens an Overlay with a scrollable item list on click.
+/// Pick-one-from-a-list widget. Opens a MenuList Overlay on left-click.
+/// Selected item shown with a ✓ checkmark inside the list.
 public class Dropdown<T> : Widget
 {
     private readonly List<(T Value, string Label)> _items = [];
     private T? _selected;
     private string _placeholder = "Select...";
-
     private readonly Button _toggleButton;
-    private readonly Column _listColumn;
+    private readonly MenuList _menuList;
     private readonly Overlay _overlay;
     private Bindable<T>? _binding;
     private bool _suppressBinding;
@@ -40,24 +40,16 @@ public class Dropdown<T> : Widget
 
     public Dropdown()
     {
-        _listColumn = new Column { Spacing = 2f };
-
-        var scroll = new Scroll(_listColumn).HideScrollbar();
-        scroll.MaxHeight = 200f;
-
-        var panel = new PaddingBox(scroll, new Thickness(4f))
-        {
-            BackgroundSource = t => t.Surface,
-            CornerRadius = 8f,
-            MinWidth = 160f,
-        };
+        _menuList = new MenuList(minWidth: 160f, maxHeight: 200f);
 
         _overlay = new Overlay { DismissOnClickOutside = true };
-        _overlay.Content = panel;
+        _overlay.Content = _menuList;
 
-        _toggleButton = new Button(Placeholder).WithVariant(ButtonVariant.Secondary);
-        _toggleButton.OnClick = _ =>
+        _toggleButton = new Button(_placeholder).WithVariant(ButtonVariant.Secondary);
+        // Only left-click toggles the dropdown — right-click is reserved for context menus.
+        _toggleButton.OnClick = e =>
         {
+            if (e.Button != PointerButton.Left) return;
             if (_overlay.IsVisible) _overlay.Close();
             else _overlay.Open(_toggleButton, OverlayAnchor.BelowAnchor);
         };
@@ -122,68 +114,22 @@ public class Dropdown<T> : Widget
 
     private void RebuildList()
     {
-        _listColumn.RemoveAllChildren();
+        _menuList.Clear();
         foreach (var (value, label) in _items)
         {
-            var itemLabel = label;
             var itemValue = value;
-
-            var row = new DropdownItem(label,
-                () => EqualityComparer<T>.Default.Equals(_selected, itemValue));
-            row.OnClick = _ =>
+            MenuItemWidget? item = null;
+            item = new MenuItemWidget(
+                label,
+                enabled: true,
+                isChecked: () => EqualityComparer<T>.Default.Equals(_selected, itemValue));
+            item.OnClick = e =>
             {
+                if (e.Button != PointerButton.Left) return;
                 SelectedValue = itemValue;
                 _overlay.Close();
             };
-            _listColumn.Add(row);
-        }
-    }
-
-    // ── Private item widget ───────────────────────────────────────────────────
-
-    private sealed class DropdownItem : Widget
-    {
-        private readonly Label _label;
-        private readonly Func<bool> _isSelected;
-
-        public DropdownItem(string text, Func<bool> isSelected)
-        {
-            _isSelected = isSelected;
-            _label = new Label { Text = text, IsHitTestVisible = false };
-            Padding = new Thickness(12f, 6f);
-            CornerRadius = 6f;
-            AddChild(_label);
-        }
-
-        protected override Size MeasureCore(Size available)
-        {
-            _label.Measure(new Size(available.Width - Padding.Horizontal,
-                available.Height - Padding.Vertical));
-            return new Size(
-                _label.DesiredSize.Width + Padding.Horizontal,
-                _label.DesiredSize.Height + Padding.Vertical);
-        }
-
-        protected override void ArrangeCore(Rect r)
-            => _label.Arrange(r.Deflate(Padding));
-
-        protected override void DrawCore(DrawContext ctx)
-        {
-            var t = ctx.Theme;
-            bool selected = _isSelected();
-
-            var bg = selected   ? t.Primary.WithAlpha(0.15f)
-                : IsPressed ? t.SurfacePressed
-                : IsHovered ? t.SurfaceHover
-                : SKColor.Empty;
-
-            if (bg != SKColor.Empty)
-            {
-                using var p = ctx.MakePaint(bg);
-                ctx.Canvas.DrawRoundRect(LayoutBounds.ToSKRect(), CornerRadius, CornerRadius, p);
-            }
-
-            _label.Color = selected ? t.Primary : t.OnSurface;
+            _menuList.Add(item);
         }
     }
 }

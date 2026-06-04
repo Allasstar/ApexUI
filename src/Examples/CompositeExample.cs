@@ -22,7 +22,7 @@ public class CompositeExample : Widget
         // ── Tooltip ───────────────────────────────────────────────────────────
         var tooltipBtn = new Tooltip(
             new Button("Hover me").WithVariant(ButtonVariant.Secondary),
-            "This tooltip appears after 0.6 s of hovering.");
+            "Tooltip appears after 0.6 s of hovering.");
 
         var tooltipAbove = new Tooltip(
             new Button("Hover (above)").WithVariant(ButtonVariant.Secondary),
@@ -30,12 +30,9 @@ public class CompositeExample : Widget
             { Position = TooltipPosition.Above };
 
         // ── Dialog ────────────────────────────────────────────────────────────
-        var alertDialog = Dialog.Alert(
-            "Alert",
-            "This is a simple alert dialog.\nPress OK to close.");
+        var alertDialog = Dialog.Alert("Alert", "This is a simple alert dialog.");
 
         var confirmResult = new Label { Text = "Confirm: (not yet shown)" };
-
         var confirmDialog = Dialog.Confirm(
             "Confirm Action",
             "Are you sure you want to delete this item?",
@@ -44,7 +41,6 @@ public class CompositeExample : Widget
             confirmText: "Delete",
             cancelText:  "Cancel");
 
-        // Custom dialog
         var nameInput = new TextInput("Enter name…");
         var customResult = new Label { Text = "Custom: (not yet submitted)" };
         Dialog? customDialog = null;
@@ -57,12 +53,23 @@ public class CompositeExample : Widget
             });
 
         // ── ContextMenu ───────────────────────────────────────────────────────
-        var ctxLabel = new Label { Text = "Right-click status: (none)" };
+        var bold     = new Bindable<bool>(false);
+        var muted    = new Bindable<bool>(false);
+        var ctxLog   = new Label { Text = "Right-click anywhere in this box" };
+
+        // Keep ctxLog visuals in sync with the toggle bindings
+        void SyncLabel()
+        {
+            ctxLog.Bold = bold.Value;
+            ctxLog.Color = muted.Value ? new SKColor(0x88, 0x88, 0x88) : (SKColor?)null;
+        }
+        bold.Changed  += _ => SyncLabel();
+        muted.Changed += _ => SyncLabel();
 
         var contextPanel = new PaddingBox(
             new Column(
-                new Label { Text = "Right-click anywhere in this box", Bold = true },
-                ctxLabel
+                new Label { Text = "Context Menu target", Bold = true, IsHitTestVisible = false },
+                ctxLog
             ).WithSpacing(4f),
             16f)
         {
@@ -71,12 +78,14 @@ public class CompositeExample : Widget
         };
 
         var menu = new ContextMenu()
-            .AddHeader("Actions")
-            .AddItem("Copy",   () => ctxLabel.Text = "Right-click status: Copy")
-            .AddItem("Cut",    () => ctxLabel.Text = "Right-click status: Cut")
-            .AddItem("Paste",  () => ctxLabel.Text = "Right-click status: Paste")
+            .AddHeader("Format")
+            .AddCheckItem("Bold text",  bold)
+            .AddCheckItem("Muted text", muted)
             .AddSeparator()
-            .AddItem("Delete (disabled)", () => { }, enabled: false);
+            .AddHeader("Actions")
+            .AddItem("Reset label",  () => { bold.Value = false; muted.Value = false; })
+            .AddItem("Copy text",    () => ctxLog.Text = "[copied]")
+            .AddItem("Disabled item",() => { }, enabled: false);
 
         ContextMenu.Attach(contextPanel, menu);
 
@@ -84,20 +93,17 @@ public class CompositeExample : Widget
         AddChild(new PaddingBox(
             new Column(
 
-                // Dropdown
                 new Label { Text = "Dropdown", Bold = true, FontSize = 18f },
                 new Row(dropdown, dropdownStatus) { Spacing = 16f },
 
                 new Separator { Margin = new Thickness(0, 4f) },
 
-                // Tooltip
                 new Label { Text = "Tooltip", Bold = true, FontSize = 18f },
                 new Label { Text = "Hover either button to see a tooltip (0.6 s delay)." },
                 new Row(tooltipBtn, tooltipAbove) { Spacing = 12f },
 
                 new Separator { Margin = new Thickness(0, 4f) },
 
-                // Dialog
                 new Label { Text = "Dialog / Modal", Bold = true, FontSize = 18f },
                 new Row(
                     new Button("Alert").OnPress(() => alertDialog.Show()),
@@ -109,8 +115,8 @@ public class CompositeExample : Widget
 
                 new Separator { Margin = new Thickness(0, 4f) },
 
-                // ContextMenu
                 new Label { Text = "ContextMenu", Bold = true, FontSize = 18f },
+                new Label { Text = "Right-click the box below. Toggle items stay checked across opens." },
                 contextPanel
 
             ).WithSpacing(16f),

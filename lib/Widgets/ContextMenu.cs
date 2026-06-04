@@ -1,15 +1,16 @@
 namespace ApexUI.Widgets;
 
-/// Right-click Overlay with a list of labeled actions. Dismisses on click-outside.
-/// Attach to any widget: ContextMenu.Attach(widget, menu)
+/// Right-click Overlay with labeled action items, separators, headers, and toggle items.
+/// Dismisses on click-outside. Attach to any widget: ContextMenu.Attach(widget, menu)
 ///
 /// Example:
+///   var darkMode = new Bindable<bool>(false);
 ///   var menu = new ContextMenu()
-///       .AddItem("Copy",  () => Copy())
-///       .AddItem("Paste", () => Paste())
+///       .AddHeader("View")
+///       .AddCheckItem("Dark Mode", darkMode)
 ///       .AddSeparator()
-///       .AddItem("Delete", () => Delete(), enabled: false);
-///   ContextMenu.Attach(myWidget, menu);
+///       .AddItem("Refresh", () => Refresh());
+///   ContextMenu.Attach(panel, menu);
 public sealed class ContextMenu
 {
     private readonly List<MenuEntry> _entries = [];
@@ -23,28 +24,38 @@ public sealed class ContextMenu
 
     // ── Fluent builder ────────────────────────────────────────────────────────
 
+    /// Standard action item — closes the menu and calls action on click.
     public ContextMenu AddItem(string label, Action action, bool enabled = true)
     {
-        _entries.Add(new MenuEntry(label, action, enabled, IsSeparator: false, IsHeader: false));
+        _entries.Add(new MenuEntry(label, action, enabled));
+        return this;
+    }
+
+    /// Toggle item — shows ✓ when binding is true; click flips the value.
+    /// By default the menu stays open so the user can toggle multiple items.
+    public ContextMenu AddCheckItem(string label, Bindable<bool> binding, bool closeOnClick = false)
+    {
+        _entries.Add(new MenuEntry(label, () => binding.Value = !binding.Value, true)
+            { Binding = binding, CloseOnClick = closeOnClick });
         return this;
     }
 
     public ContextMenu AddSeparator()
     {
-        _entries.Add(new MenuEntry("", () => { }, true, IsSeparator: true, IsHeader: false));
+        _entries.Add(new MenuEntry("", () => { }, true) { IsSeparator = true });
         return this;
     }
 
     public ContextMenu AddHeader(string text)
     {
-        _entries.Add(new MenuEntry(text, () => { }, false, IsSeparator: false, IsHeader: true));
+        _entries.Add(new MenuEntry(text, () => { }, false) { IsHeader = true });
         return this;
     }
 
     // ── Attachment ────────────────────────────────────────────────────────────
 
-    /// Hook into target (and all its current descendants) to show the menu on right-click.
-    /// Attach after the widget tree under target is fully built.
+    /// Hook right-click on target and all its current descendants.
+    /// Call after the widget tree under target is fully built.
     public static void Attach(Widget target, ContextMenu menu)
         => AttachRecursive(target, menu);
 
@@ -66,110 +77,80 @@ public sealed class ContextMenu
     public void Show(float x, float y)
     {
         if (!_built) BuildPanel();
-        _overlay.PositionX    = x;
-        _overlay.PositionY    = y;
         _overlay.ContentHAlign = HAlign.Left;
         _overlay.ContentVAlign = VAlign.Top;
+        _overlay.PositionX     = x;
+        _overlay.PositionY     = y;
         _overlay.Anchor        = null;
         _overlay.Open();
     }
 
     public void Close() => _overlay.Close();
 
-    // ── Panel construction ────────────────────────────────────────────────────
+    // ── Panel construction (lazy — called once on first Show) ─────────────────
 
     private void BuildPanel()
     {
         _built = true;
+        var list = new MenuList(minWidth: 180f, maxHeight: 320f);
 
-        var items = _entries.Select(e => BuildEntryWidget(e)).ToArray();
-
-        _overlay.Content = new PaddingBox(new Column(items).WithSpacing(2f), new Thickness(4f))
+        foreach (var entry in _entries)
         {
-            BackgroundSource = t => t.Surface,
-            CornerRadius     = 8f,
-            MinWidth         = 160f,
-        };
-    }
-
-    private Widget BuildEntryWidget(MenuEntry entry)
-    {
-        if (entry.IsSeparator)
-            return new Separator { Margin = new Thickness(4f, 2f) };
-
-        if (entry.IsHeader)
-        {
-            var headerLabel = new Label
+            if (entry.IsSeparator)
             {
-                Text = entry.Label,
-                FontSize = 11f,
-                Bold = true,
-                IsHitTestVisible = false,
-            };
-            return new PaddingBox(headerLabel, new Thickness(12f, 4f, 12f, 2f))
-            {
-                IsHitTestVisible = false,
-            };
-        }
-
-        var label = entry.Label;
-        var action = entry.Action;
-        var enabled = entry.Enabled;
-
-        return new ContextMenuItem(label, enabled, () =>
-        {
-            _overlay.Close();
-            if (enabled) action();
-        });
-    }
-
-    // ── Private types ─────────────────────────────────────────────────────────
-
-    private record MenuEntry(
-        string Label, Action Action, bool Enabled,
-        bool IsSeparator, bool IsHeader);
-
-    private sealed class ContextMenuItem : Widget
-    {
-        private readonly Label _label;
-        private readonly bool _enabled;
-
-        public ContextMenuItem(string text, bool enabled, Action onClick)
-        {
-            _enabled = enabled;
-            _label = new Label { Text = text, IsHitTestVisible = false };
-            Padding = new Thickness(12f, 6f);
-            CornerRadius = 6f;
-            IsEnabled = enabled;
-            OnClick = _ => onClick();
-        }
-
-        protected override Size MeasureCore(Size available)
-        {
-            _label.Measure(new Size(available.Width - Padding.Horizontal,
-                available.Height - Padding.Vertical));
-            return new Size(
-                _label.DesiredSize.Width + Padding.Horizontal,
-                _label.DesiredSize.Height + Padding.Vertical);
-        }
-
-        protected override void ArrangeCore(Rect r)
-            => _label.Arrange(r.Deflate(Padding));
-
-        protected override void DrawCore(DrawContext ctx)
-        {
-            var t = ctx.Theme;
-            var bg = IsPressed ? t.SurfacePressed
-                : IsHovered   ? t.SurfaceHover
-                : SKColor.Empty;
-
-            if (bg != SKColor.Empty)
-            {
-                using var p = ctx.MakePaint(bg);
-                ctx.Canvas.DrawRoundRect(LayoutBounds.ToSKRect(), CornerRadius, CornerRadius, p);
+                list.Add(new Separator { Margin = new Thickness(4f, 2f) });
+                continue;
             }
 
-            _label.Color = _enabled ? t.OnSurface : t.OnSurfaceMuted;
+            if (entry.IsHeader)
+            {
+                list.Add(new MenuHeaderWidget(entry.Label));
+                continue;
+            }
+
+            if (entry.Binding is not null)
+            {
+                // Check (toggle) item
+                var binding      = entry.Binding;
+                var closeOnClick = entry.CloseOnClick;
+                MenuItemWidget? item = null;
+                item = new MenuItemWidget(entry.Label, isChecked: () => binding.Value);
+                item.OnClick = _ =>
+                {
+                    binding.Value = !binding.Value;
+                    item!.Invalidate();          // refresh checkmark immediately
+                    if (closeOnClick) _overlay.Close();
+                };
+                list.Add(item);
+            }
+            else
+            {
+                // Standard action item
+                var action  = entry.Action;
+                var enabled = entry.Enabled;
+                var item    = new MenuItemWidget(entry.Label, enabled);
+                item.OnClick = _ =>
+                {
+                    _overlay.Close();
+                    if (enabled) action();
+                };
+                list.Add(item);
+            }
         }
+
+        _overlay.Content = list;
+    }
+
+    // ── Entry data ────────────────────────────────────────────────────────────
+
+    private sealed class MenuEntry(string Label, Action Action, bool Enabled)
+    {
+        public string        Label        { get; } = Label;
+        public Action        Action       { get; } = Action;
+        public bool          Enabled      { get; } = Enabled;
+        public bool          IsSeparator  { get; init; }
+        public bool          IsHeader     { get; init; }
+        public Bindable<bool>? Binding    { get; init; }
+        public bool          CloseOnClick { get; init; }
     }
 }

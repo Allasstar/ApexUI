@@ -47,10 +47,11 @@ ApexUI/
 │   │   ├── Tabs.cs            ← Tabs widget (Top/Bottom/Left/Right, scrollable tab bar)
 │   │   ├── RadioGroup.cs      ← RadioGroup<T>: mutually-exclusive options + Bindable<T>
 │   │   ├── NumberInput.cs     ← NumberInput: TextInput + −/+ buttons, Bindable<float/int>
-│   │   ├── Dropdown.cs        ← Dropdown<T>: pick-one selector; opens Overlay list on click
+│   │   ├── MenuList.cs        ← MenuList (internal panel) + MenuItemWidget + MenuHeaderWidget
+│   │   ├── Dropdown.cs        ← Dropdown<T>: pick-one selector; opens MenuList Overlay on left-click
 │   │   ├── Tooltip.cs         ← Tooltip: transparent decorator; shows Overlay after hover delay
 │   │   ├── Dialog.cs          ← Dialog: modal Overlay with title, content, and button row
-│   │   └── ContextMenu.cs     ← ContextMenu: right-click Overlay with labeled action items
+│   │   └── ContextMenu.cs     ← ContextMenu: right-click Overlay; AddItem/AddCheckItem/AddHeader
 │   └── Extensions/
 │       ├── SKColorExtensions.cs   ← C# 14 extension members on SKColor
 │       └── SKCanvasExtensions.cs  ← C# 14 extension members on SKCanvas
@@ -935,7 +936,8 @@ void canvas.DrawTextCentered(string text, SKRect bounds, SKFont font, SKPaint pa
 
 ### `Dropdown<T>` · `lib/Widgets/Dropdown.cs`
 
-Pick-one selector. Shows a button with the current selection; click opens an Overlay list.
+Pick-one selector. Shows a button with the current selection; left-click opens an Overlay
+list. Selected item is marked with ✓. Uses the shared `MenuList` panel internally.
 
 ```csharp
 Dropdown<T>()
@@ -1026,37 +1028,44 @@ renameButton.OnClick = _ => dlg.Show();
 
 ### `ContextMenu` · `lib/Widgets/ContextMenu.cs`
 
-Right-click Overlay with a list of labeled actions. Dismisses on click-outside.
-Not a Widget — it orchestrates an `Overlay` internally.
+Right-click Overlay with labeled action items, toggle items, headers, and separators.
+Dismisses on click-outside. Not a Widget — it orchestrates an `Overlay` internally.
+Shares visual panel + item widget with `Dropdown<T>` via `MenuList` (internal).
 
 ```csharp
 ContextMenu()
 
 // Fluent builder
 ContextMenu AddItem(string label, Action action, bool enabled = true)
+ContextMenu AddCheckItem(string label, Bindable<bool> binding, bool closeOnClick = false)
 ContextMenu AddSeparator()
 ContextMenu AddHeader(string text)
 
-// Attach to a widget — hooks OnPointerDown for right-click detection
+// Attach to a widget — hooks right-click on target and all its current descendants
 static void Attach(Widget target, ContextMenu menu)
 
 void Show(float x, float y)   // open at explicit screen coordinates
 void Close()
 ```
 
+**Check items:** toggle `binding.Value` on click; ✓ shown when `true`. Menu stays open by
+default (`closeOnClick = false`) so the user can toggle multiple items in one interaction.
+
 **Example:**
 ```csharp
+var bold  = new Bindable<bool>(false);
 var menu = new ContextMenu()
-    .AddHeader("Edit")
-    .AddItem("Copy",  () => Copy())
-    .AddItem("Paste", () => Paste())
+    .AddHeader("Format")
+    .AddCheckItem("Bold", bold)
     .AddSeparator()
-    .AddItem("Delete", () => Delete());
+    .AddItem("Copy",  () => Copy())
+    .AddItem("Paste", () => Paste());
 ContextMenu.Attach(myWidget, menu);
 ```
 
-**`Attach` note:** chains onto any existing `OnPointerDown` handler so the menu does not
-replace existing pointer logic.
+**`Attach` note:** walks the entire current subtree of `target` and chains onto every
+`OnPointerDown`, so right-clicking any descendant (labels, panels, etc.) shows the menu.
+Call `Attach` after the widget tree under `target` is fully built.
 
 ---
 
