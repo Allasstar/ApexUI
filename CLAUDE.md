@@ -22,6 +22,7 @@ ApexUI/
 │   │   ├── Thickness.cs       ← Thickness value type
 │   │   ├── DrawContext.cs     ← canvas + theme passed into every Draw()
 │   │   ├── Bindable.cs        ← Bindable<T> for two-way widget binding
+│   │   ├── Overlay.cs         ← Overlay: floating z-layer above all other widgets
 │   │   ├── FrameworkInfo.cs   ← ApexUI.Version constant
 │   │   └── GlobalUsings.cs    ← global using for all ApexUI namespaces + SkiaSharp
 │   ├── Layout/
@@ -36,6 +37,8 @@ ApexUI/
 │   │   ├── Toggle.cs          ← Toggle widget
 │   │   ├── Image.cs           ← Image widget (raster + SVG)
 │   │   ├── Slider.cs          ← Slider widget (float/int, optional step)
+│   │   ├── ProgressBar.cs     ← ProgressBar widget (float 0..1, four variants)
+│   │   ├── Separator.cs       ← Separator widget (1 px horizontal or vertical line)
 │   │   ├── Scroll.cs          ← Scroll widget (vertical/horizontal/both, optional scrollbar)
 │   │   └── Tabs.cs            ← Tabs widget (Top/Bottom/Left/Right, scrollable tab bar)
 │   └── Extensions/
@@ -48,6 +51,7 @@ ApexUI/
     │   ├── ImageToggleExample.cs  ← image + toggle demo
     │   ├── SliderExample.cs       ← sliders with two-way binding to text inputs
     │   ├── ScaleExample.cs        ← UI scale demo; exposes Bindable<float> Scale
+    │   ├── PrimitivesExample.cs   ← ProgressBar, Separator, and Overlay demo
     │   └── TabsExample.cs         ← all examples as tabs; exposes Scale + DarkMode bindables
     ├── Screens/               ← full-screen views
     ├── Widgets/               ← app-specific widgets (not framework reusable)
@@ -64,13 +68,6 @@ Widgets not yet implemented, in priority order.
 | `Spacer` | `lib/Layout/Spacer.cs` | Flexible gap in Row/Column; fills remaining space (Width/Height = ∞ while siblings size to content) |
 | `Grid` | `lib/Layout/Grid.cs` | 2D column/row alignment; needed for form layouts where labels and inputs must align across rows |
 | `Wrap` | `lib/Layout/Wrap.cs` | Children reflow to next line when they overflow (tag lists, icon grids) |
-
-### Core primitives
-| Widget | File | Notes |
-|--------|------|-------|
-| `Overlay` | `lib/Core/Overlay.cs` | **Highest priority.** Floating z-layer anchored to a widget, renders above everything. Required by Dropdown, Tooltip, Dialog, ContextMenu |
-| `ProgressBar` | `lib/Widgets/ProgressBar.cs` | Read-only `float` in `0..1` → filled bar; trivial to implement |
-| `Separator` | `lib/Widgets/Separator.cs` | 1 px horizontal or vertical divider line |
 
 ### Composite widgets (depend on Overlay)
 | Widget | File | Notes |
@@ -554,6 +551,52 @@ enum InputMode { Any, Integer, Float }
 
 ---
 
+### `ProgressBar` · `lib/Widgets/ProgressBar.cs`
+
+Read-only filled bar driven by a `float` value in `0..1`. Four color variants.
+
+```csharp
+ProgressBar()
+float               Value   { get; set; }   // clamped 0..1
+ProgressBarVariant  Variant { get; set; }   // Primary | Success | Warning | Danger
+
+// Fluent
+ProgressBar WithValue(float value)
+ProgressBar WithVariant(ProgressBarVariant v)
+
+// One-way binding (source → bar only)
+ProgressBar Bind(Bindable<float> source)
+
+enum ProgressBarVariant { Primary, Success, Warning, Danger }
+```
+
+---
+
+### `Separator` · `lib/Widgets/Separator.cs`
+
+1 px horizontal or vertical divider line. Non-interactive (`IsHitTestVisible = false`).
+
+```csharp
+Separator()
+SeparatorOrientation Orientation { get; set; }   // Horizontal (default) | Vertical
+SKColor?             Color       { get; set; }   // null = Theme.Border
+
+// Fluent
+Separator AsHorizontal()
+Separator AsVertical()
+Separator WithColor(SKColor color)
+
+enum SeparatorOrientation { Horizontal, Vertical }
+```
+
+**Sizing:** Horizontal reports `(available.Width, 1f)`; Vertical reports `(1f, available.Height)`.
+For a vertical separator in a Row, set an explicit `Height` to prevent unbounded measurement:
+```csharp
+new Separator { Height = 24f }.AsVertical()
+```
+
+---
+
 ### `Toggle` · `lib/Widgets/Toggle.cs`
 
 ```csharp
@@ -628,6 +671,51 @@ Row WithSpacing(float spacing)
 PaddingBox(Widget child, Thickness padding)
 PaddingBox(Widget child, float all)   // uniform padding shorthand
 // Wraps exactly one child; applies Padding on all sides
+```
+
+---
+
+### `Overlay` · `lib/Core/Overlay.cs`
+
+Floating z-layer rendered by `Application` after the root widget tree, so it appears above all other content regardless of nesting depth. Occupies the full logical screen for backdrop hit-testing.
+
+```csharp
+Overlay()
+Widget?        Content               { get; set; }   // the floating panel
+Widget?        Anchor                { get; set; }   // anchor for edge-relative positioning
+OverlayAnchor  AnchorEdge            { get; set; }   // BelowAnchor (default) | Above | Right | Left
+float          PositionX, PositionY  { get; set; }   // explicit screen coords (Anchor = null, Left/Top)
+HAlign         ContentHAlign         { get; set; }   // screen alignment when Anchor is null
+VAlign         ContentVAlign         { get; set; }
+bool           IsModal               { get; set; }   // semi-transparent backdrop behind Content
+bool           DismissOnClickOutside { get; set; }   // default true; Close() on backdrop click
+Action?        OnDismiss             { get; set; }
+
+void Open()                                          // register with Application + show
+void Open(Widget anchor, OverlayAnchor edge = BelowAnchor)
+void Close()                                         // unregister + hide + fire OnDismiss
+
+enum OverlayAnchor { BelowAnchor, AboveAnchor, RightOfAnchor, LeftOfAnchor }
+```
+
+**Architecture:** `Application` maintains an internal `_overlays` list. Overlays are measured/arranged
+against the full logical screen each frame, then drawn after the root tree — no clip stack inherited
+from the regular widget hierarchy. `HitTestAll` checks overlays (last-registered first) before the root,
+so all pointer input is blocked from reaching widgets beneath an open overlay.
+
+**Centering a dialog:**
+```csharp
+var ov = new Overlay { IsModal = true, DismissOnClickOutside = false,
+                        ContentHAlign = HAlign.Center, ContentVAlign = VAlign.Center };
+ov.Content = new PaddingBox(content, 20f) { BackgroundSource = t => t.Surface, CornerRadius = 12f };
+button.OnClick = _ => ov.Open();
+```
+
+**Anchored dropdown/popup:**
+```csharp
+var ov = new Overlay { DismissOnClickOutside = true };
+ov.Content = popupPanel;
+btn.OnClick = _ => ov.Open(btn, OverlayAnchor.BelowAnchor);
 ```
 
 ---

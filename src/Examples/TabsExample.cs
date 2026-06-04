@@ -17,10 +17,11 @@ public class TabsExample : Widget
         DarkMode = scaleEx.DarkMode;
 
         var tabs = new Tabs(TabPosition.Top)
-            .AddTab("Counter",  new Scroll(new CounterExample()))
-            .AddTab("Images",   new Scroll(new ImageToggleExample()))
-            .AddTab("Sliders",  new Scroll(new SliderExample()))
-            .AddTab("UI Scale", new Scroll(scaleEx));
+            .AddTab("Counter",    new Scroll(new CounterExample()))
+            .AddTab("Images",     new Scroll(new ImageToggleExample()))
+            .AddTab("Sliders",    new Scroll(new SliderExample()))
+            .AddTab("UI Scale",   new Scroll(scaleEx))
+            .AddTab("Primitives", new Scroll(new PrimitivesExample()));
 
         AddChild(tabs);
     }

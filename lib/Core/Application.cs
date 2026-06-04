@@ -28,6 +28,9 @@ public sealed class Application
     private Widget?    _pressedWidget;
     private string?    _pendingIconPath;
 
+    internal static Application? Current { get; private set; }
+    private readonly List<Overlay> _overlays = [];
+
     public Theme Theme { get; set; } = Theme.Light;
     public float DpiScale { get; private set; } = 1f;
 
@@ -55,6 +58,7 @@ public sealed class Application
         _window.Render  += OnRender;
         _window.Resize  += OnResize;
         _window.Closing += OnClosing;
+        Current = this;
     }
 
     // ── Public API ────────────────────────────────────────────────────────────
@@ -79,6 +83,25 @@ public sealed class Application
         Theme = isDark.Value ? Theme.Dark : Theme.Light;
         isDark.Changed += v => Theme = v ? Theme.Dark : Theme.Light;
         return this;
+    }
+
+    internal void RegisterOverlay(Overlay overlay)
+    {
+        if (!_overlays.Contains(overlay))
+            _overlays.Add(overlay);
+    }
+
+    internal void UnregisterOverlay(Overlay overlay)
+        => _overlays.Remove(overlay);
+
+    private Widget? HitTestAll(float x, float y)
+    {
+        for (int i = _overlays.Count - 1; i >= 0; i--)
+        {
+            var hit = _overlays[i].HitTest(x, y);
+            if (hit is not null) return hit;
+        }
+        return _root?.HitTest(x, y);
     }
 
     /// Set the root widget tree and start the event loop.
@@ -158,6 +181,7 @@ public sealed class Application
             LayoutRoot();
 
         TickWidgets(_root, (float)delta);
+        foreach (var o in _overlays) TickWidgets(o, (float)delta);
 
         var canvas = _surface.Canvas;
         canvas.Clear(Theme.Background);
@@ -166,6 +190,16 @@ public sealed class Application
 
         var ctx = new DrawContext(canvas, Theme, DpiScale);
         _root.Draw(ctx);
+
+        // Overlays are laid out and drawn after the root tree so they
+        // appear above everything without inheriting any clip stack.
+        var logicalSize = new Size(_window.Size.X / TotalScale, _window.Size.Y / TotalScale);
+        foreach (var o in _overlays)
+        {
+            o.Measure(logicalSize);
+            o.Arrange(new Rect(0, 0, logicalSize.Width, logicalSize.Height));
+            o.Draw(ctx);
+        }
 
         canvas.Restore();
         canvas.Flush();
@@ -191,7 +225,7 @@ public sealed class Application
     private void OnMouseMove(IMouse mouse, System.Numerics.Vector2 pos)
     {
         float x = pos.X / TotalScale, y = pos.Y / TotalScale;
-        var hit = _root?.HitTest(x, y);
+        var hit = HitTestAll(x, y);
 
         // Hover state
         if (hit != _hoveredWidget)
@@ -217,7 +251,7 @@ public sealed class Application
     private void OnMouseDown(IMouse mouse, MouseButton btn)
     {
         float x = mouse.Position.X / TotalScale, y = mouse.Position.Y / TotalScale;
-        var hit = _root?.HitTest(x, y);
+        var hit = HitTestAll(x, y);
 
         // Focus
         if (hit != _focusedWidget)
@@ -240,7 +274,7 @@ public sealed class Application
     private void OnMouseUp(IMouse mouse, MouseButton btn)
     {
         float x = mouse.Position.X / TotalScale, y = mouse.Position.Y / TotalScale;
-        var hit = _root?.HitTest(x, y);
+        var hit = HitTestAll(x, y);
 
         if (_pressedWidget is not null)
         {
