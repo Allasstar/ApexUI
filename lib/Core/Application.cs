@@ -216,7 +216,7 @@ public sealed class Application
 
     private void TickWidgets(Widget w, float delta)
     {
-        if (w is Widgets.TextInput input) input.Tick(delta);
+        if (w is ITickable t) t.Tick(delta);
         foreach (var child in w.Children) TickWidgets(child, delta);
     }
 

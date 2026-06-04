@@ -14,6 +14,8 @@ public class Row : Widget
         foreach (var c in children) AddChild(c);
     }
 
+    public Row Add(Widget child) { AddChild(child); return this; }
+
     public Row WithSpacing(float spacing) { Spacing = spacing; return this; }
 
     protected override Size MeasureCore(Size available)

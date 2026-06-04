@@ -23,7 +23,8 @@ public class TabsExample : Widget
             .AddTab("UI Scale",   new Scroll(scaleEx))
             .AddTab("Primitives", new Scroll(new PrimitivesExample()))
             .AddTab("Layout",     new Scroll(new LayoutExample()))
-            .AddTab("Inputs",     new Scroll(new InputsExample()));
+            .AddTab("Inputs",     new Scroll(new InputsExample()))
+            .AddTab("Composite",  new Scroll(new CompositeExample()));
 
         AddChild(tabs);
     }

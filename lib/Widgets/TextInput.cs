@@ -4,7 +4,7 @@ namespace ApexUI.Widgets;
 
 public enum InputMode { Any, Integer, Float }
 
-public class TextInput : Widget
+public class TextInput : Widget, ITickable
 {
     public string Value
     {

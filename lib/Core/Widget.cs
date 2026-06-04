@@ -40,6 +40,16 @@ public abstract class Widget
         }
     }
 
+    public void RemoveAllChildren()
+    {
+        for (int i = _children.Count - 1; i >= 0; i--)
+        {
+            _children[i].Parent = null;
+            _children.RemoveAt(i);
+        }
+        InvalidateLayout();
+    }
+
     // ── Layout properties (C# 14 `field` keyword) ─────────────────────────
     // `field` is the implicit backing field — no separate `private float _width`
 
@@ -294,7 +304,7 @@ public abstract class Widget
     // ── Hit-testing ────────────────────────────────────────────────────────
 
     /// Returns the deepest widget at (x, y), or null if nothing hit.
-    public Widget? HitTest(float x, float y)
+    public virtual Widget? HitTest(float x, float y)
     {
         if (!IsVisible || !IsEnabled || !IsHitTestVisible) return null;
         if (!LayoutBounds.Contains(x, y)) return null;

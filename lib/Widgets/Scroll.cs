@@ -67,7 +67,15 @@ public class Scroll : Widget
             hasH ? float.PositiveInfinity : vpW,
             hasV ? float.PositiveInfinity : vpH));
 
-        return new Size(available.Width, available.Height);
+        // When available is infinite (e.g. inside an Overlay), shrink to content size.
+        // When available is finite (normal layout), fill the given space.
+        float reportW = float.IsInfinity(available.Width)
+            ? _content.DesiredSize.Width  + (hasV && ShowScrollbar ? BarSize : 0f)
+            : available.Width;
+        float reportH = float.IsInfinity(available.Height)
+            ? _content.DesiredSize.Height + (hasH && ShowScrollbar ? BarSize : 0f)
+            : available.Height;
+        return new Size(reportW, reportH);
     }
 
     protected override void ArrangeCore(Rect r)

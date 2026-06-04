@@ -14,6 +14,8 @@ public class Column : Widget
         foreach (var c in children) AddChild(c);
     }
 
+    public Column Add(Widget child) { AddChild(child); return this; }
+
     public Column WithSpacing(float spacing) { Spacing = spacing; return this; }
 
     protected override Size MeasureCore(Size available)

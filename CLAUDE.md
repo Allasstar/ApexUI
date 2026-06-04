@@ -23,12 +23,13 @@ ApexUI/
 │   │   ├── DrawContext.cs     ← canvas + theme passed into every Draw()
 │   │   ├── Bindable.cs        ← Bindable<T> for two-way widget binding
 │   │   ├── Overlay.cs         ← Overlay: floating z-layer above all other widgets
+│   │   ├── ITickable.cs       ← internal ITickable interface; Application ticks implementing widgets
 │   │   ├── FrameworkInfo.cs   ← ApexUI.Version constant
 │   │   └── GlobalUsings.cs    ← global using for all ApexUI namespaces + SkiaSharp
 │   ├── Layout/
 │   │   ├── Stack.cs           ← Stack panel
-│   │   ├── Column.cs          ← Column panel (Spacer-aware)
-│   │   ├── Row.cs             ← Row panel (Spacer-aware)
+│   │   ├── Column.cs          ← Column panel (Spacer-aware); Column.Add(Widget) for dynamic children
+│   │   ├── Row.cs             ← Row panel (Spacer-aware); Row.Add(Widget) for dynamic children
 │   │   ├── PaddingBox.cs      ← PaddingBox panel
 │   │   ├── Spacer.cs          ← Flexible gap; fills leftover space in Row/Column
 │   │   ├── Grid.cs            ← 2D grid with Auto/Fixed/Star column+row sizing
@@ -45,7 +46,11 @@ ApexUI/
 │   │   ├── Scroll.cs          ← Scroll widget (vertical/horizontal/both, optional scrollbar)
 │   │   ├── Tabs.cs            ← Tabs widget (Top/Bottom/Left/Right, scrollable tab bar)
 │   │   ├── RadioGroup.cs      ← RadioGroup<T>: mutually-exclusive options + Bindable<T>
-│   │   └── NumberInput.cs     ← NumberInput: TextInput + −/+ buttons, Bindable<float/int>
+│   │   ├── NumberInput.cs     ← NumberInput: TextInput + −/+ buttons, Bindable<float/int>
+│   │   ├── Dropdown.cs        ← Dropdown<T>: pick-one selector; opens Overlay list on click
+│   │   ├── Tooltip.cs         ← Tooltip: transparent decorator; shows Overlay after hover delay
+│   │   ├── Dialog.cs          ← Dialog: modal Overlay with title, content, and button row
+│   │   └── ContextMenu.cs     ← ContextMenu: right-click Overlay with labeled action items
 │   └── Extensions/
 │       ├── SKColorExtensions.cs   ← C# 14 extension members on SKColor
 │       └── SKCanvasExtensions.cs  ← C# 14 extension members on SKCanvas
@@ -59,23 +64,12 @@ ApexUI/
     │   ├── PrimitivesExample.cs   ← ProgressBar, Separator, and Overlay demo
     │   ├── LayoutExample.cs       ← Spacer, Grid, Wrap, and AspectRatio demo
     │   ├── InputsExample.cs       ← RadioGroup<T> and NumberInput demo
-    │   └── TabsExample.cs         ← all examples as tabs; exposes Scale + DarkMode bindables
+    │   ├── TabsExample.cs         ← all examples as tabs; exposes Scale + DarkMode bindables
+    │   └── CompositeExample.cs    ← Dropdown, Tooltip, Dialog, and ContextMenu demo
     ├── Screens/               ← full-screen views
     ├── Widgets/               ← app-specific widgets (not framework reusable)
     └── Models/                ← app data models
 ```
-
-## Planned widgets (TODO)
-
-Widgets not yet implemented, in priority order.
-
-### Composite widgets (depend on Overlay)
-| Widget | File | Notes |
-|--------|------|-------|
-| `Dropdown` / `ComboBox` | `lib/Widgets/Dropdown.cs` | Pick one item from a list; opens an Overlay with a ListView |
-| `Tooltip` | `lib/Widgets/Tooltip.cs` | Overlay shown on hover after a short delay |
-| `Dialog` / `Modal` | `lib/Widgets/Dialog.cs` | Blocking Overlay with a content widget and an optional backdrop |
-| `ContextMenu` | `lib/Widgets/ContextMenu.cs` | Right-click Overlay with a list of actions |
 
 ---
 
@@ -935,4 +929,144 @@ C# 14 extension members on `SKCanvas`.
 void canvas.FillRoundRect(SKRect rect, float rx, SKColor color)
 void canvas.StrokeRoundRect(SKRect rect, float rx, SKColor color, float strokeWidth = 1f)
 void canvas.DrawTextCentered(string text, SKRect bounds, SKFont font, SKPaint paint)
+```
+
+---
+
+### `Dropdown<T>` · `lib/Widgets/Dropdown.cs`
+
+Pick-one selector. Shows a button with the current selection; click opens an Overlay list.
+
+```csharp
+Dropdown<T>()
+T?      SelectedValue { get; set; }   // set fires OnChanged
+string  Placeholder   { get; set; }   // shown when nothing is selected
+Action<T?>? OnChanged
+
+// Fluent
+Dropdown<T> AddItem(T value, string label)
+Dropdown<T> WithPlaceholder(string text)
+Dropdown<T> WithSelected(T value)
+Dropdown<T> OnChange(Action<T?> action)
+Dropdown<T> Bind(Bindable<T> source)   // two-way binding
+```
+
+**Example:**
+```csharp
+var fruit = new Bindable<string>("apple");
+new Dropdown<string>()
+    .WithPlaceholder("Pick a fruit…")
+    .AddItem("apple",  "Apple")
+    .AddItem("banana", "Banana")
+    .AddItem("cherry", "Cherry")
+    .Bind(fruit)
+```
+
+---
+
+### `Tooltip` · `lib/Widgets/Tooltip.cs`
+
+Transparent decorator widget. Wraps any widget and shows a floating label after a hover delay.
+Implements `ITickable`; ticked by Application each frame.
+
+```csharp
+Tooltip(Widget child, string text)
+float           ShowDelay { get; set; }   // seconds before popup appears (default 0.6)
+TooltipPosition Position  { get; set; }   // Below (default) | Above | Right | Left
+
+enum TooltipPosition { Below, Above, Right, Left }
+```
+
+**Usage:** replace a widget with its Tooltip wrapper in the layout tree.
+```csharp
+new Tooltip(new Button("Save"), "Save the document")
+new Tooltip(new Button("Help"), "Open documentation") { Position = TooltipPosition.Above }
+```
+
+**Transparency:** `HitTest` delegates directly to the child, so pointer events, hover state, and
+clicks reach the wrapped widget unchanged. The `Tooltip` itself is invisible to the event system.
+
+---
+
+### `Dialog` · `lib/Widgets/Dialog.cs`
+
+Modal dialog with a title bar, content widget, and a right-aligned row of buttons.
+Not a Widget — it orchestrates an `Overlay` internally.
+
+```csharp
+Dialog(string title, Widget content)
+string  Title    { get; set; }
+Action? OnClosed
+
+// Fluent button builder (call before Show)
+Dialog AddButton(string text, Action action, ButtonVariant variant = Secondary)
+Dialog AddPrimaryButton(string text, Action action)
+
+void Show()
+void Close()
+
+// Static factories
+static Dialog Alert(string title, string message, string btnText = "OK", Action? onClose = null)
+static Dialog Confirm(string title, string message,
+    Action? onConfirm = null, Action? onCancel = null,
+    string confirmText = "OK", string cancelText = "Cancel")
+```
+
+**Example — custom dialog:**
+```csharp
+var nameInput = new TextInput("New name…");
+Dialog? dlg = null;
+dlg = new Dialog("Rename", nameInput)
+    .AddButton("Cancel", () => dlg!.Close())
+    .AddPrimaryButton("Rename", () => { Rename(nameInput.Value); dlg!.Close(); });
+renameButton.OnClick = _ => dlg.Show();
+```
+
+---
+
+### `ContextMenu` · `lib/Widgets/ContextMenu.cs`
+
+Right-click Overlay with a list of labeled actions. Dismisses on click-outside.
+Not a Widget — it orchestrates an `Overlay` internally.
+
+```csharp
+ContextMenu()
+
+// Fluent builder
+ContextMenu AddItem(string label, Action action, bool enabled = true)
+ContextMenu AddSeparator()
+ContextMenu AddHeader(string text)
+
+// Attach to a widget — hooks OnPointerDown for right-click detection
+static void Attach(Widget target, ContextMenu menu)
+
+void Show(float x, float y)   // open at explicit screen coordinates
+void Close()
+```
+
+**Example:**
+```csharp
+var menu = new ContextMenu()
+    .AddHeader("Edit")
+    .AddItem("Copy",  () => Copy())
+    .AddItem("Paste", () => Paste())
+    .AddSeparator()
+    .AddItem("Delete", () => Delete());
+ContextMenu.Attach(myWidget, menu);
+```
+
+**`Attach` note:** chains onto any existing `OnPointerDown` handler so the menu does not
+replace existing pointer logic.
+
+---
+
+### `Column` / `Row` — dynamic children
+
+Both panels now expose `Add(Widget)` for adding children after construction (returns `self` for
+fluent chaining). Use `Widget.RemoveAllChildren()` (public) to clear all children at once.
+
+```csharp
+Column Add(Widget child)          // appends child, returns this
+Row    Add(Widget child)          // appends child, returns this
+void   Widget.RemoveAllChildren() // removes every child, triggers InvalidateLayout
 ```
