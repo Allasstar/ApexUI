@@ -43,7 +43,9 @@ ApexUI/
 │   │   ├── ProgressBar.cs     ← ProgressBar widget (float 0..1, four variants)
 │   │   ├── Separator.cs       ← Separator widget (1 px horizontal or vertical line)
 │   │   ├── Scroll.cs          ← Scroll widget (vertical/horizontal/both, optional scrollbar)
-│   │   └── Tabs.cs            ← Tabs widget (Top/Bottom/Left/Right, scrollable tab bar)
+│   │   ├── Tabs.cs            ← Tabs widget (Top/Bottom/Left/Right, scrollable tab bar)
+│   │   ├── RadioGroup.cs      ← RadioGroup<T>: mutually-exclusive options + Bindable<T>
+│   │   └── NumberInput.cs     ← NumberInput: TextInput + −/+ buttons, Bindable<float/int>
 │   └── Extensions/
 │       ├── SKColorExtensions.cs   ← C# 14 extension members on SKColor
 │       └── SKCanvasExtensions.cs  ← C# 14 extension members on SKCanvas
@@ -56,6 +58,7 @@ ApexUI/
     │   ├── ScaleExample.cs        ← UI scale demo; exposes Bindable<float> Scale
     │   ├── PrimitivesExample.cs   ← ProgressBar, Separator, and Overlay demo
     │   ├── LayoutExample.cs       ← Spacer, Grid, Wrap, and AspectRatio demo
+    │   ├── InputsExample.cs       ← RadioGroup<T> and NumberInput demo
     │   └── TabsExample.cs         ← all examples as tabs; exposes Scale + DarkMode bindables
     ├── Screens/               ← full-screen views
     ├── Widgets/               ← app-specific widgets (not framework reusable)
@@ -73,12 +76,6 @@ Widgets not yet implemented, in priority order.
 | `Tooltip` | `lib/Widgets/Tooltip.cs` | Overlay shown on hover after a short delay |
 | `Dialog` / `Modal` | `lib/Widgets/Dialog.cs` | Blocking Overlay with a content widget and an optional backdrop |
 | `ContextMenu` | `lib/Widgets/ContextMenu.cs` | Right-click Overlay with a list of actions |
-
-### Other input widgets
-| Widget | File | Notes |
-|--------|------|-------|
-| `RadioGroup` | `lib/Widgets/RadioGroup.cs` | Mutually-exclusive Toggles sharing a `Bindable<T>`; composable from existing widgets but ergonomic as a unit |
-| `NumberInput` | `lib/Widgets/NumberInput.cs` | TextInput + increment/decrement buttons; composable from existing widgets |
 
 ---
 
@@ -850,6 +847,69 @@ enum TabPosition { Top, Bottom, Left, Right }
 **Content:** all tab content widgets are children of `Tabs`. Only the active tab's `IsVisible = true`. Switching tabs calls `InvalidateLayout()` so the newly-visible content is arranged before the next draw.
 
 **Active indicator:** a `2px` Primary-colored line on the content-facing edge of the active tab button.
+
+---
+
+### `RadioGroup<T>` · `lib/Widgets/RadioGroup.cs`
+
+Mutually-exclusive list of radio buttons backed by a `Bindable<T>`.
+
+```csharp
+RadioGroup<T>(RadioOrientation orientation = Vertical, float spacing = 8f)
+RadioGroup<T> AddOption(T value, string label)   // fluent; call before Bind
+RadioGroup<T> WithSelected(T value)
+RadioGroup<T> OnChange(Action<T?> action)
+RadioGroup<T> Bind(Bindable<T> source)           // two-way binding
+
+T?            SelectedValue { get; set; }        // set fires OnChanged + updates visuals
+Action<T?>?   OnChanged
+
+enum RadioOrientation { Vertical, Horizontal }
+```
+
+**Radio item visuals:** 18 px outer ring (Primary when selected, Border otherwise) + 10 px filled dot when selected. Label drawn to the right. Hover ripple shown on mouse-over.
+
+**Example:**
+```csharp
+var theme = new Bindable<string>("System");
+new RadioGroup<string>()
+    .AddOption("Light",  "Light")
+    .AddOption("Dark",   "Dark")
+    .AddOption("System", "System")
+    .Bind(theme)
+```
+
+---
+
+### `NumberInput` · `lib/Widgets/NumberInput.cs`
+
+Numeric text field flanked by decrement (`−`) and increment (`+`) buttons.
+Layout: `[−] [TextInput] [+]` — TextInput fills remaining width.
+
+```csharp
+NumberInput(float value = 0f)
+float  Min    { get; set; }   // default -∞
+float  Max    { get; set; }   // default +∞
+float  Step   { get; set; }   // default 1
+string Format { get; set; }   // default "G"; set to "F2" or "0" as needed
+float  Value  { get; set; }   // clamped to Min..Max; fires OnChanged
+
+Action<float>? OnChanged
+
+// Fluent
+NumberInput WithMin(float min)
+NumberInput WithMax(float max)
+NumberInput WithStep(float step)
+NumberInput WithFormat(string format)
+NumberInput WithValue(float v)
+NumberInput OnChange(Action<float> a)
+
+// Binding
+NumberInput Bind(Bindable<float> source)
+NumberInput BindInt(Bindable<int> source)   // also sets Step=1 and Format="0"
+```
+
+**Typing behaviour:** while the user edits the field the display may show out-of-range text; pressing `+`/`−` or `Enter` syncs the display back to the clamped value.
 
 ---
 
