@@ -27,9 +27,12 @@ ApexUI/
 │   │   └── GlobalUsings.cs    ← global using for all ApexUI namespaces + SkiaSharp
 │   ├── Layout/
 │   │   ├── Stack.cs           ← Stack panel
-│   │   ├── Column.cs          ← Column panel
-│   │   ├── Row.cs             ← Row panel
-│   │   └── PaddingBox.cs      ← PaddingBox panel
+│   │   ├── Column.cs          ← Column panel (Spacer-aware)
+│   │   ├── Row.cs             ← Row panel (Spacer-aware)
+│   │   ├── PaddingBox.cs      ← PaddingBox panel
+│   │   ├── Spacer.cs          ← Flexible gap; fills leftover space in Row/Column
+│   │   ├── Grid.cs            ← 2D grid with Auto/Fixed/Star column+row sizing
+│   │   └── Wrap.cs            ← Wrapping row; children reflow to next line on overflow
 │   ├── Widgets/
 │   │   ├── Label.cs           ← Label widget
 │   │   ├── Button.cs          ← Button widget
@@ -52,6 +55,7 @@ ApexUI/
     │   ├── SliderExample.cs       ← sliders with two-way binding to text inputs
     │   ├── ScaleExample.cs        ← UI scale demo; exposes Bindable<float> Scale
     │   ├── PrimitivesExample.cs   ← ProgressBar, Separator, and Overlay demo
+    │   ├── LayoutExample.cs       ← Spacer, Grid, and Wrap demo
     │   └── TabsExample.cs         ← all examples as tabs; exposes Scale + DarkMode bindables
     ├── Screens/               ← full-screen views
     ├── Widgets/               ← app-specific widgets (not framework reusable)
@@ -61,13 +65,6 @@ ApexUI/
 ## Planned widgets (TODO)
 
 Widgets not yet implemented, in priority order.
-
-### Layout
-| Widget | File | Notes |
-|--------|------|-------|
-| `Spacer` | `lib/Layout/Spacer.cs` | Flexible gap in Row/Column; fills remaining space (Width/Height = ∞ while siblings size to content) |
-| `Grid` | `lib/Layout/Grid.cs` | 2D column/row alignment; needed for form layouts where labels and inputs must align across rows |
-| `Wrap` | `lib/Layout/Wrap.cs` | Children reflow to next line when they overflow (tag lists, icon grids) |
 
 ### Composite widgets (depend on Overlay)
 | Widget | File | Notes |
@@ -652,6 +649,9 @@ float Spacing { get; set; }   // gap between children
 Column WithSpacing(float spacing)
 ```
 
+`Spacer` children are detected at arrange time; each gets an equal share of the height
+remaining after all non-Spacer children and gaps are measured.
+
 ---
 
 ### `Row` · `lib/Layout/Row.cs`
@@ -661,6 +661,89 @@ Row(params Widget[] children)
 float Spacing { get; set; }   // gap between children
 
 Row WithSpacing(float spacing)
+```
+
+`Spacer` children are detected at arrange time; each gets an equal share of the width
+remaining after all non-Spacer children and gaps are measured.
+
+---
+
+### `Spacer` · `lib/Layout/Spacer.cs`
+
+Flexible gap for Row and Column. Reports zero size during Measure (so the container's
+natural size is unaffected), then receives an equal share of the leftover space during
+Arrange. Multiple Spacers in the same container split the remainder equally.
+
+```csharp
+Spacer()
+// No properties — place it between siblings in Row or Column.
+```
+
+**Example — push button to right edge:**
+```csharp
+new Row(new Label { Text = "File: foo.txt" }, new Spacer(), new Button("Close")) { Spacing = 8f }
+```
+
+---
+
+### `Grid` · `lib/Layout/Grid.cs`
+
+2D layout panel. Children are placed by explicit (col, row) coordinate. Columns and rows
+support `Auto` (size to content), `Fixed` (px), and `Star` (fill remaining proportionally)
+sizing. Rows auto-detected from cell coordinates when `DefineRows` is not called.
+
+```csharp
+Grid()
+Grid DefineColumns(params GridLength[] columns)   // call before Add(); defaults to [Auto]
+Grid DefineRows(params GridLength[] rows)         // optional; auto-detected when omitted
+Grid WithSpacing(float columnSpacing, float rowSpacing)
+Grid Add(Widget child, int col = 0, int row = 0, int colSpan = 1, int rowSpan = 1)
+
+float ColumnSpacing { get; set; }
+float RowSpacing    { get; set; }
+```
+
+```csharp
+// GridLength factories
+GridLength.Auto                  // size to max of cells in that track
+GridLength.Fixed(float px)       // fixed pixel width/height
+GridLength.Star(float factor=1f) // proportion of remaining space (like CSS fr)
+```
+
+**Form layout example:**
+```csharp
+new Grid()
+    .DefineColumns(GridLength.Auto, GridLength.Star())
+    .WithSpacing(12f, 8f)
+    .Add(new Label { Text = "Name",  VAlign = VAlign.Center }, 0, 0)
+    .Add(new TextInput("Enter name…"), 1, 0)
+    .Add(new Label { Text = "Email", VAlign = VAlign.Center }, 0, 1)
+    .Add(new TextInput("Enter email…"), 1, 1)
+```
+
+**Span example (header spanning both columns):**
+```csharp
+.Add(new Label { Text = "Contact form", Bold = true }, 0, 0, colSpan: 2)
+```
+
+---
+
+### `Wrap` · `lib/Layout/Wrap.cs`
+
+Children arranged left-to-right, wrapping to a new line when they would overflow the
+available width. All items on the same line share the tallest item's height.
+
+```csharp
+Wrap(params Widget[] children)
+float HorizontalSpacing { get; set; }   // gap between items on the same line
+float VerticalSpacing   { get; set; }   // gap between lines
+
+Wrap WithSpacing(float horizontal, float vertical)
+```
+
+**Tag cloud example:**
+```csharp
+new Wrap(tags.Select(t => new Label { Text = t }).ToArray()).WithSpacing(6f, 6f)
 ```
 
 ---

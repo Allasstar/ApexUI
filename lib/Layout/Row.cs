@@ -38,18 +38,51 @@ public class Row : Widget
 
     protected override void ArrangeCore(Rect finalRect)
     {
-        float x = finalRect.X;
-        bool first = true;
+        // Fast path: no Spacers — original single-pass preserving remaining-width semantics.
+        bool hasSpacers = false;
+        foreach (var child in Children)
+            if (child.IsVisible && child is Spacer) { hasSpacers = true; break; }
 
+        if (!hasSpacers)
+        {
+            float x = finalRect.X;
+            bool first = true;
+            foreach (var child in Children)
+            {
+                if (!child.IsVisible) continue;
+                if (!first) x += Spacing;
+                child.Measure(new Size(Math.Max(0f, finalRect.Right - x), finalRect.Height));
+                child.Arrange(new Rect(x, finalRect.Y, child.DesiredSize.Width, finalRect.Height));
+                x += child.DesiredSize.Width;
+                first = false;
+            }
+            return;
+        }
+
+        // Two-pass Spacer layout: measure fixed children first, then distribute remainder.
+        int visible = 0, spacerCount = 0;
+        float fixedW = 0f;
         foreach (var child in Children)
         {
             if (!child.IsVisible) continue;
-            if (!first) x += Spacing;
+            visible++;
+            if (child is Spacer) { spacerCount++; continue; }
+            child.Measure(new Size(finalRect.Width, finalRect.Height));
+            fixedW += child.DesiredSize.Width;
+        }
+        float usedSpacing = visible > 1 ? (visible - 1) * Spacing : 0f;
+        float spacerW = Math.Max(0f, finalRect.Width - fixedW - usedSpacing) / spacerCount;
 
-            child.Measure(new Size(finalRect.Right - x, finalRect.Height));
-            child.Arrange(new Rect(x, finalRect.Y, child.DesiredSize.Width, finalRect.Height));
-            x += child.DesiredSize.Width;
-            first = false;
+        float x2 = finalRect.X;
+        bool first2 = true;
+        foreach (var child in Children)
+        {
+            if (!child.IsVisible) continue;
+            if (!first2) x2 += Spacing;
+            float w = child is Spacer ? spacerW : child.DesiredSize.Width;
+            child.Arrange(new Rect(x2, finalRect.Y, w, finalRect.Height));
+            x2 += w;
+            first2 = false;
         }
     }
 }
