@@ -48,6 +48,26 @@ public class LayoutExample : Widget
                         MakeTag("UI Framework"), MakeTag("Layout"), MakeTag("2D Graphics"),
                         MakeTag("Vector"), MakeTag("Cross-Platform"), MakeTag("Zero-GC")
                     ).WithSpacing(6f, 6f)
+                ).WithSpacing(8f)),
+
+                new Separator { Margin = new Thickness(0, 4f) },
+
+                // ── Grid — Square Tiles (1:1 aspect ratio) ───────────────────
+                new Label { Text = "Grid — Aspect Ratio (1:1 Square Tiles)", Bold = true, FontSize = 18f },
+
+                MakeCard(new Column(
+                    new Label { Text = "WithColumns(4): four equal Star columns. AspectRatio=1 makes every cell square — height tracks width as the window scales." },
+                    new Scroll(BuildSquareTileGrid()) { Height = 300f }
+                ).WithSpacing(8f)),
+
+                new Separator { Margin = new Thickness(0, 4f) },
+
+                // ── Grid — 16:9 Cards ─────────────────────────────────────────
+                new Label { Text = "Grid — Aspect Ratio (16:9 Cards)", Bold = true, FontSize = 18f },
+
+                MakeCard(new Column(
+                    new Label { Text = "WithColumns(2): two equal Star columns. AspectRatio=16/9 keeps cards widescreen at any window width." },
+                    new Scroll(BuildWidescreenCardGrid()) { Height = 400f }
                 ).WithSpacing(8f))
 
             ).WithSpacing(16f),
@@ -109,6 +129,70 @@ public class LayoutExample : Widget
             ).WithSpacing(4f),
             6f
         ) { BackgroundSource = t => t.SurfaceHover, CornerRadius = 6f };
+
+    // ── Square tile grid (1:1 AR) ─────────────────────────────────────────────
+
+    private static Widget BuildSquareTileGrid()
+    {
+        var palette = new SKColor[]
+        {
+            new(0x33, 0x6B, 0xE6), new(0x60, 0x7D, 0x8B), new(0x4C, 0xAF, 0x50),
+            new(0xFF, 0xB3, 0x00), new(0x9C, 0x27, 0xB0), new(0xF4, 0x43, 0x36),
+            new(0x00, 0x96, 0x88), new(0x79, 0x55, 0x48),
+        };
+        const int Cols = 4;
+        var grid = new Grid().WithColumns(Cols).WithSpacing(6f, 6f);
+        for (int i = 0; i < 20; i++)
+        {
+            grid.Add(new PaddingBox(
+                new Label
+                {
+                    Text     = $"{i + 1}",
+                    FontSize = 22f,
+                    Bold     = true,
+                    HAlign   = HAlign.Center,
+                    VAlign   = VAlign.Center,
+                    Color    = SKColors.White,
+                },
+                4f
+            )
+            {
+                Background   = palette[i % palette.Length],
+                CornerRadius = 6f,
+                AspectRatio  = 1f,
+            }, i % Cols, i / Cols);
+        }
+        return grid;
+    }
+
+    // ── 16:9 card grid ────────────────────────────────────────────────────────
+
+    private static Widget BuildWidescreenCardGrid()
+    {
+        var palette = new SKColor[]
+        {
+            new(0x1A, 0x23, 0x7E), new(0x1B, 0x5E, 0x20), new(0xB7, 0x1C, 0x1C),
+            new(0x33, 0x69, 0x1E), new(0x01, 0x57, 0x9B), new(0x4A, 0x14, 0x8C),
+        };
+        const int Cols = 2;
+        var grid = new Grid().WithColumns(Cols).WithSpacing(8f, 8f);
+        for (int i = 0; i < 10; i++)
+        {
+            grid.Add(new PaddingBox(
+                new Column(
+                    new Label { Text = $"Card {i + 1}", FontSize = 16f, Bold = true, Color = SKColors.White },
+                    new Label { Text = "16 : 9 — width controls height", FontSize = 12f, Color = new SKColor(255, 255, 255, 160) }
+                ).WithSpacing(4f),
+                12f
+            )
+            {
+                Background   = palette[i % palette.Length],
+                CornerRadius = 8f,
+                AspectRatio  = 16f / 9f,
+            }, i % Cols, i / Cols);
+        }
+        return grid;
+    }
 
     // ── Shared helpers ────────────────────────────────────────────────────────
 

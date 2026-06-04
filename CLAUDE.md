@@ -55,7 +55,7 @@ ApexUI/
     │   ├── SliderExample.cs       ← sliders with two-way binding to text inputs
     │   ├── ScaleExample.cs        ← UI scale demo; exposes Bindable<float> Scale
     │   ├── PrimitivesExample.cs   ← ProgressBar, Separator, and Overlay demo
-    │   ├── LayoutExample.cs       ← Spacer, Grid, and Wrap demo
+    │   ├── LayoutExample.cs       ← Spacer, Grid, Wrap, and AspectRatio demo
     │   └── TabsExample.cs         ← all examples as tabs; exposes Scale + DarkMode bindables
     ├── Screens/               ← full-screen views
     ├── Widgets/               ← app-specific widgets (not framework reusable)
@@ -256,6 +256,8 @@ void RemoveChild(Widget child);
 // Layout properties
 float  Width, Height;           // NaN = auto (size to content)
 float  MinWidth, MaxWidth, MinHeight, MaxHeight;
+float  AspectRatio;             // NaN = no constraint; enforced in both Measure and Arrange
+AspectRatioMode AspectRatioMode; // WidthControlsHeight (default) | HeightControlsWidth
 Thickness Margin, Padding;
 HAlign HAlign;   // Left | Center | Right | Stretch
 VAlign VAlign;   // Top  | Center | Bottom | Stretch
@@ -280,8 +282,9 @@ Action<KeyEvent>?     OnKeyDown, OnKeyUp;
 Action<float, float>? OnScroll;   // (deltaX, deltaY); Application bubbles up the tree to first handler
 
 // Enums
-enum HAlign { Left, Center, Right, Stretch }
-enum VAlign { Top, Center, Bottom, Stretch }
+enum HAlign          { Left, Center, Right, Stretch }
+enum VAlign          { Top, Center, Bottom, Stretch }
+enum AspectRatioMode { WidthControlsHeight, HeightControlsWidth }
 ```
 
 ---
@@ -696,6 +699,8 @@ sizing. Rows auto-detected from cell coordinates when `DefineRows` is not called
 Grid()
 Grid DefineColumns(params GridLength[] columns)   // call before Add(); defaults to [Auto]
 Grid DefineRows(params GridLength[] rows)         // optional; auto-detected when omitted
+Grid WithColumns(int count)                       // shorthand: N equal Star(*) columns
+Grid WithRows(int count)                          // shorthand: N equal Star(*) rows
 Grid WithSpacing(float columnSpacing, float rowSpacing)
 Grid Add(Widget child, int col = 0, int row = 0, int colSpan = 1, int rowSpan = 1)
 

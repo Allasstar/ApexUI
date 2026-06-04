@@ -60,6 +60,10 @@ public abstract class Widget
     public float MaxWidth  { get; set { field = value; InvalidateLayout(); } } = float.PositiveInfinity;
     public float MaxHeight { get; set { field = value; InvalidateLayout(); } } = float.PositiveInfinity;
 
+    // NaN = no constraint. Mode controls which axis drives the other.
+    public float            AspectRatio     { get; set { field = value; InvalidateLayout(); } } = float.NaN;
+    public AspectRatioMode  AspectRatioMode { get; set { field = value; InvalidateLayout(); } } = AspectRatioMode.WidthControlsHeight;
+
     public Thickness Margin  { get; set { field = value; InvalidateLayout(); } } = Thickness.Zero;
     public Thickness Padding { get; set { field = value; InvalidateLayout(); } } = Thickness.Zero;
 
@@ -176,6 +180,24 @@ public abstract class Widget
         // Apply explicit Width/Height overrides
         float w = float.IsNaN(Width)  ? desired.Width  : Width;
         float h = float.IsNaN(Height) ? desired.Height : Height;
+
+        // Aspect ratio: compute dependent dimension.
+        // When Stretch + finite available, use the available size so auto rows/cols in Grid size correctly.
+        if (!float.IsNaN(AspectRatio) && AspectRatio > 0f)
+        {
+            if (AspectRatioMode == AspectRatioMode.WidthControlsHeight)
+            {
+                float aw = HAlign == HAlign.Stretch && !float.IsInfinity(contentAvailable.Width)
+                    ? contentAvailable.Width : w;
+                h = aw / AspectRatio;
+            }
+            else
+            {
+                float ah = VAlign == VAlign.Stretch && !float.IsInfinity(contentAvailable.Height)
+                    ? contentAvailable.Height : h;
+                w = ah * AspectRatio;
+            }
+        }
 
         // Clamp to Min/Max
         w = Math.Clamp(w, MinWidth,  MaxWidth);
@@ -296,6 +318,14 @@ public abstract class Widget
         float w = HAlign == HAlign.Stretch ? available.Width  : Math.Min(desired.Width,  available.Width);
         float h = VAlign == VAlign.Stretch ? available.Height : Math.Min(desired.Height, available.Height);
 
+        if (!float.IsNaN(AspectRatio) && AspectRatio > 0f)
+        {
+            if (AspectRatioMode == AspectRatioMode.WidthControlsHeight)
+                h = w / AspectRatio;
+            else
+                w = h * AspectRatio;
+        }
+
         x += HAlign switch
         {
             HAlign.Center => (available.Width  - w) * 0.5f,
@@ -318,3 +348,4 @@ public abstract class Widget
 
 public enum HAlign { Left, Center, Right, Stretch }
 public enum VAlign { Top,  Center, Bottom, Stretch }
+public enum AspectRatioMode { WidthControlsHeight, HeightControlsWidth }

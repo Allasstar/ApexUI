@@ -45,6 +45,22 @@ public class Grid : Widget
         return this;
     }
 
+    /// Shorthand for N equal Star(*) columns (replaces any prior DefineColumns call).
+    public Grid WithColumns(int count)
+    {
+        var cols = new GridLength[count];
+        for (int i = 0; i < count; i++) cols[i] = GridLength.Star();
+        return DefineColumns(cols);
+    }
+
+    /// Shorthand for N equal Star(*) rows (replaces any prior DefineRows call).
+    public Grid WithRows(int count)
+    {
+        var rows = new GridLength[count];
+        for (int i = 0; i < count; i++) rows[i] = GridLength.Star();
+        return DefineRows(rows);
+    }
+
     public Grid WithSpacing(float columnSpacing, float rowSpacing)
     {
         ColumnSpacing = columnSpacing;
