@@ -3,6 +3,12 @@ namespace ApexUI.Widgets;
 /// Right-click Overlay with labeled action items, separators, headers, and toggle items.
 /// Dismisses on click-outside. Attach to any widget: ContextMenu.Attach(widget, menu)
 ///
+/// Standard behavior:
+///   • Right mouse UP on target → menu appears at cursor
+///   • Left-click item → action fires, menu closes
+///   • Left-click outside → menu closes
+///   • Right-click outside while open → menu moves to new cursor position
+///
 /// Example:
 ///   var darkMode = new Bindable<bool>(false);
 ///   var menu = new ContextMenu()
@@ -19,19 +25,30 @@ public sealed class ContextMenu
 
     public ContextMenu()
     {
-        _overlay = new Overlay { DismissOnClickOutside = true };
+        // DismissOnClickOutside is handled manually below so we get right-click reposition.
+        _overlay = new Overlay { DismissOnClickOutside = false };
+
+        // Backdrop left-click → close; backdrop right-click → move to new position.
+        // This fires only when the deepest hit is the Overlay itself (not a menu item).
+        _overlay.OnClick = e =>
+        {
+            if (e.Button == PointerButton.Right)
+                Show(e.X, e.Y);   // reposition without closing
+            else
+                Close();           // left-click (or middle) → dismiss
+        };
     }
 
     // ── Fluent builder ────────────────────────────────────────────────────────
 
-    /// Standard action item — closes the menu and calls action on click.
+    /// Standard action item — closes the menu and calls action on left-click.
     public ContextMenu AddItem(string label, Action action, bool enabled = true)
     {
         _entries.Add(new MenuEntry(label, action, enabled));
         return this;
     }
 
-    /// Toggle item — shows ✓ when binding is true; click flips the value.
+    /// Toggle item — shows ● when binding is true; left-click flips the value.
     /// By default the menu stays open so the user can toggle multiple items.
     public ContextMenu AddCheckItem(string label, Bindable<bool> binding, bool closeOnClick = false)
     {
@@ -55,14 +72,17 @@ public sealed class ContextMenu
     // ── Attachment ────────────────────────────────────────────────────────────
 
     /// Hook right-click on target and all its current descendants.
+    /// Uses OnPointerUp (right mouse button release) — matches standard OS context menu timing.
     /// Call after the widget tree under target is fully built.
     public static void Attach(Widget target, ContextMenu menu)
         => AttachRecursive(target, menu);
 
     private static void AttachRecursive(Widget w, ContextMenu menu)
     {
-        var prev = w.OnPointerDown;
-        w.OnPointerDown = e =>
+        // OnPointerUp fires on _pressedWidget regardless of current cursor position.
+        // Right-button was pressed AND released on this widget → show menu at release position.
+        var prev = w.OnPointerUp;
+        w.OnPointerUp = e =>
         {
             prev?.Invoke(e);
             if (e.Button == PointerButton.Right)
@@ -74,6 +94,7 @@ public sealed class ContextMenu
 
     // ── Show / Close ──────────────────────────────────────────────────────────
 
+    /// Show (or reposition) the menu at the given logical screen coordinates.
     public void Show(float x, float y)
     {
         if (!_built) BuildPanel();
@@ -110,28 +131,28 @@ public sealed class ContextMenu
 
             if (entry.Binding is not null)
             {
-                // Check (toggle) item
                 var binding      = entry.Binding;
                 var closeOnClick = entry.CloseOnClick;
                 MenuItemWidget? item = null;
                 item = new MenuItemWidget(entry.Label, isChecked: () => binding.Value);
-                item.OnClick = _ =>
+                item.OnClick = e =>
                 {
+                    if (e.Button != PointerButton.Left) return;
                     binding.Value = !binding.Value;
-                    item!.Invalidate();          // refresh checkmark immediately
-                    if (closeOnClick) _overlay.Close();
+                    item!.Invalidate();
+                    if (closeOnClick) Close();
                 };
                 list.Add(item);
             }
             else
             {
-                // Standard action item
                 var action  = entry.Action;
                 var enabled = entry.Enabled;
                 var item    = new MenuItemWidget(entry.Label, enabled);
-                item.OnClick = _ =>
+                item.OnClick = e =>
                 {
-                    _overlay.Close();
+                    if (e.Button != PointerButton.Left) return;
+                    Close();
                     if (enabled) action();
                 };
                 list.Add(item);
@@ -145,12 +166,12 @@ public sealed class ContextMenu
 
     private sealed class MenuEntry(string Label, Action Action, bool Enabled)
     {
-        public string        Label        { get; } = Label;
-        public Action        Action       { get; } = Action;
-        public bool          Enabled      { get; } = Enabled;
-        public bool          IsSeparator  { get; init; }
-        public bool          IsHeader     { get; init; }
-        public Bindable<bool>? Binding    { get; init; }
-        public bool          CloseOnClick { get; init; }
+        public string          Label        { get; } = Label;
+        public Action          Action       { get; } = Action;
+        public bool            Enabled      { get; } = Enabled;
+        public bool            IsSeparator  { get; init; }
+        public bool            IsHeader     { get; init; }
+        public Bindable<bool>? Binding      { get; init; }
+        public bool            CloseOnClick { get; init; }
     }
 }
