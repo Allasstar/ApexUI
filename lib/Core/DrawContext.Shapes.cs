@@ -28,10 +28,15 @@ public sealed partial class DrawContext
 
     public void StrokeRoundRect(Rect r, float radius, SKColor color, float thickness = 1f)
     {
+        // Inset by half stroke width so the outer edge of the stroke aligns with the
+        // fill boundary — prevents double-AA fringing at corners.
+        float h = thickness * 0.5f;
         using var p = MakePaint(color);
         p.IsStroke    = true;
         p.StrokeWidth = thickness;
-        Canvas.DrawRoundRect(r.ToSKRect(), radius, radius, p);
+        Canvas.DrawRoundRect(
+            new SKRect(r.X + h, r.Y + h, r.Right - h, r.Bottom - h),
+            Math.Max(0f, radius - h), Math.Max(0f, radius - h), p);
     }
 
     // ── Circles & ovals ───────────────────────────────────────────────────────
@@ -47,7 +52,7 @@ public sealed partial class DrawContext
         using var p = MakePaint(color);
         p.IsStroke    = true;
         p.StrokeWidth = thickness;
-        Canvas.DrawCircle(cx, cy, radius, p);
+        Canvas.DrawCircle(cx, cy, radius - thickness * 0.5f, p);
     }
 
     public void FillOval(Rect r, SKColor color)

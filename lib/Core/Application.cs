@@ -60,6 +60,7 @@ public sealed class Application
             Size              = new Vector2D<int>(width, height),
             PreferredDepthBufferBits   = 0,
             PreferredStencilBufferBits = 8,  // Skia needs stencil
+            Samples           = 4,           // 4x MSAA — driver clamps if unsupported
         };
         _window = Window.Create(options);
 
@@ -181,9 +182,10 @@ public sealed class Application
 
         // Query the current OpenGL framebuffer
         _gl!.GetInteger((GetPName)0x8CA6, out int framebuffer); // GL_FRAMEBUFFER_BINDING
+        _gl!.GetInteger((GetPName)0x80A9, out int samples);     // GL_SAMPLES — actual MSAA granted by driver
 
         var fbInfo = new GRGlFramebufferInfo((uint)framebuffer, 0x8058); // GL_RGBA8
-        _renderTarget = new GRBackendRenderTarget(w, h, 0, 8, fbInfo);
+        _renderTarget = new GRBackendRenderTarget(w, h, samples, 8, fbInfo);
         _surface = SKSurface.Create(_grContext!, _renderTarget,
                                     GRSurfaceOrigin.BottomLeft,
                                     SKColorType.Rgba8888);
