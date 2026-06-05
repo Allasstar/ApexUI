@@ -76,12 +76,10 @@ public class Toggle : Widget
         // Optional label
         if (!string.IsNullOrEmpty(Label))
         {
-            using var font  = ctx.MakeTextFont(14f);
-            using var paint = ctx.MakeTextPaint(IsEnabled ? ctx.Theme.OnSurface : ctx.Theme.OnSurfaceMuted);
-            var m = font.Metrics;
             float lx = LayoutBounds.X + TrackW + LabelGap;
-            float ly = LayoutBounds.Y + (LayoutBounds.Height - (m.Descent - m.Ascent)) * 0.5f - m.Ascent;
-            ctx.Canvas.DrawText(Label, lx, ly, SKTextAlign.Left, font, paint);
+            ctx.DrawText(Label,
+                new Rect(lx, LayoutBounds.Y, LayoutBounds.Width - TrackW - LabelGap, LayoutBounds.Height),
+                IsEnabled ? ctx.Theme.OnSurface : ctx.Theme.OnSurfaceMuted, 14f);
         }
     }
 

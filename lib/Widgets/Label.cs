@@ -40,18 +40,7 @@ public class Label : Widget
 
     protected override void DrawCore(DrawContext ctx)
     {
-        if (string.IsNullOrEmpty(Text)) return;
-
         float fontSize = float.IsNaN(FontSize) ? ctx.Theme.FontSizeBase : FontSize;
-        var color = Color ?? ctx.Theme.OnSurface;
-
-        using var font  = ctx.MakeTextFont(fontSize, Bold);
-        using var paint = ctx.MakeTextPaint(color);
-
-        var metrics = font.Metrics;
-        float textHeight = metrics.Descent - metrics.Ascent;
-        float y = LayoutBounds.Y + (LayoutBounds.Height - textHeight) * 0.5f - metrics.Ascent;
-
-        ctx.Canvas.DrawText(Text, LayoutBounds.X, y, SKTextAlign.Left, font, paint);
+        ctx.DrawText(Text, LayoutBounds, Color ?? ctx.Theme.OnSurface, fontSize, Bold);
     }
 }

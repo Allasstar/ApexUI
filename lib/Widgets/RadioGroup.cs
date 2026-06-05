@@ -34,35 +34,23 @@ public class RadioGroup<T> : Widget
 
             // Hover ripple
             if ((IsHovered || IsPressed) && IsEnabled)
-            {
-                using var ripple = ctx.MakePaint(ctx.Theme.Primary.WithAlpha(0.12f));
-                ctx.Canvas.DrawCircle(cx, cy, CircleR, ripple);
-            }
+                ctx.FillCircle(cx, cy, CircleR, ctx.Theme.Primary.WithAlpha(0.12f));
 
             // Outer ring
             var ringColor = IsSelected && IsEnabled ? ctx.Theme.Primary : ctx.Theme.Border;
-            using (var ring = ctx.MakePaint(ringColor))
-            {
-                ring.IsStroke = true;
-                ring.StrokeWidth = 2f;
-                ctx.Canvas.DrawCircle(cx, cy, CircleR, ring);
-            }
+            ctx.StrokeCircle(cx, cy, CircleR, ringColor, 2f);
 
             // Inner dot when selected
             if (IsSelected)
-            {
-                using var dot = ctx.MakePaint(IsEnabled ? ctx.Theme.Primary : ctx.Theme.Border);
-                ctx.Canvas.DrawCircle(cx, cy, DotR, dot);
-            }
+                ctx.FillCircle(cx, cy, DotR, IsEnabled ? ctx.Theme.Primary : ctx.Theme.Border);
 
             // Label text
             if (!string.IsNullOrEmpty(ItemLabel))
             {
-                using var font  = ctx.MakeTextFont(14f);
-                using var paint = ctx.MakeTextPaint(IsEnabled ? ctx.Theme.OnSurface : ctx.Theme.OnSurfaceMuted);
-                var m  = font.Metrics;
-                float ty = cy - (m.Ascent + m.Descent) * 0.5f;
-                ctx.Canvas.DrawText(ItemLabel, LayoutBounds.X + CircleR * 2 + Gap, ty, SKTextAlign.Left, font, paint);
+                float tx = LayoutBounds.X + CircleR * 2 + Gap;
+                ctx.DrawText(ItemLabel,
+                    new Rect(tx, LayoutBounds.Y, LayoutBounds.Width - CircleR * 2 - Gap, LayoutBounds.Height),
+                    IsEnabled ? ctx.Theme.OnSurface : ctx.Theme.OnSurfaceMuted, 14f);
             }
         }
     }

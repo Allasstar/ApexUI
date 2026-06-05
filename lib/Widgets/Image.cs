@@ -88,20 +88,9 @@ public class Image : Widget, IDisposable
         var dst = StretchRect(_naturalW, _naturalH, LayoutBounds, Stretch);
 
         if (_raster is not null)
-        {
-            var src = new SKRect(0, 0, _naturalW, _naturalH);
-            ctx.Canvas.DrawImage(_raster, src, dst.ToSKRect());
-        }
+            ctx.DrawImage(_raster, dst);
         else if (_vector is not null)
-        {
-            float sx = dst.Width  / _naturalW;
-            float sy = dst.Height / _naturalH;
-            ctx.Canvas.Save();
-            ctx.Canvas.Translate(dst.X, dst.Y);
-            ctx.Canvas.Scale(sx, sy);
-            ctx.Canvas.DrawPicture(_vector);
-            ctx.Canvas.Restore();
-        }
+            ctx.DrawPicture(_vector, dst, _naturalW, _naturalH);
     }
 
     // ── Stretch helpers ──────────────────────────────────────────────────────

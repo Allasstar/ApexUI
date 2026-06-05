@@ -117,8 +117,9 @@ public class Scroll : Widget
             float th   = Math.Max(MinThumb, vpH * vpH / _content.DesiredSize.Height);
             float range = vpH - th;
             float ty   = range > 0f ? lb.Y + _scrollY / maxSY * range : lb.Y;
-            Bar(ctx, track, t.Border.WithAlpha(0.25f));
-            Bar(ctx, new Rect(lb.Right - BarSize, ty, BarSize, th),
+            ctx.FillRoundRect(track, BarSize * 0.5f, t.Border.WithAlpha(0.25f));
+            ctx.FillRoundRect(new Rect(lb.Right - BarSize, ty, BarSize, th),
+                BarSize * 0.5f,
                 _draggingV ? t.OnSurface.WithAlpha(0.6f) : t.OnSurfaceMuted.WithAlpha(0.6f));
         }
 
@@ -128,16 +129,11 @@ public class Scroll : Widget
             float tw   = Math.Max(MinThumb, vpW * vpW / _content.DesiredSize.Width);
             float range = vpW - tw;
             float tx   = range > 0f ? lb.X + _scrollX / maxSX * range : lb.X;
-            Bar(ctx, track, t.Border.WithAlpha(0.25f));
-            Bar(ctx, new Rect(tx, lb.Bottom - BarSize, tw, BarSize),
+            ctx.FillRoundRect(track, BarSize * 0.5f, t.Border.WithAlpha(0.25f));
+            ctx.FillRoundRect(new Rect(tx, lb.Bottom - BarSize, tw, BarSize),
+                BarSize * 0.5f,
                 _draggingH ? t.OnSurface.WithAlpha(0.6f) : t.OnSurfaceMuted.WithAlpha(0.6f));
         }
-    }
-
-    private static void Bar(DrawContext ctx, Rect r, SKColor color)
-    {
-        using var p = ctx.MakePaint(color);
-        ctx.Canvas.DrawRoundRect(r.ToSKRect(), BarSize * 0.5f, BarSize * 0.5f, p);
     }
 
     // ── Scrollbar dragging ────────────────────────────────────────────────────
