@@ -4,6 +4,12 @@ public sealed partial class DrawContext
 {
     // ── Text ──────────────────────────────────────────────────────────────────
 
+    public float MeasureText(string text, float sizePx, bool bold = false)
+    {
+        using var font = MakeTextFont(sizePx, bold);
+        return font.MeasureText(text);
+    }
+
     /// Draw text vertically centered within bounds.
     /// Horizontal anchor: Left → bounds.X, Center → bounds center, Right → bounds.Right.
     public void DrawText(string text, Rect bounds, SKColor color,

@@ -108,27 +108,18 @@ public class TextInput : Widget, ITickable
 
         var    inner   = LayoutBounds.Deflate(Padding);
         string display = IsPassword ? new string('•', Value.Length) : Value;
-
-        using var font = ctx.MakeTextFont(ctx.Theme.FontSizeBase);
-        var   m     = font.Metrics;
-        float textY = inner.Y + (inner.Height - (m.Descent - m.Ascent)) * 0.5f - m.Ascent;
+        float  sz      = ctx.Theme.FontSizeBase;
 
         if (!string.IsNullOrEmpty(display))
-        {
-            using var paint = ctx.MakeTextPaint(ctx.Theme.OnSurface);
-            ctx.Canvas.DrawText(display, inner.X, textY, SKTextAlign.Left, font, paint);
-        }
+            ctx.DrawText(display, inner, ctx.Theme.OnSurface, sz);
         else if (!string.IsNullOrEmpty(Placeholder) && !IsFocused)
-        {
-            using var paint = ctx.MakeTextPaint(ctx.Theme.OnSurfaceMuted);
-            ctx.Canvas.DrawText(Placeholder, inner.X, textY, SKTextAlign.Left, font, paint);
-        }
+            ctx.DrawText(Placeholder, inner, ctx.Theme.OnSurfaceMuted, sz);
 
         if (IsFocused && _cursorVisible)
         {
             float cx = string.IsNullOrEmpty(display)
                 ? inner.X
-                : inner.X + font.MeasureText(display[.._cursorPos]);
+                : inner.X + ctx.MeasureText(display[.._cursorPos], sz);
             ctx.DrawLine(cx, inner.Y + 2, cx, inner.Bottom - 2, ctx.Theme.OnSurface, cap: SKStrokeCap.Butt);
         }
     }
