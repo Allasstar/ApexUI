@@ -10,9 +10,9 @@ public class RadioGroup<T> : Widget
 
     private sealed class RadioItem : Widget
     {
-        private const float CircleR = 9f;
+        private const float CircleR = 10f;
         private const float DotR    = 5f;
-        private const float Gap     = 8f;
+        private const float Gap     = 10f;
 
         public string ItemLabel { get; }
         public bool IsSelected  { get; set { field = value; Invalidate(); } }
@@ -29,14 +29,14 @@ public class RadioGroup<T> : Widget
 
         protected override void DrawCore(DrawContext ctx)
         {
-            float cx = LayoutBounds.X + CircleR;
+            float cx = LayoutBounds.X + CircleR + 2;
             float cy = LayoutBounds.CenterY;
 
             // Hover ripple
             if ((IsHovered || IsPressed) && IsEnabled)
             {
                 using var ripple = ctx.MakePaint(ctx.Theme.Primary.WithAlpha(0.12f));
-                ctx.Canvas.DrawCircle(cx, cy, CircleR + 5f, ripple);
+                ctx.Canvas.DrawCircle(cx, cy, CircleR, ripple);
             }
 
             // Outer ring
