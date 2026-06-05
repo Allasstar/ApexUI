@@ -152,23 +152,9 @@ public class Overlay : Widget
     protected override void DrawCore(DrawContext ctx)
     {
         if (IsModal)
-        {
-            using var p = ctx.MakePaint(new SKColor(0, 0, 0, 110));
-            ctx.Canvas.DrawRect(LayoutBounds.ToSKRect(), p);
-        }
+            ctx.FillRect(LayoutBounds, new SKColor(0, 0, 0, 110));
 
-        // Soft drop-shadow behind Content.
         if (_content is not null)
-        {
-            var sr = _content.LayoutBounds.ToSKRect();
-            sr.Offset(0, 4);
-            using var sp = new SKPaint
-            {
-                Color       = new SKColor(0, 0, 0, 55),
-                MaskFilter  = SKMaskFilter.CreateBlur(SKBlurStyle.Normal, 10f),
-                IsAntialias = true,
-            };
-            ctx.Canvas.DrawRoundRect(sr, 12f, 12f, sp);
-        }
+            ctx.DrawShadow(_content.LayoutBounds.Translate(0, 4), 12f, 10f, new SKColor(0, 0, 0, 55));
     }
 }

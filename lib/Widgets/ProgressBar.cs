@@ -41,11 +41,9 @@ public class ProgressBar : Widget
     {
         if (LayoutBounds.Width <= 0) return;
 
-        float rx   = LayoutBounds.Height * 0.5f;
-        var track  = LayoutBounds.ToSKRect();
-
-        ctx.Canvas.FillRoundRect(track, rx, ctx.Theme.Surface);
-        ctx.Canvas.StrokeRoundRect(track, rx, ctx.Theme.Border);
+        float rx = LayoutBounds.Height * 0.5f;
+        ctx.FillRoundRect(LayoutBounds, rx, ctx.Theme.Surface);
+        ctx.StrokeRoundRect(LayoutBounds, rx, ctx.Theme.Border);
 
         if (Value > 0f)
         {
@@ -56,9 +54,7 @@ public class ProgressBar : Widget
                 ProgressBarVariant.Danger  => ctx.Theme.Danger,
                 _                          => ctx.Theme.Primary,
             };
-            var fill = new SKRect(LayoutBounds.X, LayoutBounds.Y,
-                                  LayoutBounds.X + LayoutBounds.Width * Value, LayoutBounds.Bottom);
-            ctx.Canvas.FillRoundRect(fill, rx, fillColor);
+            ctx.FillRoundRect(new Rect(LayoutBounds.X, LayoutBounds.Y, LayoutBounds.Width * Value, LayoutBounds.Height), rx, fillColor);
         }
     }
 }

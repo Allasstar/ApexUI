@@ -81,30 +81,14 @@ public class Slider : Widget
         float thumbX = cx0 + t * trackW;
         float trackY = LayoutBounds.CenterY - TrackH * 0.5f;
 
-        // Track background
-        using (var p = ctx.MakePaint(ctx.Theme.Border))
-            ctx.Canvas.DrawRoundRect(
-                new SKRect(cx0, trackY, cx1, trackY + TrackH),
-                TrackH * 0.5f, TrackH * 0.5f, p);
+        ctx.FillRoundRect(new Rect(cx0, trackY, cx1 - cx0, TrackH), TrackH * 0.5f, ctx.Theme.Border);
 
-        // Track fill
         if (thumbX > cx0)
-            using (var p = ctx.MakePaint(ctx.Theme.Primary))
-                ctx.Canvas.DrawRoundRect(
-                    new SKRect(cx0, trackY, thumbX, trackY + TrackH),
-                    TrackH * 0.5f, TrackH * 0.5f, p);
+            ctx.FillRoundRect(new Rect(cx0, trackY, thumbX - cx0, TrackH), TrackH * 0.5f, ctx.Theme.Primary);
 
-        // Thumb
         var thumbColor = (IsPressed || IsHovered) ? ctx.Theme.PrimaryHover : ctx.Theme.Primary;
-        using (var p = ctx.MakePaint(thumbColor))
-            ctx.Canvas.DrawCircle(thumbX, LayoutBounds.CenterY, ThumbR, p);
-
-        using (var p = ctx.MakePaint(SKColors.White))
-        {
-            p.IsStroke    = true;
-            p.StrokeWidth = 2f;
-            ctx.Canvas.DrawCircle(thumbX, LayoutBounds.CenterY, ThumbR - 1f, p);
-        }
+        ctx.FillCircle(thumbX, LayoutBounds.CenterY, ThumbR, thumbColor);
+        ctx.StrokeCircle(thumbX, LayoutBounds.CenterY, ThumbR - 1f, SKColors.White, 2f);
     }
 
     // ── Private ──────────────────────────────────────────────────────────────

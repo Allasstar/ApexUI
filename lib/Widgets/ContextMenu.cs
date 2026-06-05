@@ -190,12 +190,7 @@ public sealed class ContextMenu
         }
 
         protected override void DrawCore(DrawContext ctx)
-        {
-            using var p = ctx.MakePaint(ctx.Theme.Border.WithAlpha(0.4f));
-            p.IsStroke    = true;
-            p.StrokeWidth = 1f;
-            ctx.Canvas.DrawRoundRect(LayoutBounds.ToSKRect(), CornerRadius, CornerRadius, p);
-        }
+            => ctx.StrokeRoundRect(LayoutBounds, CornerRadius, ctx.Theme.Border.WithAlpha(0.4f));
     }
 
     // ── Entry data ────────────────────────────────────────────────────────────

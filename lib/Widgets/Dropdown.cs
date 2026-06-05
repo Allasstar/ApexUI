@@ -193,51 +193,18 @@ public class Dropdown<T> : Widget
             var t  = ctx.Theme;
             var lb = LayoutBounds;
 
-            // Background
             var bg = IsPressed ? t.SurfacePressed
                    : IsHovered ? t.SurfaceHover
                    : t.Surface;
-            using (var p = ctx.MakePaint(bg))
-                ctx.Canvas.DrawRoundRect(lb.ToSKRect(), CornerRadius, CornerRadius, p);
+            ctx.FillRoundRect(lb, CornerRadius, bg);
+            ctx.StrokeRoundRect(lb, CornerRadius, _isOpen ? t.Primary : t.Border, _isOpen ? 2f : 1f);
 
-            // Border — accent + thicker when open
-            using (var p = ctx.MakePaint(_isOpen ? t.Primary : t.Border))
-            {
-                p.IsStroke    = true;
-                p.StrokeWidth = _isOpen ? 2f : 1f;
-                ctx.Canvas.DrawRoundRect(lb.ToSKRect(), CornerRadius, CornerRadius, p);
-            }
-
-            // Divider between label area and chevron column
             float divX = lb.Right - ChevronW;
-            using (var p = ctx.MakePaint(t.Border.WithAlpha(0.5f)))
-            {
-                p.IsStroke    = true;
-                p.StrokeWidth = 1f;
-                ctx.Canvas.DrawLine(divX, lb.Y + 6f, divX, lb.Bottom - 6f, p);
-            }
+            ctx.DrawLine(divX, lb.Y + 6f, divX, lb.Bottom - 6f, t.Border.WithAlpha(0.5f), cap: SKStrokeCap.Butt);
 
-            // Label color
             _label.Color = IsPlaceholder ? t.OnSurfaceMuted : t.OnSurface;
 
-            // Chevron
-            DrawChevron(ctx, lb.Right - ChevronW * 0.5f, lb.CenterY, _isOpen, t.OnSurfaceMuted);
-        }
-
-        private static void DrawChevron(DrawContext ctx, float cx, float cy, bool up, SKColor color)
-        {
-            float s    = 3.5f;
-            float sign = up ? -1f : 1f;
-            using var path = new SKPath();
-            path.MoveTo(cx - s, cy - sign * s * 0.6f);
-            path.LineTo(cx,     cy + sign * s * 0.6f);
-            path.LineTo(cx + s, cy - sign * s * 0.6f);
-            using var p = ctx.MakePaint(color);
-            p.IsStroke    = true;
-            p.StrokeWidth = 1.5f;
-            p.StrokeCap   = SKStrokeCap.Round;
-            p.StrokeJoin  = SKStrokeJoin.Round;
-            ctx.Canvas.DrawPath(path, p);
+            ctx.DrawChevron(lb.Right - ChevronW * 0.5f, lb.CenterY, 3.5f, pointUp: _isOpen, t.OnSurfaceMuted);
         }
     }
 }

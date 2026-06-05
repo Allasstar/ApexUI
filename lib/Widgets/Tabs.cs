@@ -102,26 +102,21 @@ public class Tabs : Widget
                    : SKColor.Empty;
 
             if (bg != SKColor.Empty)
-            {
-                using var p = ctx.MakePaint(bg);
-                ctx.Canvas.DrawRect(LayoutBounds.ToSKRect(), p);
-            }
+                ctx.FillRect(LayoutBounds, bg);
 
-            // Active indicator line on the content-side edge
             if (IsActive)
             {
                 const float T = 2f;
                 var b = LayoutBounds;
-                SKRect ind = Position switch
+                Rect? ind = Position switch
                 {
-                    TabPosition.Top    => new SKRect(b.X, b.Bottom - T, b.Right, b.Bottom),
-                    TabPosition.Bottom => new SKRect(b.X, b.Y,          b.Right, b.Y + T),
-                    TabPosition.Left   => new SKRect(b.Right - T, b.Y,  b.Right, b.Bottom),
-                    TabPosition.Right  => new SKRect(b.X, b.Y,          b.X + T, b.Bottom),
-                    _ => SKRect.Empty,
+                    TabPosition.Top    => new Rect(b.X, b.Bottom - T, b.Width,  T),
+                    TabPosition.Bottom => new Rect(b.X, b.Y,          b.Width,  T),
+                    TabPosition.Left   => new Rect(b.Right - T, b.Y,  T, b.Height),
+                    TabPosition.Right  => new Rect(b.X, b.Y,          T, b.Height),
+                    _ => (Rect?)null,
                 };
-                using var p = ctx.MakePaint(t.Primary);
-                ctx.Canvas.DrawRect(ind, p);
+                if (ind.HasValue) ctx.FillRect(ind.Value, t.Primary);
             }
 
             _label.Color = IsActive ? t.Primary
@@ -214,21 +209,15 @@ public class Tabs : Widget
         var lb = LayoutBounds;
         var t  = ctx.Theme;
 
-        // Tab bar background
-        using (var p = ctx.MakePaint(t.Surface))
-            ctx.Canvas.DrawRect(barRect.ToSKRect(), p);
+        ctx.FillRect(barRect, t.Surface);
 
-        // Separator between bar and content
-        using var sep = ctx.MakePaint(t.Border);
-        SKRect line = Position switch
+        switch (Position)
         {
-            TabPosition.Top    => new SKRect(lb.X, barRect.Bottom - 1, lb.Right, barRect.Bottom),
-            TabPosition.Bottom => new SKRect(lb.X, barRect.Y,          lb.Right, barRect.Y + 1),
-            TabPosition.Left   => new SKRect(barRect.Right - 1, lb.Y,  barRect.Right, lb.Bottom),
-            TabPosition.Right  => new SKRect(barRect.X, lb.Y,          barRect.X + 1, lb.Bottom),
-            _ => SKRect.Empty,
-        };
-        ctx.Canvas.DrawRect(line, sep);
+            case TabPosition.Top:    ctx.DrawLine(lb.X, barRect.Bottom, lb.Right,      barRect.Bottom, t.Border, cap: SKStrokeCap.Butt); break;
+            case TabPosition.Bottom: ctx.DrawLine(lb.X, barRect.Y,      lb.Right,      barRect.Y,      t.Border, cap: SKStrokeCap.Butt); break;
+            case TabPosition.Left:   ctx.DrawLine(barRect.Right, lb.Y,  barRect.Right, lb.Bottom,      t.Border, cap: SKStrokeCap.Butt); break;
+            case TabPosition.Right:  ctx.DrawLine(barRect.X,     lb.Y,  barRect.X,     lb.Bottom,      t.Border, cap: SKStrokeCap.Butt); break;
+        }
     }
 
     // ── Helpers ───────────────────────────────────────────────────────────────

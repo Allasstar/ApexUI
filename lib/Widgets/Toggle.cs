@@ -50,8 +50,8 @@ public class Toggle : Widget
         float w = TrackW;
         if (!string.IsNullOrEmpty(Label))
         {
-            using var font = new SKFont(
-                SKTypeface.FromFamilyName("Segoe UI", SKFontStyle.Normal), 14f);
+            string family = Application.Current?.FontFamily ?? "Segoe UI";
+            using var font = new SKFont(SKTypeface.FromFamilyName(family, SKFontStyle.Normal), 14f);
             w += LabelGap + font.MeasureText(Label) + 2f;
         }
         return new Size(w, TrackH);
@@ -63,23 +63,15 @@ public class Toggle : Widget
     {
         float ty = LayoutBounds.Y + (LayoutBounds.Height - TrackH) * 0.5f;
 
-        // Track
         var trackColor = IsEnabled
             ? (IsChecked ? ctx.Theme.Primary : ctx.Theme.Border)
             : ctx.Theme.SurfaceHover;
-        using var trackPaint = ctx.MakePaint(trackColor);
-        ctx.Canvas.DrawRoundRect(
-            new SKRoundRect(
-                new SKRect(LayoutBounds.X, ty, LayoutBounds.X + TrackW, ty + TrackH),
-                TrackH * 0.5f),
-            trackPaint);
+        ctx.FillRoundRect(new Rect(LayoutBounds.X, ty, TrackW, TrackH), TrackH * 0.5f, trackColor);
 
-        // Thumb
         float thumbX = IsChecked
             ? LayoutBounds.X + TrackW - ThumbR - 2f
             : LayoutBounds.X + ThumbR + 2f;
-        using var thumbPaint = ctx.MakePaint(SKColors.White);
-        ctx.Canvas.DrawCircle(thumbX, ty + TrackH * 0.5f, ThumbR, thumbPaint);
+        ctx.FillCircle(thumbX, ty + TrackH * 0.5f, ThumbR, SKColors.White);
 
         // Optional label
         if (!string.IsNullOrEmpty(Label))

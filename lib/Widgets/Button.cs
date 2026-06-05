@@ -74,21 +74,11 @@ public class Button : Widget
             ? ctx.Theme.OnPrimary
             : ctx.Theme.OnSurface;
 
-        // Draw background
         if (bg != SKColor.Empty)
-        {
-            using var paint = ctx.MakePaint(bg);
-            ctx.Canvas.DrawRoundRect(LayoutBounds.ToSKRect(), CornerRadius, CornerRadius, paint);
-        }
+            ctx.FillRoundRect(LayoutBounds, CornerRadius, bg);
 
-        // Draw border for Secondary/Ghost
         if (Variant != ButtonVariant.Primary)
-        {
-            using var border = ctx.MakePaint(ctx.Theme.Border);
-            border.IsStroke = true;
-            border.StrokeWidth = 1f;
-            ctx.Canvas.DrawRoundRect(LayoutBounds.ToSKRect(), CornerRadius, CornerRadius, border);
-        }
+            ctx.StrokeRoundRect(LayoutBounds, CornerRadius, ctx.Theme.Border);
 
         // Update label color
         _label.Color = textColor;

@@ -34,6 +34,12 @@ public sealed class Application
     public Theme Theme { get; set; } = Theme.Light;
     public float DpiScale { get; private set; } = 1f;
 
+    public string FontFamily
+    {
+        get;
+        set { field = value; _root?.InvalidateLayout(); }
+    } = "Segoe UI";
+
     public float UiScale
     {
         get;
@@ -82,6 +88,13 @@ public sealed class Application
     {
         Theme = isDark.Value ? Theme.Dark : Theme.Light;
         isDark.Changed += v => Theme = v ? Theme.Dark : Theme.Light;
+        return this;
+    }
+
+    public Application BindFontFamily(Bindable<string> source)
+    {
+        FontFamily = source.Value;
+        source.Changed += v => FontFamily = v;
         return this;
     }
 
@@ -188,7 +201,7 @@ public sealed class Application
         canvas.Save();
         canvas.Scale(UiScale, UiScale);
 
-        var ctx = new DrawContext(canvas, Theme, DpiScale);
+        var ctx = new DrawContext(canvas, Theme, DpiScale, FontFamily);
         _root.Draw(ctx);
 
         // Overlays are laid out and drawn after the root tree so they

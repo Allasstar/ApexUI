@@ -103,15 +103,8 @@ public class TextInput : Widget, ITickable
             ? (valid ? ctx.Theme.Primary : ctx.Theme.Danger)
             : (valid ? ctx.Theme.Border  : ctx.Theme.Danger);
 
-        using (var bg = ctx.MakePaint(ctx.Theme.Background))
-            ctx.Canvas.DrawRoundRect(LayoutBounds.ToSKRect(), CornerRadius, CornerRadius, bg);
-
-        using (var border = ctx.MakePaint(borderColor))
-        {
-            border.IsStroke    = true;
-            border.StrokeWidth = IsFocused ? 2f : 1f;
-            ctx.Canvas.DrawRoundRect(LayoutBounds.ToSKRect(), CornerRadius, CornerRadius, border);
-        }
+        ctx.FillRoundRect(LayoutBounds, CornerRadius, ctx.Theme.Background);
+        ctx.StrokeRoundRect(LayoutBounds, CornerRadius, borderColor, IsFocused ? 2f : 1f);
 
         var    inner   = LayoutBounds.Deflate(Padding);
         string display = IsPassword ? new string('•', Value.Length) : Value;
@@ -131,14 +124,12 @@ public class TextInput : Widget, ITickable
             ctx.Canvas.DrawText(Placeholder, inner.X, textY, SKTextAlign.Left, font, paint);
         }
 
-        // Cursor — drawn even on empty field so focus is always visible.
         if (IsFocused && _cursorVisible)
         {
             float cx = string.IsNullOrEmpty(display)
                 ? inner.X
                 : inner.X + font.MeasureText(display[.._cursorPos]);
-            using var cursor = ctx.MakePaint(ctx.Theme.OnSurface);
-            ctx.Canvas.DrawLine(cx, inner.Y + 2, cx, inner.Bottom - 2, cursor);
+            ctx.DrawLine(cx, inner.Y + 2, cx, inner.Bottom - 2, ctx.Theme.OnSurface, cap: SKStrokeCap.Butt);
         }
     }
 

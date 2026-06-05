@@ -29,15 +29,9 @@ public class Separator : Widget
     protected override void DrawCore(DrawContext ctx)
     {
         var color = Color ?? ctx.Theme.Border;
-        using var p = ctx.MakePaint(color);
-        p.IsStroke    = true;
-        p.StrokeWidth = 1f;
-
         if (Orientation == SeparatorOrientation.Horizontal)
-            ctx.Canvas.DrawLine(LayoutBounds.X, LayoutBounds.CenterY,
-                                LayoutBounds.Right, LayoutBounds.CenterY, p);
+            ctx.DrawLine(LayoutBounds.X, LayoutBounds.CenterY, LayoutBounds.Right, LayoutBounds.CenterY, color);
         else
-            ctx.Canvas.DrawLine(LayoutBounds.CenterX, LayoutBounds.Y,
-                                LayoutBounds.CenterX, LayoutBounds.Bottom, p);
+            ctx.DrawLine(LayoutBounds.CenterX, LayoutBounds.Y, LayoutBounds.CenterX, LayoutBounds.Bottom, color);
     }
 }

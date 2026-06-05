@@ -31,8 +31,9 @@ public class Label : Widget
     protected override Size MeasureCore(Size available)
     {
         float fontSize = float.IsNaN(FontSize) ? 14f : FontSize;
+        string family  = Application.Current?.FontFamily ?? "Segoe UI";
         using var font = new SKFont(
-            SKTypeface.FromFamilyName("Segoe UI", Bold ? SKFontStyle.Bold : SKFontStyle.Normal),
+            SKTypeface.FromFamilyName(family, Bold ? SKFontStyle.Bold : SKFontStyle.Normal),
             fontSize);
         return new Size(font.MeasureText(Text) + 2, fontSize * 1.4f);
     }

@@ -50,12 +50,7 @@ internal sealed class MenuList : Widget
     // We draw the border on top of it here.
 
     protected override void DrawCore(DrawContext ctx)
-    {
-        using var p = ctx.MakePaint(ctx.Theme.Border.WithAlpha(0.4f));
-        p.IsStroke = true;
-        p.StrokeWidth = 1f;
-        ctx.Canvas.DrawRoundRect(LayoutBounds.ToSKRect(), CornerRadius, CornerRadius, p);
-    }
+        => ctx.StrokeRoundRect(LayoutBounds, CornerRadius, ctx.Theme.Border.WithAlpha(0.4f));
 }
 
 /// Shared clickable row for Dropdown and ContextMenu.
@@ -105,21 +100,12 @@ internal sealed class MenuItemWidget : Widget
                : SKColor.Empty;
 
         if (bg != SKColor.Empty)
-        {
-            using var p = ctx.MakePaint(bg);
-            ctx.Canvas.DrawRoundRect(LayoutBounds.ToSKRect(), CornerRadius, CornerRadius, p);
-        }
+            ctx.FillRoundRect(LayoutBounds, CornerRadius, bg);
 
         _label.Color = _enabled ? t.OnSurface : t.OnSurfaceMuted;
 
-        // Check indicator on the left — small filled dot (font/glyph-independent).
         if (_isChecked is not null && _isChecked())
-        {
-            float cx = LayoutBounds.X + PadH + CheckW * 0.5f;
-            float cy = LayoutBounds.CenterY;
-            using var dot = ctx.MakePaint(t.Primary);
-            ctx.Canvas.DrawCircle(cx, cy, 4f, dot);
-        }
+            ctx.FillCircle(LayoutBounds.X + PadH + CheckW * 0.5f, LayoutBounds.CenterY, 4f, t.Primary);
     }
 }
 

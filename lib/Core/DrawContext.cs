@@ -7,22 +7,22 @@ using SkiaSharp;
 
 namespace ApexUI.Core;
 
-public sealed class DrawContext(SKCanvas canvas, Theme theme, float dpiScale)
+public sealed partial class DrawContext(SKCanvas canvas, Theme theme, float dpiScale, string fontFamily = "Segoe UI")
 {
-    public SKCanvas Canvas   { get; } = canvas;
-    public Theme    Theme    { get; } = theme;
-    public float    DpiScale { get; } = dpiScale;
+    public SKCanvas Canvas     { get; } = canvas;
+    public Theme    Theme      { get; } = theme;
+    public float    DpiScale   { get; } = dpiScale;
+    public string   FontFamily { get; } = fontFamily;
 
-    // Convenience: create a paint from the theme for common cases
     public SKPaint MakePaint(SKColor color, bool antialias = true) => new()
     {
-        Color     = color,
+        Color       = color,
         IsAntialias = antialias,
     };
 
     public SKFont MakeTextFont(float sizePx, bool bold = false) => new(
-        bold ? SKTypeface.FromFamilyName(Theme.FontFamily, SKFontStyle.Bold)
-             : SKTypeface.FromFamilyName(Theme.FontFamily, SKFontStyle.Normal),
+        bold ? SKTypeface.FromFamilyName(FontFamily, SKFontStyle.Bold)
+             : SKTypeface.FromFamilyName(FontFamily, SKFontStyle.Normal),
         sizePx * DpiScale);
 
     public SKPaint MakeTextPaint(SKColor color) => new()
