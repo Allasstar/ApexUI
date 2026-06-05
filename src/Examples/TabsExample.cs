@@ -2,9 +2,10 @@ namespace ApexUI.App.Examples;
 
 public class TabsExample : Widget
 {
-    public Bindable<float>  Scale      { get; }
-    public Bindable<bool>   DarkMode   { get; }
-    public Bindable<string> FontFamily { get; }
+    public Bindable<float>       Scale      { get; }
+    public Bindable<bool>        DarkMode   { get; }
+    public Bindable<string>      FontFamily { get; }
+    public Bindable<ThemePreset> Preset     { get; }
 
     public TabsExample()
     {
@@ -12,6 +13,7 @@ public class TabsExample : Widget
         Scale      = settings.Scale;
         DarkMode   = settings.DarkMode;
         FontFamily = settings.FontFamily;
+        Preset     = settings.Preset;
 
         var tabs = new Tabs(TabPosition.Top)
             .AddTab("Counter",    new Scroll(new CounterExample()))

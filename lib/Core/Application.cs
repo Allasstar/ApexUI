@@ -31,6 +31,9 @@ public sealed class Application
     internal static Application? Current { get; private set; }
     private readonly List<Overlay> _overlays = [];
 
+    private ThemePreset _preset = ThemePreset.Default;
+    private bool        _isDark;
+
     public Theme Theme { get; set; } = Theme.Light;
     public float DpiScale { get; private set; } = 1f;
 
@@ -84,10 +87,19 @@ public sealed class Application
         return this;
     }
 
+    public Application BindTheme(Bindable<ThemePreset> source)
+    {
+        _preset = source.Value;
+        ApplyTheme();
+        source.Changed += p => { _preset = p; ApplyTheme(); };
+        return this;
+    }
+
     public Application BindDarkMode(Bindable<bool> isDark)
     {
-        Theme = isDark.Value ? Theme.Dark : Theme.Light;
-        isDark.Changed += v => Theme = v ? Theme.Dark : Theme.Light;
+        _isDark = isDark.Value;
+        ApplyTheme();
+        isDark.Changed += v => { _isDark = v; ApplyTheme(); };
         return this;
     }
 
@@ -96,6 +108,12 @@ public sealed class Application
         FontFamily = source.Value;
         source.Changed += v => FontFamily = v;
         return this;
+    }
+
+    private void ApplyTheme()
+    {
+        Theme = ThemeLibrary.Get(_preset, _isDark);
+        _root?.Invalidate();
     }
 
     internal void RegisterOverlay(Overlay overlay)
