@@ -1,6 +1,6 @@
 namespace ApexUI.Widgets;
 
-/// Right-click Overlay with labeled action items, separators, headers, and toggle items.
+/// Right-click overlay with labeled action items, separators, headers, and toggle items.
 /// Dismisses on click-outside. Attach to any widget: ContextMenu.Attach(widget, menu)
 ///
 /// Standard behavior:
@@ -25,31 +25,25 @@ public sealed class ContextMenu
 
     public ContextMenu()
     {
-        // DismissOnClickOutside is handled manually below so we get right-click reposition.
+        // DismissOnClickOutside is handled manually so we get right-click reposition.
         _overlay = new Overlay { DismissOnClickOutside = false };
-
-        // Backdrop left-click → close; backdrop right-click → move to new position.
-        // This fires only when the deepest hit is the Overlay itself (not a menu item).
         _overlay.OnClick = e =>
         {
             if (e.Button == PointerButton.Right)
-                Show(e.X, e.Y);   // reposition without closing
+                Show(e.X, e.Y);
             else
-                Close();           // left-click (or middle) → dismiss
+                Close();
         };
     }
 
     // ── Fluent builder ────────────────────────────────────────────────────────
 
-    /// Standard action item — closes the menu and calls action on left-click.
     public ContextMenu AddItem(string label, Action action, bool enabled = true)
     {
         _entries.Add(new MenuEntry(label, action, enabled));
         return this;
     }
 
-    /// Toggle item — shows ● when binding is true; left-click flips the value.
-    /// By default the menu stays open so the user can toggle multiple items.
     public ContextMenu AddCheckItem(string label, Bindable<bool> binding, bool closeOnClick = false)
     {
         _entries.Add(new MenuEntry(label, () => binding.Value = !binding.Value, true)
@@ -71,16 +65,11 @@ public sealed class ContextMenu
 
     // ── Attachment ────────────────────────────────────────────────────────────
 
-    /// Hook right-click on target and all its current descendants.
-    /// Uses OnPointerUp (right mouse button release) — matches standard OS context menu timing.
-    /// Call after the widget tree under target is fully built.
     public static void Attach(Widget target, ContextMenu menu)
         => AttachRecursive(target, menu);
 
     private static void AttachRecursive(Widget w, ContextMenu menu)
     {
-        // OnPointerUp fires on _pressedWidget regardless of current cursor position.
-        // Right-button was pressed AND released on this widget → show menu at release position.
         var prev = w.OnPointerUp;
         w.OnPointerUp = e =>
         {
@@ -94,7 +83,6 @@ public sealed class ContextMenu
 
     // ── Show / Close ──────────────────────────────────────────────────────────
 
-    /// Show (or reposition) the menu at the given logical screen coordinates.
     public void Show(float x, float y)
     {
         if (!_built) BuildPanel();
@@ -108,27 +96,25 @@ public sealed class ContextMenu
 
     public void Close() => _overlay.Close();
 
-    // ── Panel construction (lazy — called once on first Show) ─────────────────
+    // ── Panel construction (lazy — built once on first Show) ──────────────────
 
     private void BuildPanel()
     {
         _built = true;
-        var list = new MenuList(minWidth: 180f, maxHeight: 320f);
+        var panel = new ContextPanel(minWidth: 180f);
 
         foreach (var entry in _entries)
         {
             if (entry.IsSeparator)
             {
-                list.Add(new Separator { Margin = new Thickness(4f, 2f) });
+                panel.Add(new Separator { Margin = new Thickness(4f, 2f) });
                 continue;
             }
-
             if (entry.IsHeader)
             {
-                list.Add(new MenuHeaderWidget(entry.Label));
+                panel.Add(new MenuHeaderWidget(entry.Label));
                 continue;
             }
-
             if (entry.Binding is not null)
             {
                 var binding      = entry.Binding;
@@ -142,7 +128,7 @@ public sealed class ContextMenu
                     item!.Invalidate();
                     if (closeOnClick) Close();
                 };
-                list.Add(item);
+                panel.Add(item);
             }
             else
             {
@@ -155,11 +141,61 @@ public sealed class ContextMenu
                     Close();
                     if (enabled) action();
                 };
-                list.Add(item);
+                panel.Add(item);
             }
         }
 
-        _overlay.Content = list;
+        _overlay.Content = panel;
+    }
+
+    // ── Panel widget ──────────────────────────────────────────────────────────
+
+    // Flat panel: Surface background + rounded border + Column of items.
+    // No Scroll or PaddingBox wrappers — padding is managed directly so
+    // layout is straightforward and the background renders reliably.
+    private sealed class ContextPanel : Widget
+    {
+        private readonly Column _column;
+        private readonly float  _minWidth;
+        private const float     Pad = 4f;
+
+        public ContextPanel(float minWidth = 180f)
+        {
+            _minWidth        = minWidth;
+            BackgroundSource = t => t.Surface;
+            CornerRadius     = 8f;
+            _column          = new Column { Spacing = 2f };
+            AddChild(_column);
+        }
+
+        public void Add(Widget item) => _column.Add(item);
+
+        protected override Size MeasureCore(Size available)
+        {
+            // Measure column at minWidth so items report a stable preferred width.
+            float innerW = Math.Max(0f, _minWidth - Pad * 2f);
+            _column.Measure(new Size(innerW, float.PositiveInfinity));
+            float w = Math.Max(_column.DesiredSize.Width + Pad * 2f, _minWidth);
+            float h = _column.DesiredSize.Height + Pad * 2f;
+            return new Size(w, h);
+        }
+
+        protected override void ArrangeCore(Rect r)
+        {
+            float innerW = r.Width  - Pad * 2f;
+            float innerH = r.Height - Pad * 2f;
+            // Re-measure so DesiredSize reflects the final width before arrange.
+            _column.Measure(new Size(innerW, float.PositiveInfinity));
+            _column.Arrange(new Rect(r.X + Pad, r.Y + Pad, innerW, Math.Max(innerH, _column.DesiredSize.Height)));
+        }
+
+        protected override void DrawCore(DrawContext ctx)
+        {
+            using var p = ctx.MakePaint(ctx.Theme.Border.WithAlpha(0.4f));
+            p.IsStroke    = true;
+            p.StrokeWidth = 1f;
+            ctx.Canvas.DrawRoundRect(LayoutBounds.ToSKRect(), CornerRadius, CornerRadius, p);
+        }
     }
 
     // ── Entry data ────────────────────────────────────────────────────────────

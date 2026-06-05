@@ -69,7 +69,11 @@ public class Tabs : Widget
             Position = position;
             _label   = new Label { Text = title, IsHitTestVisible = false };
             AddChild(_label);
-            OnClick = _ => onSelect();
+            OnClick = e =>
+            {
+                if (e.Button != PointerButton.Left) return;
+                onSelect();
+            };
         }
 
         protected override Size MeasureCore(Size available)
