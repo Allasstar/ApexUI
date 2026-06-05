@@ -1,14 +1,13 @@
 using System.Globalization;
-using ApexUI.App.Examples;
 
 namespace ApexUI.App.Examples;
 
 public class SettingsExample : Widget
 {
-    public Bindable<float>       Scale      { get; } = new(1f);
-    public Bindable<bool>        DarkMode   { get; } = new(false);
-    public Bindable<string>      FontFamily { get; } = new("Segoe UI");
-    public Bindable<ThemePreset> Preset     { get; } = new(ThemePreset.Default);
+    public Bindable<float>  Scale      { get; } = new(1f);
+    public Bindable<bool>   DarkMode   { get; } = new(false);
+    public Bindable<string> FontFamily { get; } = new("Segoe UI");
+    public Bindable<string> Preset     { get; } = new(ThemeLibrary.DefaultName);
 
     private static readonly string[] Fonts =
     [
@@ -23,15 +22,9 @@ public class SettingsExample : Widget
                 new Label { Text = "Settings", Bold = true, FontSize = 22f },
 
                 Section("Appearance",
-                    Row("Theme",
-                        BuildThemeDropdown()),
-
-                    Row("Color mode",
-                        new Toggle().WithLabel("Dark mode").Bind(DarkMode)),
-
-                    Row("Font family",
-                        BuildFontDropdown()),
-
+                    Row("Theme",         BuildThemeDropdown()),
+                    Row("Color mode",    new Toggle().WithLabel("Dark mode").Bind(DarkMode)),
+                    Row("Font family",   BuildFontDropdown()),
                     Row("UI Scale  (0.5× – 2.0×)",
                         new Row(
                             new TextInput { Width = 72f }
@@ -50,12 +43,11 @@ public class SettingsExample : Widget
 
     private Widget BuildThemeDropdown()
     {
-        var dd = new Dropdown<ThemePreset>();
-        dd.AddItem(ThemePreset.Default,  "Default");
-        dd.AddItem(ThemePreset.Contrast, "Contrast");
-        dd.AddItem(ThemePreset.Forest,   "Forest");
-        dd.AddItem(ThemePreset.Desert,   "Desert");
-        dd.AddItem(ThemePreset.Space,    "Space");
+        var dd = new Dropdown<string>();
+        // Reads whatever is registered at UI-build time — includes any custom themes
+        // added via ThemeLibrary.Register() before this constructor runs.
+        foreach (var name in ThemeLibrary.Names)
+            dd.AddItem(name, name);
         dd.Bind(Preset);
         return dd;
     }

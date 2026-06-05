@@ -2,10 +2,10 @@ namespace ApexUI.App.Examples;
 
 public class TabsExample : Widget
 {
-    public Bindable<float>       Scale      { get; }
-    public Bindable<bool>        DarkMode   { get; }
-    public Bindable<string>      FontFamily { get; }
-    public Bindable<ThemePreset> Preset     { get; }
+    public Bindable<float>  Scale      { get; }
+    public Bindable<bool>   DarkMode   { get; }
+    public Bindable<string> FontFamily { get; }
+    public Bindable<string> Preset     { get; }
 
     public TabsExample()
     {

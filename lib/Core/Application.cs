@@ -31,8 +31,8 @@ public sealed class Application
     internal static Application? Current { get; private set; }
     private readonly List<Overlay> _overlays = [];
 
-    private ThemePreset _preset = ThemePreset.Default;
-    private bool        _isDark;
+    private string _preset = ThemeLibrary.DefaultName;
+    private bool   _isDark;
 
     public Theme Theme { get; set; } = Theme.Light;
     public float DpiScale { get; private set; } = 1f;
@@ -87,7 +87,7 @@ public sealed class Application
         return this;
     }
 
-    public Application BindTheme(Bindable<ThemePreset> source)
+    public Application BindTheme(Bindable<string> source)
     {
         _preset = source.Value;
         ApplyTheme();
