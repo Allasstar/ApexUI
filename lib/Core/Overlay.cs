@@ -48,6 +48,9 @@ public class Overlay : Widget
     /// Clicking outside Content closes the overlay (default true).
     public bool DismissOnClickOutside { get; set; } = true;
 
+    /// When Anchor is set, stretches Content to match the anchor's width (e.g. for dropdowns).
+    public bool MatchAnchorWidth { get; set; }
+
     public Action? OnDismiss { get; set; }
 
     public Overlay()
@@ -91,24 +94,37 @@ public class Overlay : Widget
     {
         if (_content is null) return;
 
-        _content.Measure(Size.Infinite);
-        var cs = _content.DesiredSize;
-
         float x, y;
 
         if (Anchor is not null)
         {
             var ab = Anchor.LayoutBounds;
+
+            // MatchAnchorWidth: measure at anchor width so popup is never narrower than trigger.
+            var measureSize = MatchAnchorWidth
+                ? new Size(ab.Width, float.PositiveInfinity)
+                : Size.Infinite;
+            _content.Measure(measureSize);
+            var cs = _content.DesiredSize;
+
             (x, y) = AnchorEdge switch
             {
-                OverlayAnchor.AboveAnchor   => (ab.X,          ab.Y - cs.Height),
-                OverlayAnchor.RightOfAnchor => (ab.Right,      ab.Y),
+                OverlayAnchor.AboveAnchor   => (ab.X,            ab.Y - cs.Height),
+                OverlayAnchor.RightOfAnchor => (ab.Right,        ab.Y),
                 OverlayAnchor.LeftOfAnchor  => (ab.X - cs.Width, ab.Y),
-                _                           => (ab.X,          ab.Bottom),  // BelowAnchor
+                _                           => (ab.X,            ab.Bottom),  // BelowAnchor
             };
+
+            x = Math.Clamp(x, screen.X, Math.Max(screen.X, screen.Right  - cs.Width));
+            y = Math.Clamp(y, screen.Y, Math.Max(screen.Y, screen.Bottom - cs.Height));
+
+            _content.Arrange(new Rect(x, y, cs.Width, cs.Height));
         }
         else
         {
+            _content.Measure(Size.Infinite);
+            var cs = _content.DesiredSize;
+
             x = ContentHAlign switch
             {
                 HAlign.Center  => screen.CenterX - cs.Width  * 0.5f,
@@ -123,13 +139,12 @@ public class Overlay : Widget
                 VAlign.Stretch => screen.Y,
                 _              => PositionY,
             };
+
+            x = Math.Clamp(x, screen.X, Math.Max(screen.X, screen.Right  - cs.Width));
+            y = Math.Clamp(y, screen.Y, Math.Max(screen.Y, screen.Bottom - cs.Height));
+
+            _content.Arrange(new Rect(x, y, cs.Width, cs.Height));
         }
-
-        // Clamp to keep content fully on-screen.
-        x = Math.Clamp(x, screen.X, Math.Max(screen.X, screen.Right  - cs.Width));
-        y = Math.Clamp(y, screen.Y, Math.Max(screen.Y, screen.Bottom - cs.Height));
-
-        _content.Arrange(new Rect(x, y, cs.Width, cs.Height));
     }
 
     // ── Drawing ───────────────────────────────────────────────────────────────

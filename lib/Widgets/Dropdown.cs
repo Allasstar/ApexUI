@@ -7,7 +7,7 @@ public class Dropdown<T> : Widget
     private readonly List<(T Value, string Label)> _items = [];
     private T? _selected;
     private string _placeholder = "Select...";
-    private readonly Button _toggleButton;
+    private readonly DropdownTrigger _trigger;
     private readonly MenuList _menuList;
     private readonly Overlay _overlay;
     private Bindable<T>? _binding;
@@ -19,7 +19,7 @@ public class Dropdown<T> : Widget
         set
         {
             _selected = value;
-            SyncButtonText();
+            SyncText();
             if (!_suppressBinding && _binding is not null)
             {
                 _suppressBinding = true;
@@ -33,7 +33,7 @@ public class Dropdown<T> : Widget
     public string Placeholder
     {
         get => _placeholder;
-        set { _placeholder = value; SyncButtonText(); }
+        set { _placeholder = value; SyncText(); }
     }
 
     public Action<T?>? OnChanged;
@@ -42,19 +42,25 @@ public class Dropdown<T> : Widget
     {
         _menuList = new MenuList(minWidth: 160f, maxHeight: 200f);
 
-        _overlay = new Overlay { DismissOnClickOutside = true };
+        _overlay = new Overlay { DismissOnClickOutside = true, MatchAnchorWidth = true };
         _overlay.Content = _menuList;
 
-        _toggleButton = new Button(_placeholder).WithVariant(ButtonVariant.Secondary);
-        // Only left-click toggles the dropdown — right-click is reserved for context menus.
-        _toggleButton.OnClick = e =>
+        _trigger = new DropdownTrigger { Text = _placeholder, IsPlaceholder = true };
+        _overlay.OnDismiss = () => _trigger.IsOpen = false;
+
+        _trigger.OnClick = e =>
         {
             if (e.Button != PointerButton.Left) return;
-            if (_overlay.IsVisible) _overlay.Close();
-            else _overlay.Open(_toggleButton, OverlayAnchor.BelowAnchor);
+            if (_overlay.IsVisible)
+                _overlay.Close();
+            else
+            {
+                _overlay.Open(_trigger);
+                _trigger.IsOpen = true;
+            }
         };
 
-        AddChild(_toggleButton);
+        AddChild(_trigger);
     }
 
     // ── Fluent API ────────────────────────────────────────────────────────────
@@ -92,24 +98,30 @@ public class Dropdown<T> : Widget
 
     protected override Size MeasureCore(Size available)
     {
-        _toggleButton.Measure(available);
-        return _toggleButton.DesiredSize;
+        _trigger.Measure(available);
+        // Measure the popup at natural size so its minimum width (from MenuList._minWidth
+        // and item content) acts as a floor for the trigger width. This guarantees both
+        // are always the same width before MatchAnchorWidth even runs.
+        _menuList.Measure(Size.Infinite);
+        float w = Math.Max(_trigger.DesiredSize.Width, _menuList.DesiredSize.Width);
+        return new Size(w, _trigger.DesiredSize.Height);
     }
 
-    protected override void ArrangeCore(Rect r)
-        => _toggleButton.Arrange(r);
+    protected override void ArrangeCore(Rect r) => _trigger.Arrange(r);
 
     // ── Internal ──────────────────────────────────────────────────────────────
 
-    private void SyncButtonText()
+    private void SyncText()
     {
         if (_selected is null)
         {
-            _toggleButton.Text = _placeholder;
+            _trigger.Text          = _placeholder;
+            _trigger.IsPlaceholder = true;
             return;
         }
         var match = _items.FirstOrDefault(i => EqualityComparer<T>.Default.Equals(i.Value, _selected));
-        _toggleButton.Text = match.Label ?? _placeholder;
+        _trigger.Text          = match.Label ?? _placeholder;
+        _trigger.IsPlaceholder = match.Label is null;
     }
 
     private void RebuildList()
@@ -118,7 +130,7 @@ public class Dropdown<T> : Widget
         foreach (var (value, label) in _items)
         {
             var itemValue = value;
-            MenuItemWidget? item = null;
+            MenuItemWidget? item;
             item = new MenuItemWidget(
                 label,
                 enabled: true,
@@ -130,6 +142,102 @@ public class Dropdown<T> : Widget
                 _overlay.Close();
             };
             _menuList.Add(item);
+        }
+    }
+
+    // ── Trigger widget ────────────────────────────────────────────────────────
+
+    private sealed class DropdownTrigger : Widget
+    {
+        private readonly Label _label;
+        private bool _isOpen;
+
+        private const float PadH       = 10f;
+        private const float ChevronW   = 28f;
+        private const float MinW       = 120f;
+
+        public DropdownTrigger()
+        {
+            CornerRadius = 6f;
+            _label = new Label { IsHitTestVisible = false };
+            AddChild(_label);
+        }
+
+        public string Text { set { _label.Text = value; InvalidateLayout(); } }
+
+        public bool IsOpen { set { _isOpen = value; Invalidate(); } }
+
+        public bool IsPlaceholder { get; set { field = value; Invalidate(); } }
+
+        // ── Layout ───────────────────────────────────────────────────────────
+
+        protected override Size MeasureCore(Size available)
+        {
+            _label.Measure(new Size(Math.Max(0f, available.Width - PadH - ChevronW), float.PositiveInfinity));
+            float w = Math.Max(_label.DesiredSize.Width + PadH + ChevronW, MinW);
+            float h = _label.DesiredSize.Height + 14f; // ~7px top+bottom padding
+            return new Size(w, h);
+        }
+
+        protected override void ArrangeCore(Rect r)
+        {
+            var lr = new Rect(r.X + PadH, r.Y, r.Width - PadH - ChevronW, r.Height);
+            _label.Measure(new Size(lr.Width, lr.Height));
+            _label.Arrange(lr);
+        }
+
+        // ── Drawing ──────────────────────────────────────────────────────────
+
+        protected override void DrawCore(DrawContext ctx)
+        {
+            var t  = ctx.Theme;
+            var lb = LayoutBounds;
+
+            // Background
+            var bg = IsPressed ? t.SurfacePressed
+                   : IsHovered ? t.SurfaceHover
+                   : t.Surface;
+            using (var p = ctx.MakePaint(bg))
+                ctx.Canvas.DrawRoundRect(lb.ToSKRect(), CornerRadius, CornerRadius, p);
+
+            // Border — accent + thicker when open
+            using (var p = ctx.MakePaint(_isOpen ? t.Primary : t.Border))
+            {
+                p.IsStroke    = true;
+                p.StrokeWidth = _isOpen ? 2f : 1f;
+                ctx.Canvas.DrawRoundRect(lb.ToSKRect(), CornerRadius, CornerRadius, p);
+            }
+
+            // Divider between label area and chevron column
+            float divX = lb.Right - ChevronW;
+            using (var p = ctx.MakePaint(t.Border.WithAlpha(0.5f)))
+            {
+                p.IsStroke    = true;
+                p.StrokeWidth = 1f;
+                ctx.Canvas.DrawLine(divX, lb.Y + 6f, divX, lb.Bottom - 6f, p);
+            }
+
+            // Label color
+            _label.Color = IsPlaceholder ? t.OnSurfaceMuted : t.OnSurface;
+
+            // Chevron
+            DrawChevron(ctx, lb.Right - ChevronW * 0.5f, lb.CenterY, _isOpen, t.OnSurfaceMuted);
+        }
+
+        private static void DrawChevron(DrawContext ctx, float cx, float cy, bool up, SKColor color)
+        {
+            float s    = 3.5f;
+            float sign = up ? -1f : 1f;
+            using var path = new SKPath();
+            path.MoveTo(cx - s, cy - sign * s * 0.6f);
+            path.LineTo(cx,     cy + sign * s * 0.6f);
+            path.LineTo(cx + s, cy - sign * s * 0.6f);
+            using var p = ctx.MakePaint(color);
+            p.IsStroke    = true;
+            p.StrokeWidth = 1.5f;
+            p.StrokeCap   = SKStrokeCap.Round;
+            p.StrokeJoin  = SKStrokeJoin.Round;
+            ctx.Canvas.DrawPath(path, p);
         }
     }
 }
