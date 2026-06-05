@@ -280,15 +280,23 @@ public abstract class Widget
         var bg = BackgroundSource?.Invoke(ctx.Theme) ?? Background;
         if (bg != SkiaSharp.SKColor.Empty)
         {
-            using var paint = new SkiaSharp.SKPaint { Color = bg };
             if (CornerRadius > 0)
-                ctx.Canvas.DrawRoundRect(LayoutBounds.ToSKRect(), CornerRadius, CornerRadius, paint);
+                ctx.FillRoundRect(LayoutBounds, CornerRadius, bg);
             else
-                ctx.Canvas.DrawRect(LayoutBounds.ToSKRect(), paint);
+                ctx.FillRect(LayoutBounds, bg);
         }
 
-        // Let subclass draw its content
-        DrawCore(ctx);
+        // Let subclass draw its content — isolated so one bad widget can't crash the frame
+        try
+        {
+            DrawCore(ctx);
+        }
+        catch (Exception ex)
+        {
+            ctx.FillRect(LayoutBounds, new SkiaSharp.SKColor(255, 0, 80, 60));
+            ctx.StrokeRoundRect(LayoutBounds, 0, new SkiaSharp.SKColor(255, 0, 80), 2f);
+            Console.Error.WriteLine($"[ApexUI] DrawCore failed on {GetType().Name}: {ex.Message}");
+        }
 
         // Draw children on top
         foreach (var child in _children)

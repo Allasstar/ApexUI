@@ -54,12 +54,8 @@ public class ProgressBar : Widget
                 ProgressBarVariant.Danger  => ctx.Theme.Danger,
                 _                          => ctx.Theme.Primary,
             };
-            // Clip to the background shape so the fill is always contained — avoids
-            // the squashed-corner artifact when fill width < corner radius.
-            ctx.Canvas.Save();
-            ctx.Canvas.ClipRoundRect(new SKRoundRect(LayoutBounds.ToSKRect(), rx), antialias: true);
-            ctx.FillRect(new Rect(LayoutBounds.X, LayoutBounds.Y, LayoutBounds.Width * Value, LayoutBounds.Height), fillColor);
-            ctx.Canvas.Restore();
+            using (ctx.PushClip(LayoutBounds, rx))
+                ctx.FillRect(new Rect(LayoutBounds.X, LayoutBounds.Y, LayoutBounds.Width * Value, LayoutBounds.Height), fillColor);
         }
     }
 }

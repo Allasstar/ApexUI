@@ -203,6 +203,61 @@ SKColor color.Darken(float ratio)
 
 ---
 
+### `DrawContext` shapes · `lib/Core/DrawContext.Shapes.cs`
+
+```csharp
+void FillRect(Rect r, SKColor color)
+void FillRoundRect(Rect r, float radius, SKColor color)
+void StrokeRoundRect(Rect r, float radius, SKColor color, float thickness = 1f)  // inset stroke
+void FillCircle(float cx, float cy, float radius, SKColor color)
+void StrokeCircle(float cx, float cy, float radius, SKColor color, float thickness = 1f)  // inset stroke
+void FillOval(Rect r, SKColor color)
+void DrawLine(float x0, float y0, float x1, float y1, SKColor color, float thickness = 1f, SKStrokeCap cap = Round)
+void FillTriangle(float x0, float y0, float x1, float y1, float x2, float y2, SKColor color)
+void StrokeTriangle(...)
+void DrawShadow(Rect r, float cornerRadius, float blur, SKColor color)
+void DrawChevron(float cx, float cy, float size, bool pointUp, SKColor color, float thickness = 1.5f)
+void DrawCheckmark(float cx, float cy, float size, SKColor color, float thickness = 2f)
+void DrawCross(float cx, float cy, float size, SKColor color, float thickness = 2f)
+```
+
+### `DrawContext` text · `lib/Core/DrawContext.Text.cs`
+
+```csharp
+void  DrawText(string text, Rect bounds, SKColor color, float sizePx, bool bold = false, SKTextAlign align = Left)
+float MeasureText(string text, float sizePx, bool bold = false)
+```
+
+### `DrawContext` images · `lib/Core/DrawContext.Images.cs`
+
+```csharp
+void DrawImage(SKImage image, Rect dest)
+void DrawImage(SKImage image, SKRect src, Rect dest)
+void DrawPicture(SKPicture picture, Rect dest, float naturalW, float naturalH)
+```
+
+### `DrawContext` clip · `lib/Core/DrawContext.Clip.cs`
+
+```csharp
+ClipScope PushClip(Rect r)              // rectangular clip
+ClipScope PushClip(Rect r, float radius) // rounded-rect clip
+// ClipScope is IDisposable — use with `using` to auto-restore canvas state
+```
+
+### `Checkbox` · `lib/Widgets/Checkbox.cs`
+
+```csharp
+Checkbox(bool isChecked = false, string label = "", Action<bool>? onChanged = null)
+bool     IsChecked  { get; set; }
+string   Label      { get; set; }
+Action<bool>? OnChanged
+
+Checkbox WithLabel(string label)
+Checkbox WithChecked(bool value)
+Checkbox OnChange(Action<bool> action)
+Checkbox Bind(Bindable<bool> source)
+```
+
 ### `SKCanvasExtensions` · `lib/Extensions/SKCanvasExtensions.cs`
 
 ```csharp
@@ -210,3 +265,15 @@ void canvas.FillRoundRect(SKRect rect, float rx, SKColor color)
 void canvas.StrokeRoundRect(SKRect rect, float rx, SKColor color, float strokeWidth = 1f)
 void canvas.DrawTextCentered(string text, SKRect bounds, SKFont font, SKPaint paint)
 ```
+
+---
+
+## TODO
+
+- **Label word-wrap** — `Label` is single-line only; add `WordWrap = true` that measures/draws across multiple lines
+- **Virtualized list** — `Dropdown`/`MenuList` render all items; add a `VirtualList<T>` that only draws visible rows for large datasets
+- **Tab focus navigation** — focus only moves on click; implement `Tab`/`Shift+Tab` traversal in `Application` across focusable widgets (`TextInput` etc.)
+- **Collection binding** — add `ObservableList<T>` with a `Changed` event so `Dropdown`/`MenuList` can bind to live collections
+- **Animation primitives** — add a simple `Lerp`-based value animator driven by the tick loop for smooth hover/press transitions
+- **`WrapPanel`** — `Row` overflows; add a wrapping flow layout panel
+- **Absolute layout** — add a `Canvas` layout widget that positions children at explicit X/Y coordinates via attached properties

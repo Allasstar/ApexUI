@@ -1,11 +1,22 @@
 namespace ApexUI.App.Examples;
 
-/// Demonstrates RadioGroup<T> (vertical + horizontal) and NumberInput (float + int, with binding).
+/// Demonstrates Toggle, Checkbox, RadioGroup<T>, and NumberInput with binding.
 public class InputsExample : Widget
 {
     public InputsExample()
     {
         // ── Shared state ──────────────────────────────────────────────────────
+        var darkMode  = new Bindable<bool>(false);
+        var notify    = new Bindable<bool>(true);
+        var autoSave  = new Bindable<bool>(false);
+
+        var toggleStatus = new Label { Text = Status(darkMode.Value) };
+        darkMode.Changed += v => toggleStatus.Text = Status(v);
+
+        var checkA = new Bindable<bool>(true);
+        var checkB = new Bindable<bool>(false);
+        var checkC = new Bindable<bool>(true);
+
         var theme     = new Bindable<string>("System");
         var direction = new Bindable<string>("North");
         var quantity  = new Bindable<int>(5);
@@ -25,6 +36,45 @@ public class InputsExample : Widget
         // ── Layout ────────────────────────────────────────────────────────────
         AddChild(new PaddingBox(
             new Column(
+
+                // ── Toggle ─────────────────────────────────────────────────────
+                new Label { Text = "Toggle", Bold = true, FontSize = 18f },
+
+                MakeCard(new Column(
+                    new Label { Text = "Bound to Bindable<bool> — status updates live:" },
+                    new Toggle().WithLabel("Dark mode").Bind(darkMode),
+                    toggleStatus,
+                    new Separator { Margin = new Thickness(0, 4f) },
+                    new Label { Text = "Independent toggles:" },
+                    new Toggle(isChecked: true).WithLabel("Notifications"),
+                    new Toggle(isChecked: false).WithLabel("Auto-save"),
+                    new Separator { Margin = new Thickness(0, 4f) },
+                    new Label { Text = "Disabled states:" },
+                    new Row(
+                        new Toggle(isChecked: true,  label: "On (disabled)")  { IsEnabled = false },
+                        new Toggle(isChecked: false, label: "Off (disabled)") { IsEnabled = false }
+                    ).WithSpacing(24f)
+                ).WithSpacing(8f)),
+
+                new Separator { Margin = new Thickness(0, 4f) },
+
+                // ── Checkbox ───────────────────────────────────────────────────
+                new Label { Text = "Checkbox", Bold = true, FontSize = 18f },
+
+                MakeCard(new Column(
+                    new Label { Text = "Bound to Bindable<bool>:" },
+                    new Checkbox().WithLabel("WiFi").Bind(checkA),
+                    new Checkbox().WithLabel("Bluetooth").Bind(checkB),
+                    new Checkbox().WithLabel("Location").Bind(checkC),
+                    new Separator { Margin = new Thickness(0, 4f) },
+                    new Label { Text = "Disabled states:" },
+                    new Row(
+                        new Checkbox(isChecked: true,  label: "Checked (disabled)")   { IsEnabled = false },
+                        new Checkbox(isChecked: false, label: "Unchecked (disabled)") { IsEnabled = false }
+                    ).WithSpacing(24f)
+                ).WithSpacing(8f)),
+
+                new Separator { Margin = new Thickness(0, 4f) },
 
                 // ── RadioGroup — Vertical ──────────────────────────────────────
                 new Label { Text = "RadioGroup — Vertical", Bold = true, FontSize = 18f },
@@ -133,6 +183,8 @@ public class InputsExample : Widget
 
     private static string Summary(string diff, int lives, float time)
         => $"{diff} mode · {lives} lives · {time:0} s";
+
+    private static string Status(bool v) => v ? "Dark mode: ON" : "Dark mode: OFF";
 
     // ── Helpers ───────────────────────────────────────────────────────────────
 
