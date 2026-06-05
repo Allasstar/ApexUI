@@ -3,8 +3,6 @@
 // Passed into every DrawCore() call.
 // Carries the canvas + theme so widgets don't need global state.
 
-using SkiaSharp;
-
 namespace ApexUI.Core;
 
 public sealed partial class DrawContext(SKCanvas canvas, Theme theme, float dpiScale, string fontFamily = "Segoe UI")
