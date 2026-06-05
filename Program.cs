@@ -5,4 +5,5 @@ new Application("ApexUI Demo", 900, 700)
     .SetIcon("res/ApexIcon.svg")
     .BindUiScale(example.Scale)
     .BindDarkMode(example.DarkMode)
+    .BindFontFamily(example.FontFamily)
     .Run(example);
