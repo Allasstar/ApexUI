@@ -40,8 +40,14 @@ public class TextInput : Widget, ITickable
     public Action<string>? OnSubmit;   // fired on Enter
 
     private int   _cursorPos;
+    private int   _selAnchor;          // selection anchor; differs from _cursorPos when text is selected
     private float _blinkTimer;
     private bool  _cursorVisible = true;
+    private bool  _isDragging;
+
+    private int  SelectionStart => Math.Min(_cursorPos, _selAnchor);
+    private int  SelectionEnd   => Math.Max(_cursorPos, _selAnchor);
+    private bool HasSelection   => _cursorPos != _selAnchor;
 
     public TextInput(string placeholder = "")
     {
@@ -50,12 +56,15 @@ public class TextInput : Widget, ITickable
         CornerRadius = 6f;
         MinWidth     = 120f;
         OnKeyDown    = HandleKey;
+        OnPointerDown = HandlePointerDown;
+        OnPointerMove = HandlePointerMove;
+        OnPointerUp   = _ => _isDragging = false;
     }
 
     // ── Fluent ───────────────────────────────────────────────────────────────
 
     public TextInput WithPlaceholder(string ph)            { Placeholder = ph; return this; }
-    public TextInput WithValue(string v)                   { Value = v; _cursorPos = v.Length; return this; }
+    public TextInput WithValue(string v)                   { Value = v; _cursorPos = _selAnchor = v.Length; return this; }
     public TextInput OnChange(Action<string> a)            { OnChanged = a; return this; }
     public TextInput AsPassword()                          { IsPassword = true; return this; }
     public TextInput AsInteger()                           { InputMode = InputMode.Integer; return this; }
@@ -69,19 +78,18 @@ public class TextInput : Widget, ITickable
     public TextInput BindFloat(Bindable<float> source, string format = "F2")
     {
         Value = source.Value.ToString(format, CultureInfo.InvariantCulture);
-        _cursorPos = Value.Length;
+        _cursorPos = _selAnchor = Value.Length;
         OnChanged      += s => { if (float.TryParse(s, NumberStyles.Float, CultureInfo.InvariantCulture, out var v)) source.Value = v; };
-        // Skip update while focused so dragging the slider doesn't interrupt typing.
-        source.Changed += v => { if (!IsFocused) { Value = v.ToString(format, CultureInfo.InvariantCulture); _cursorPos = Value.Length; } };
+        source.Changed += v => { if (!IsFocused) { Value = v.ToString(format, CultureInfo.InvariantCulture); _cursorPos = _selAnchor = Value.Length; } };
         return this;
     }
 
     public TextInput BindInt(Bindable<int> source)
     {
         Value = source.Value.ToString();
-        _cursorPos = Value.Length;
+        _cursorPos = _selAnchor = Value.Length;
         OnChanged      += s => { if (int.TryParse(s, out var v)) source.Value = v; };
-        source.Changed += v => { if (!IsFocused) { Value = v.ToString(); _cursorPos = Value.Length; } };
+        source.Changed += v => { if (!IsFocused) { Value = v.ToString(); _cursorPos = _selAnchor = Value.Length; } };
         return this;
     }
 
@@ -110,17 +118,28 @@ public class TextInput : Widget, ITickable
         string display = IsPassword ? new string('•', Value.Length) : Value;
         float  sz      = ctx.Theme.FontSizeBase;
 
-        if (!string.IsNullOrEmpty(display))
-            ctx.DrawText(display, inner, ctx.Theme.OnSurface, sz);
-        else if (!string.IsNullOrEmpty(Placeholder) && !IsFocused)
-            ctx.DrawText(Placeholder, inner, ctx.Theme.OnSurfaceMuted, sz);
-
-        if (IsFocused && _cursorVisible)
+        using (ctx.PushClip(inner))
         {
-            float cx = string.IsNullOrEmpty(display)
-                ? inner.X
-                : inner.X + ctx.MeasureText(display[.._cursorPos], sz);
-            ctx.DrawLine(cx, inner.Y + 2, cx, inner.Bottom - 2, ctx.Theme.OnSurface, cap: SKStrokeCap.Butt);
+            if (IsFocused && HasSelection)
+            {
+                float selX0 = inner.X + (SelectionStart > 0 ? ctx.MeasureText(display[..SelectionStart], sz) : 0);
+                float selX1 = inner.X + ctx.MeasureText(display[..SelectionEnd], sz);
+                ctx.FillRect(new Rect(selX0, inner.Y, selX1 - selX0, inner.Height),
+                             ctx.Theme.Primary.WithAlpha(0.3f));
+            }
+
+            if (!string.IsNullOrEmpty(display))
+                ctx.DrawText(display, inner, ctx.Theme.OnSurface, sz);
+            else if (!string.IsNullOrEmpty(Placeholder) && !IsFocused)
+                ctx.DrawText(Placeholder, inner, ctx.Theme.OnSurfaceMuted, sz);
+
+            if (IsFocused && _cursorVisible)
+            {
+                float cx = string.IsNullOrEmpty(display)
+                    ? inner.X
+                    : inner.X + ctx.MeasureText(display[.._cursorPos], sz);
+                ctx.DrawLine(cx, inner.Y + 2, cx, inner.Bottom - 2, ctx.Theme.OnSurface, cap: SKStrokeCap.Butt);
+            }
         }
     }
 
@@ -138,6 +157,52 @@ public class TextInput : Widget, ITickable
         }
     }
 
+    // ── Pointer handling ──────────────────────────────────────────────────────
+
+    private void HandlePointerDown(PointerEvent e)
+    {
+        if (e.Button != PointerButton.Left) return;
+        int idx = HitTestCharIndex(e.X);
+        _cursorPos = _selAnchor = idx;
+        _isDragging = true;
+        ResetBlink();
+    }
+
+    private void HandlePointerMove(PointerEvent e)
+    {
+        if (!_isDragging) return;
+        int idx = HitTestCharIndex(e.X);
+        if (idx == _cursorPos) return;
+        _cursorPos = idx;
+        ResetBlink();
+    }
+
+    // Maps a screen X coordinate to the nearest character index in Value.
+    private int HitTestCharIndex(float screenX)
+    {
+        var inner = LayoutBounds.Deflate(Padding);
+        float relX = screenX - inner.X;
+        if (relX <= 0) return 0;
+
+        string display = IsPassword ? new string('•', Value.Length) : Value;
+        if (string.IsNullOrEmpty(display)) return 0;
+
+        float sz     = Application.Current?.Theme.FontSizeBase ?? 14f;
+        string family = Application.Current?.FontFamily ?? "Segoe UI";
+        using var typeface = SKTypeface.FromFamilyName(family, SKFontStyle.Normal);
+        using var font     = new SKFont(typeface, sz);
+
+        float prev = 0f;
+        for (int i = 1; i <= display.Length; i++)
+        {
+            float w = font.MeasureText(display[..i]);
+            if (w >= relX)
+                return (relX - prev < w - relX) ? i - 1 : i;
+            prev = w;
+        }
+        return display.Length;
+    }
+
     // ── Key handling ──────────────────────────────────────────────────────────
 
     private void HandleKey(KeyEvent e)
@@ -146,24 +211,71 @@ public class TextInput : Widget, ITickable
         switch (e.Key)
         {
             case "Backspace":
-                if (_cursorPos > 0) { Value = Value.Remove(_cursorPos - 1, 1); _cursorPos--; }
+                if (HasSelection) DeleteSelection();
+                else if (_cursorPos > 0) { Value = Value.Remove(_cursorPos - 1, 1); _cursorPos--; _selAnchor = _cursorPos; }
                 break;
             case "Delete":
-                if (_cursorPos < Value.Length) Value = Value.Remove(_cursorPos, 1);
+                if (HasSelection) DeleteSelection();
+                else if (_cursorPos < Value.Length) Value = Value.Remove(_cursorPos, 1);
                 break;
-            case "ArrowLeft":  _cursorPos = Math.Max(0, _cursorPos - 1);           Invalidate(); break;
-            case "ArrowRight": _cursorPos = Math.Min(Value.Length, _cursorPos + 1); Invalidate(); break;
-            case "Home":       _cursorPos = 0;            Invalidate(); break;
-            case "End":        _cursorPos = Value.Length; Invalidate(); break;
-            case "Enter":      OnSubmit?.Invoke(Value);   break;
+            case "ArrowLeft":
+                if (e.Shift)
+                    _cursorPos = Math.Max(0, _cursorPos - 1);
+                else if (HasSelection)
+                    _cursorPos = _selAnchor = SelectionStart;
+                else
+                    _cursorPos = _selAnchor = Math.Max(0, _cursorPos - 1);
+                Invalidate(); break;
+            case "ArrowRight":
+                if (e.Shift)
+                    _cursorPos = Math.Min(Value.Length, _cursorPos + 1);
+                else if (HasSelection)
+                    _cursorPos = _selAnchor = SelectionEnd;
+                else
+                    _cursorPos = _selAnchor = Math.Min(Value.Length, _cursorPos + 1);
+                Invalidate(); break;
+            case "Home":
+                if (e.Shift) _cursorPos = 0;
+                else _cursorPos = _selAnchor = 0;
+                Invalidate(); break;
+            case "End":
+                if (e.Shift) _cursorPos = Value.Length;
+                else _cursorPos = _selAnchor = Value.Length;
+                Invalidate(); break;
+            case "Enter": OnSubmit?.Invoke(Value); break;
             default:
+                if (e.Ctrl)
+                {
+                    if (string.Equals(e.Key, "a", StringComparison.OrdinalIgnoreCase))
+                    { _selAnchor = 0; _cursorPos = Value.Length; Invalidate(); }
+                    break;
+                }
                 if (e.Key.Length == 1 && IsCharAllowed(e.Key[0]))
                 {
+                    if (HasSelection) DeleteSelection();
                     Value = Value.Insert(_cursorPos, e.Key);
                     _cursorPos++;
+                    _selAnchor = _cursorPos;
                 }
                 break;
         }
+        ResetBlink();
+    }
+
+    // ── Helpers ───────────────────────────────────────────────────────────────
+
+    private void DeleteSelection()
+    {
+        int start = SelectionStart;
+        Value      = Value.Remove(start, SelectionEnd - start);
+        _cursorPos = _selAnchor = start;
+    }
+
+    private void ResetBlink()
+    {
+        _cursorVisible = true;
+        _blinkTimer    = 0;
+        Invalidate();
     }
 
     // ── Character filtering ───────────────────────────────────────────────────
@@ -175,7 +287,6 @@ public class TextInput : Widget, ITickable
             case InputMode.Integer:
                 if (!char.IsDigit(c))
                 {
-                    // Allow '-' only at position 0 and only if none exists yet
                     if (c == '-' && _cursorPos == 0 && !Value.Contains('-')) break;
                     return false;
                 }

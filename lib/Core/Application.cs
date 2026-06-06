@@ -334,13 +334,13 @@ public sealed class Application
 
     private void OnKeyDown(IKeyboard kb, Key key, int _)
     {
-        var mapped = MapKey(key);
-        if (mapped.Length == 1) return; // printable char — OnKeyChar handles it with correct case/locale
-        _focusedWidget?.OnKeyDown?.Invoke(new KeyEvent(
-            mapped, true,
-            kb.IsKeyPressed(Key.ControlLeft) || kb.IsKeyPressed(Key.ControlRight),
-            kb.IsKeyPressed(Key.ShiftLeft)   || kb.IsKeyPressed(Key.ShiftRight),
-            kb.IsKeyPressed(Key.AltLeft)     || kb.IsKeyPressed(Key.AltRight)));
+        var  mapped = MapKey(key);
+        bool ctrl   = kb.IsKeyPressed(Key.ControlLeft)  || kb.IsKeyPressed(Key.ControlRight);
+        bool shift  = kb.IsKeyPressed(Key.ShiftLeft)    || kb.IsKeyPressed(Key.ShiftRight);
+        bool alt    = kb.IsKeyPressed(Key.AltLeft)      || kb.IsKeyPressed(Key.AltRight);
+        // Single-char keys are handled via OnKeyChar (correct case/locale) unless a modifier is held.
+        if (mapped.Length == 1 && !ctrl && !alt) return;
+        _focusedWidget?.OnKeyDown?.Invoke(new KeyEvent(mapped, true, ctrl, shift, alt));
     }
 
     private void OnKeyUp(IKeyboard kb, Key key, int _)
