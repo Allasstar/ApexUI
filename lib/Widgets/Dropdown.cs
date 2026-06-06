@@ -13,6 +13,9 @@ public class Dropdown<T> : Widget
     private Bindable<T>? _binding;
     private bool _suppressBinding;
 
+    private ObservableList<T>? _observedItems;
+    private Action? _observedSync;
+
     public T? SelectedValue
     {
         get => _selected;
@@ -71,6 +74,31 @@ public class Dropdown<T> : Widget
         RebuildList();
         return this;
     }
+
+    /// Binds the item list to an ObservableList. Rebuilds automatically on every change.
+    public Dropdown<T> WithItems(ObservableList<T> source, Func<T, string> labelOf)
+    {
+        if (_observedItems is not null && _observedSync is not null)
+            _observedItems.Changed -= _observedSync;
+
+        _observedItems = source;
+        void Sync()
+        {
+            _items.Clear();
+            foreach (var item in source) _items.Add((item, labelOf(item)));
+            RebuildList();
+            if (_selected is not null && !source.Contains(_selected))
+            { _selected = default; SyncText(); }
+        }
+        _observedSync = Sync;
+        Sync();
+        source.Changed += Sync;
+        return this;
+    }
+
+    /// Convenience overload — uses ToString() as the label.
+    public Dropdown<T> WithItems(ObservableList<T> source)
+        => WithItems(source, item => item?.ToString() ?? "");
 
     public Dropdown<T> WithPlaceholder(string text) { Placeholder = text; return this; }
 

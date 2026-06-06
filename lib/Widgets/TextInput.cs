@@ -66,6 +66,7 @@ public class TextInput : Widget, ITickable
     public TextInput WithPlaceholder(string ph)            { Placeholder = ph; return this; }
     public TextInput WithValue(string v)                   { Value = v; _cursorPos = _selAnchor = v.Length; return this; }
     public TextInput OnChange(Action<string> a)            { OnChanged = a; return this; }
+    public TextInput WithSubmit(Action<string> a)          { OnSubmit = a; return this; }
     public TextInput AsPassword()                          { IsPassword = true; return this; }
     public TextInput AsInteger()                           { InputMode = InputMode.Integer; return this; }
     public TextInput AsFloat()                             { InputMode = InputMode.Float; return this; }

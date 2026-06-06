@@ -365,17 +365,18 @@ public sealed class Application
 
     private static string MapKey(Key k) => k switch
     {
-        Key.Backspace  => "Backspace",
-        Key.Delete     => "Delete",
-        Key.Enter      => "Enter",
-        Key.Left       => "ArrowLeft",
-        Key.Right      => "ArrowRight",
-        Key.Up         => "ArrowUp",
-        Key.Down       => "ArrowDown",
-        Key.Home       => "Home",
-        Key.End        => "End",
-        Key.Tab        => "Tab",
-        Key.Escape     => "Escape",
+        Key.Backspace    => "Backspace",
+        Key.Delete       => "Delete",
+        Key.Enter        => "Enter",
+        Key.KeypadEnter  => "Enter",
+        Key.Left         => "ArrowLeft",
+        Key.Right        => "ArrowRight",
+        Key.Up           => "ArrowUp",
+        Key.Down         => "ArrowDown",
+        Key.Home         => "Home",
+        Key.End          => "End",
+        Key.Tab          => "Tab",
+        Key.Escape       => "Escape",
         _ => k.ToString(),
     };
 

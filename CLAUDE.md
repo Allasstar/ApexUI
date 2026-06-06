@@ -290,9 +290,55 @@ void canvas.DrawTextCentered(string text, SKRect bounds, SKFont font, SKPaint pa
 
 ---
 
+### `ObservableList<T>` · `lib/Core/ObservableList.cs`
+
+```csharp
+ObservableList<T>()
+ObservableList<T>(IEnumerable<T> items)
+
+event Action? Changed   // fires after any structural change
+
+T    this[int i]         { get }
+int  Count               { get }
+bool Contains(T item)
+int  IndexOf(T item)
+
+void Add(T item)
+void Insert(int i, T item)
+bool Remove(T item)
+void RemoveAt(int i)
+void Set(int i, T item)
+void AddRange(IEnumerable<T> items)
+void Clear()
+```
+
+### `VirtualList<T>` · `lib/Widgets/VirtualList.cs`
+
+```csharp
+// Only rows inside the visible viewport are measured and drawn.
+// Row height must be uniform. Set Height (or constrain via parent) to make the list scrollable;
+// if Height=NaN and available height is ∞, sizes to full content height.
+
+VirtualList<T>()
+float RowHeight  { get; set; }   // default 36
+
+VirtualList<T> WithItems(ObservableList<T> source)   // subscribes to Changed
+VirtualList<T> WithItems(IReadOnlyList<T> source)
+VirtualList<T> WithTemplate(Func<T, Widget> t)
+VirtualList<T> WithTemplate(Func<T, int, Widget> t)  // (item, rowIndex) → Widget
+VirtualList<T> WithRowHeight(float h)
+```
+
+### `Dropdown<T>` — live collection overloads
+
+```csharp
+Dropdown<T> WithItems(ObservableList<T> source, Func<T, string> labelOf)
+Dropdown<T> WithItems(ObservableList<T> source)   // uses ToString()
+```
+
+---
+
 ## TODO
 
-- **Virtualized list** — `Dropdown`/`MenuList` render all items; add a `VirtualList<T>` that only draws visible rows for large datasets
 - **Tab focus navigation** — focus only moves on click; implement `Tab`/`Shift+Tab` traversal in `Application` across focusable widgets (`TextInput` etc.)
-- **Collection binding** — add `ObservableList<T>` with a `Changed` event so `Dropdown`/`MenuList` can bind to live collections
 - **Animation primitives** — add a simple `Lerp`-based value animator driven by the tick loop for smooth hover/press transitions

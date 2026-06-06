@@ -19,7 +19,7 @@ public abstract class Widget
 
     // ── Tree ─────────────────────────────────────────────────────────────────
 
-    public Widget? Parent { get; private set; }
+    public Widget? Parent { get; internal set; }
 
     private readonly List<Widget> _children = [];
     public IReadOnlyList<Widget> Children => _children;
