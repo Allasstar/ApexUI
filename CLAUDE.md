@@ -258,6 +258,28 @@ Checkbox OnChange(Action<bool> action)
 Checkbox Bind(Bindable<bool> source)
 ```
 
+### `Wrap` · `lib/Layout/Wrap.cs`
+
+```csharp
+Wrap(params Widget[] children)
+float HorizontalSpacing { get; set; }
+float VerticalSpacing   { get; set; }
+
+Wrap WithSpacing(float horizontal, float vertical)
+```
+
+### `Canvas` · `lib/Layout/Canvas.cs`
+
+```csharp
+// Children positioned at explicit X/Y coordinates (relative to Canvas origin).
+Canvas Add(Widget child, float x, float y)                              // natural child size
+Canvas Add(Widget child, float x, float y, float width, float height)  // explicit size
+Canvas Move(Widget child, float x, float y)    // reposition an existing child
+Canvas RemoveChild(Widget child)               // remove from canvas
+
+// Canvas auto-sizes to the bounding box of all children unless Width/Height are set explicitly.
+```
+
 ### `SKCanvasExtensions` · `lib/Extensions/SKCanvasExtensions.cs`
 
 ```csharp
@@ -270,10 +292,7 @@ void canvas.DrawTextCentered(string text, SKRect bounds, SKFont font, SKPaint pa
 
 ## TODO
 
-- **Label word-wrap** — `Label` is single-line only; add `WordWrap = true` that measures/draws across multiple lines
 - **Virtualized list** — `Dropdown`/`MenuList` render all items; add a `VirtualList<T>` that only draws visible rows for large datasets
 - **Tab focus navigation** — focus only moves on click; implement `Tab`/`Shift+Tab` traversal in `Application` across focusable widgets (`TextInput` etc.)
 - **Collection binding** — add `ObservableList<T>` with a `Changed` event so `Dropdown`/`MenuList` can bind to live collections
 - **Animation primitives** — add a simple `Lerp`-based value animator driven by the tick loop for smooth hover/press transitions
-- **`WrapPanel`** — `Row` overflows; add a wrapping flow layout panel
-- **Absolute layout** — add a `Canvas` layout widget that positions children at explicit X/Y coordinates via attached properties
