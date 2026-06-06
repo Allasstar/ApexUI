@@ -63,10 +63,7 @@ public class Checkbox : Widget
         float cx      = LayoutBounds.X + BoxSize * 0.5f;
         var   boxRect = new Rect(LayoutBounds.X, cy - BoxSize * 0.5f, BoxSize, BoxSize);
         float r       = ctx.Theme.CornerRadiusSm;
-
-        if ((IsHovered || IsPressed) && IsEnabled)
-            ctx.FillCircle(cx, cy, BoxSize * 0.7f, ctx.Theme.Primary.WithAlpha(0.12f));
-
+        
         if (IsChecked && IsEnabled)
         {
             ctx.FillRoundRect(boxRect, r, ctx.Theme.Primary);
@@ -78,6 +75,11 @@ public class Checkbox : Widget
             ctx.StrokeRoundRect(boxRect, r, IsEnabled ? ctx.Theme.Border : ctx.Theme.SurfaceHover, 1.5f);
             if (IsChecked) // disabled + checked
                 ctx.DrawCheckmark(cx, cy, BoxSize * 0.35f, ctx.Theme.Border);
+        }
+        
+        if ((IsHovered || IsPressed) && IsEnabled)
+        {
+            ctx.FillRoundRect(boxRect, r, ctx.Theme.Primary.WithAlpha(0.12f));
         }
 
         if (!string.IsNullOrEmpty(Label))
