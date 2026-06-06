@@ -1,4 +1,4 @@
-﻿// src/Core/Theme.cs
+// src/Core/Theme.cs
 //
 // All visual defaults live here.
 // Widgets read from Theme instead of hardcoding colors.
@@ -16,42 +16,43 @@ public class Theme
 
     public static Theme Dark { get; } = new()
     {
-        Background        = new SKColor(0x1E, 0x1E, 0x2E),
-        Surface           = new SKColor(0x31, 0x32, 0x44),
-        SurfaceHover      = new SKColor(0x45, 0x47, 0x5A),
-        OnSurface         = new SKColor(0xCD, 0xD6, 0xF4),
-        OnSurfaceMuted    = new SKColor(0x6C, 0x70, 0x86),
-        Primary           = new SKColor(0x89, 0xB4, 0xFA),
-        OnPrimary         = new SKColor(0x1E, 0x1E, 0x2E),
-        Border            = new SKColor(0x58, 0x5B, 0x70),
+        Background     = new(30,  30,  46),
+        Surface        = new(49,  50,  68),
+        SurfaceHover   = new(69,  71,  90),
+        OnSurface      = new(205, 214, 244),
+        OnSurfaceMuted = new(108, 112, 134),
+        Primary        = new(137, 180, 250),
+        OnPrimary      = new(30,  30,  46),
+        Border         = new(88,  91,  112),
     };
 
     // ── Colors ────────────────────────────────────────────────────────────
 
     /// App/window background
-    public SKColor Background     { get; init; } = new(0xFF, 0xFF, 0xFF);
+    public SKColor Background     { get; init; } = new(255, 255, 255);
 
     /// Card / widget surface
-    public SKColor Surface        { get; init; } = new(0xF5, 0xF5, 0xF5);
-    public SKColor SurfaceHover   { get; init; } = new(0xE8, 0xE8, 0xE8);
-    public SKColor SurfacePressed { get; init; } = new(0xD0, 0xD0, 0xD0);
+    public SKColor Surface        { get; init; } = new(245, 245, 245);
+    public SKColor SurfaceHover   { get; init; } = new(232, 232, 232);
+    public SKColor SurfacePressed { get; init; } = new(208, 208, 208);
 
     /// Text on surface
-    public SKColor OnSurface      { get; init; } = new(0x1A, 0x1A, 0x1A);
-    public SKColor OnSurfaceMuted { get; init; } = new(0x88, 0x88, 0x88);
+    public SKColor OnSurface      { get; init; } = new(26,  26,  26);
+    public SKColor OnSurfaceMuted { get; init; } = new(136, 136, 136);
 
     /// Accent / interactive color
-    public SKColor Primary        { get; init; } = new(0x37, 0x8A, 0xDD);
-    public SKColor PrimaryHover   { get; init; } = new(0x18, 0x5F, 0xA5);
-    public SKColor OnPrimary      { get; init; } = new(0xFF, 0xFF, 0xFF);
+    public SKColor Primary          { get; init; } = new(55,  138, 221);
+    public SKColor PrimaryHover     { get; init; } = new(24,  95,  165);
+    public SKColor PrimaryHoverGhost => Primary.WithAlpha(0.12f);   // hover/ripple tint
+    public SKColor OnPrimary        { get; init; } = new(255, 255, 255);
 
     /// Semantic
-    public SKColor Success        { get; init; } = new(0x1D, 0x9E, 0x75);
-    public SKColor Warning        { get; init; } = new(0xEF, 0x9F, 0x27);
-    public SKColor Danger         { get; init; } = new(0xE2, 0x4B, 0x4A);
+    public SKColor Success        { get; init; } = new(29,  158, 117);
+    public SKColor Warning        { get; init; } = new(239, 159, 39);
+    public SKColor Danger         { get; init; } = new(226, 75,  74);
 
     /// Borders
-    public SKColor Border         { get; init; } = new(0xCC, 0xCC, 0xCC);
+    public SKColor Border         { get; init; } = new(204, 204, 204);
 
     // ── Typography ────────────────────────────────────────────────────────
 

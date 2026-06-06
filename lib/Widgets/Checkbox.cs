@@ -79,7 +79,7 @@ public class Checkbox : Widget
         
         if ((IsHovered || IsPressed) && IsEnabled)
         {
-            ctx.FillRoundRect(boxRect, r, ctx.Theme.Primary.WithAlpha(0.12f));
+            ctx.FillRoundRect(boxRect, r, ctx.Theme.PrimaryHoverGhost);
         }
 
         if (!string.IsNullOrEmpty(Label))

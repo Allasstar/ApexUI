@@ -34,7 +34,7 @@ public class RadioGroup<T> : Widget
 
             // Hover ripple
             if ((IsHovered || IsPressed) && IsEnabled)
-                ctx.FillCircle(cx, cy, CircleR, ctx.Theme.Primary.WithAlpha(0.12f));
+                ctx.FillCircle(cx, cy, CircleR, ctx.Theme.PrimaryHoverGhost);
 
             // Outer ring
             var ringColor = IsSelected && IsEnabled ? ctx.Theme.Primary : ctx.Theme.Border;
