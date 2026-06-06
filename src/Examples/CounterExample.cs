@@ -23,17 +23,17 @@ public class CounterExample : Widget
                 counterLabel,
                 statusLabel,
                 new Row(
-                    new Button("+  Increment").OnPress(() =>
-                    {
-                        count++;
-                        counterLabel.WithText($"Count: {count}");
-                        statusLabel.WithText("Incremented").WithColor(SKColor.FromHex("#1D9E75"));
-                    }),
                     new Button("-  Decrement").WithVariant(ButtonVariant.Secondary).OnPress(() =>
                     {
                         count--;
                         counterLabel.WithText($"Count: {count}");
                         statusLabel.WithText("Decremented").WithColor(SKColor.FromHex("#E24B4A"));
+                    }),
+                    new Button("+  Increment").OnPress(() =>
+                    {
+                        count++;
+                        counterLabel.WithText($"Count: {count}");
+                        statusLabel.WithText("Incremented").WithColor(SKColor.FromHex("#1D9E75"));
                     }),
                     new Button("Reset").WithVariant(ButtonVariant.Ghost).OnPress(() =>
                     {
