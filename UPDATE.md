@@ -9,6 +9,7 @@ Newest first. **Breaking** marks changes that need edits in apps using ApexUI.
 - `README.md` gains Input and focus and Testing sections, a corrected panel table (`Grid` tracks, `Canvas`, `Grow`) and the missing `Checkbox` and `VirtualList`.
 - `ARCHITECTURE.md`: the new-widget example uses `DrawContext` and theme tokens (it used removed `SKCanvas` extensions and literal sizes); new Testing section listing the test helpers; the roadmap lists what is still missing instead of widgets that exist.
 - `CLAUDE.md`: `Grid`, `Stack` and `PaddingBox` API, and a Testing section.
+- Gallery: the Layout tab shows `Stack` (layered children with their own alignment); it was the only block missing from the Gallery.
 
 ### Composite cleanup
 - `ContextMenu` and `Dropdown` share one popup panel (the context menu's own copy is gone). Context menu separators are inset by the theme's `SpacingXs` instead of a fixed 4 × 2.

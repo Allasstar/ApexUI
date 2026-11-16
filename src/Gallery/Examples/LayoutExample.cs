@@ -1,6 +1,6 @@
 namespace ApexUI.Gallery.Examples;
 
-/// Demonstrates Spacer, Grid (inventory view), and Wrap layout widgets.
+/// Demonstrates Spacer, Grid (inventory view), Wrap and Stack layout widgets.
 public class LayoutExample : Widget
 {
     public LayoutExample()
@@ -60,6 +60,16 @@ public class LayoutExample : Widget
                         MakeTag("UI Framework"), MakeTag("Layout"), MakeTag("2D Graphics"),
                         MakeTag("Vector"), MakeTag("Cross-Platform"), MakeTag("Zero-GC")
                     ).WithSpacing(6f, 6f)
+                ).WithSpacing(8f)),
+
+                new Separator { Margin = new Thickness(0, 4f) },
+
+                // ── Stack ─────────────────────────────────────────────────────
+                new Label { Text = "Stack", Bold = true, Role = TextRole.Heading },
+
+                MakeCard(new Column(
+                    new Label { Text = "Children share one area, drawn in order (last on top); each keeps its own alignment:" },
+                    BuildLayeredBanner()
                 ).WithSpacing(8f)),
 
                 new Separator { Margin = new Thickness(0, 4f) },
@@ -141,6 +151,27 @@ public class LayoutExample : Widget
             ).WithSpacing(4f),
             6f
         ) { BackgroundSource = t => t.SurfaceHover, CornerRadius = 6f };
+
+    // ── Layered banner (Stack) ────────────────────────────────────────────────
+
+    private static Widget BuildLayeredBanner()
+        => new Stack(
+            new Label { Text = "Bottom layer: stretches to fill", Role = TextRole.Small, HAlign = HAlign.Left, VAlign = VAlign.Bottom },
+            new Label { Text = "Centered", Role = TextRole.Heading, Bold = true, HAlign = HAlign.Center, VAlign = VAlign.Center },
+            new PaddingBox(new Label { Text = "NEW", Role = TextRole.Small, Bold = true, ColorSource = t => t.OnPrimary }, new Thickness(8f, 2f))
+            {
+                BackgroundSource = t => t.Primary,
+                CornerRadius = 10f,
+                HAlign = HAlign.Right,
+                VAlign = VAlign.Top,
+            }
+        )
+        {
+            Height = 110f,
+            Padding = new Thickness(12f),
+            BackgroundSource = t => t.SurfaceHover,
+            CornerRadius = 6f,
+        };
 
     // ── Square tile grid (1:1 AR) ─────────────────────────────────────────────
 
