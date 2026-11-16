@@ -18,10 +18,10 @@ public class TransformExample : Widget
             .Add(MakeTile("B", new SKColor(0x4C, 0xAF, 0x50)), 140, 0, 120, 120)
             .Add(MakeTile("C", new SKColor(0xF4, 0x43, 0x36)), 0, 140, 120, 120)
             .Add(button, 140, 180)
-            .Add(new Label { Text = "Wheel zooms around the pointer, drag pans.", FontSize = 12f }, 0, 280);
+            .Add(new Label { Text = "Wheel zooms around the pointer, drag pans.", Role = TextRole.Small }, 0, 280);
 
         AddChild(new Column(
-            new Label { Text = "Child transform", Bold = true, FontSize = 18f },
+            new Label { Text = "Child transform", Bold = true, Role = TextRole.Heading },
             new Label
             {
                 Text     = "The content below is laid out once. Zooming and panning change only the view's ChildTransform, so they redraw without a layout pass, and clicks still reach the right widget.",

@@ -25,7 +25,16 @@ public abstract partial class Widget
 
     /// Space inside the widget's bounds around its content. MeasureCore and ArrangeCore
     /// work on the content box; background, border and LayoutBounds include the padding.
-    public Thickness Padding { get; set => SetLayoutProperty(ref field, value); } = Thickness.Zero;
+    /// Until set, the widget's themed default (DefaultPadding).
+    public Thickness Padding
+    {
+        get => _padding ?? DefaultPadding(Theme);
+        set => SetLayoutProperty(ref _padding, value);
+    }
+    private Thickness? _padding;
+
+    /// Padding used until Padding is set. Override to take it from the theme.
+    protected virtual Thickness DefaultPadding(Theme theme) => Thickness.Zero;
 
     public HAlign HAlign { get; set => SetLayoutProperty(ref field, value); } = HAlign.Stretch;
     public VAlign VAlign { get; set => SetLayoutProperty(ref field, value); } = VAlign.Stretch;
@@ -133,14 +142,15 @@ public abstract partial class Widget
         var box = new Size(
             Math.Max(0, available.Width  - Margin.Horizontal),
             Math.Max(0, available.Height - Margin.Vertical));
+        var padding = Padding;
         var content = new Size(
-            Math.Max(0, box.Width  - Padding.Horizontal),
-            Math.Max(0, box.Height - Padding.Vertical));
+            Math.Max(0, box.Width  - padding.Horizontal),
+            Math.Max(0, box.Height - padding.Vertical));
 
         var desired = MeasureCore(content);
 
-        float w = float.IsNaN(Width)  ? desired.Width  + Padding.Horizontal : Width;
-        float h = float.IsNaN(Height) ? desired.Height + Padding.Vertical   : Height;
+        float w = float.IsNaN(Width)  ? desired.Width  + padding.Horizontal : Width;
+        float h = float.IsNaN(Height) ? desired.Height + padding.Vertical   : Height;
 
         // Aspect ratio: compute the dependent dimension.
         // When Stretch + finite available, use the available size so auto rows/cols in Grid size correctly.

@@ -30,7 +30,8 @@ public class VirtualList<T> : Widget
     private float _sbDragStartY;
     private float _sbDragStartOff;
 
-    private const float SbWidth  = 7f;  // scrollbar track width
+    private float SbWidth  => Theme.ScrollbarSize;
+    private float MinThumb => Theme.ScrollbarMinThumb;
     private const int   Overscan = 4;   // rows built beyond the visible range
     private const int   EvictBuf = 15;  // rows kept beyond the visible range
 
@@ -53,7 +54,7 @@ public class VirtualList<T> : Widget
         if (e.X < tX) return;
 
         float maxOff = totalH - b.Height;
-        float tH     = Math.Max(16f, b.Height * b.Height / totalH);
+        float tH     = Math.Max(MinThumb, b.Height * b.Height / totalH);
         float tY     = b.Y + (_scrollOff / maxOff) * (b.Height - tH);
 
         e.Handled = true;
@@ -78,7 +79,7 @@ public class VirtualList<T> : Widget
         var b = LayoutBounds;
         float totalH = TotalHeight;
         float maxOff = Math.Max(0f, totalH - b.Height);
-        float tH     = Math.Max(16f, b.Height * b.Height / totalH);
+        float tH     = Math.Max(MinThumb, b.Height * b.Height / totalH);
 
         float delta = e.Y - _sbDragStartY;
         ScrollTo(_sbDragStartOff + delta * maxOff / (b.Height - tH));
@@ -184,16 +185,13 @@ public class VirtualList<T> : Widget
         {
             float maxOff = totalH - b.Height;
             float tX     = b.Right - SbWidth;
-            float tH     = Math.Max(16f, b.Height * b.Height / totalH);
+            float tH     = Math.Max(MinThumb, b.Height * b.Height / totalH);
             float tY     = b.Y + (_scrollOff / maxOff) * (b.Height - tH);
 
-            ctx.FillRect(
-                new Rect(tX, b.Y, SbWidth, b.Height),
-                ctx.Theme.Border.WithAlpha(0.15f));
-            ctx.FillRoundRect(
-                new Rect(tX + 1f, tY, SbWidth - 2f, tH),
-                (SbWidth - 2f) * 0.5f,
-                ctx.Theme.OnSurfaceMuted.WithAlpha(0.55f));
+            var t = ctx.Theme;
+            ctx.FillRoundRect(new Rect(tX, b.Y, SbWidth, b.Height), SbWidth * 0.5f, t.ScrollbarTrack);
+            ctx.FillRoundRect(new Rect(tX, tY, SbWidth, tH), SbWidth * 0.5f,
+                _sbDragging ? t.ScrollbarThumbActive : t.ScrollbarThumb);
         }
     }
 

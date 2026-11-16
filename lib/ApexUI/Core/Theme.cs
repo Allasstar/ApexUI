@@ -1,17 +1,14 @@
-// src/Core/Theme.cs
-//
-// All visual defaults live here.
-// Widgets read from Theme instead of hardcoding colors.
-// Swap the theme → entire app re-skins.
-
-using SkiaSharp;
-
 namespace ApexUI.Core;
 
-public class Theme
+/// Every visual value the built-in widgets use: colors, typography, radii, spacing, paddings
+/// and control sizes. Widgets read the host's theme at layout and draw time, so replacing it
+/// restyles the whole window. Derive a variant with `with`:
+///
+///   host.Theme = Theme.Dark with { Primary = new(255, 128, 0), FontSizeBody = 15f };
+///
+/// Colors marked "derived" follow another token unless set.
+public sealed record Theme
 {
-    // ── Pre-built themes ─────────────────────────────────────────────────
-
     public static Theme Light { get; } = new();
 
     public static Theme Dark { get; } = new()
@@ -29,61 +26,181 @@ public class Theme
         Warning        = new(250, 179, 135),
         Danger         = new(243, 139, 168),
         Border         = new(88,  91,  112),
+        // Dark backgrounds need a heavier scrim and shadow to read as depth.
+        Scrim          = new(0,   0,   0,   150),
+        Shadow         = new(0,   0,   0,   110),
     };
 
-    // ── Colors ────────────────────────────────────────────────────────────
+    // ── Surfaces ──────────────────────────────────────────────────────────
 
-    /// App/window background
+    /// Window background; also the fill of text fields and the active tab.
     public SKColor Background     { get; init; } = new(255, 255, 255);
 
-    /// Card / widget surface
+    /// Fill of buttons, cards, menus and other raised areas.
     public SKColor Surface        { get; init; } = new(245, 245, 245);
     public SKColor SurfaceHover   { get; init; } = new(232, 232, 232);
     public SKColor SurfacePressed { get; init; } = new(208, 208, 208);
 
-    /// Text on surface
+    // ── Text ──────────────────────────────────────────────────────────────
+
     public SKColor OnSurface      { get; init; } = new(26,  26,  26);
+    /// Secondary text, placeholders and disabled labels.
     public SKColor OnSurfaceMuted { get; init; } = new(136, 136, 136);
 
-    /// Accent / interactive color
-    public SKColor Primary          { get; init; } = new(55,  138, 221);
-    public SKColor PrimaryHover     { get; init; } = new(24,  95,  165);
-    public SKColor PrimaryHoverGhost => Primary.WithAlpha(0.12f);   // hover/ripple tint
-    public SKColor OnPrimary        { get; init; } = new(255, 255, 255);
+    // ── Accent ────────────────────────────────────────────────────────────
 
-    /// Semantic
+    public SKColor Primary        { get; init; } = new(55,  138, 221);
+    /// Primary while hovered or pressed.
+    public SKColor PrimaryHover   { get; init; } = new(24,  95,  165);
+    /// Text and icons on a Primary fill.
+    public SKColor OnPrimary      { get; init; } = new(255, 255, 255);
+
+    /// Tint over a hovered checkbox or radio button. Derived: Primary at 12%.
+    public SKColor PrimaryHoverGhost
+    {
+        get => field == SKColor.Empty ? Primary.WithAlpha(0.12f) : field;
+        init;
+    }
+
+    // ── Semantic ──────────────────────────────────────────────────────────
+
     public SKColor Success        { get; init; } = new(29,  158, 117);
     public SKColor Warning        { get; init; } = new(239, 159, 39);
+    /// Errors and invalid input.
     public SKColor Danger         { get; init; } = new(226, 75,  74);
 
-    /// Borders
+    // ── Lines ─────────────────────────────────────────────────────────────
+
+    /// Outlines of controls, separators and unchecked control tracks.
     public SKColor Border         { get; init; } = new(204, 204, 204);
 
-    /// Keyboard focus outline; Primary unless set.
+    /// Quiet outlines and dividers inside controls (popup edges, the dropdown divider). Derived: Border at 40%.
+    public SKColor BorderSubtle
+    {
+        get => field == SKColor.Empty ? Border.WithAlpha(0.4f) : field;
+        init;
+    }
+
+    // ── Overlays ──────────────────────────────────────────────────────────
+
+    /// Dims the window behind a modal overlay.
+    public SKColor Scrim          { get; init; } = new(0, 0, 0, 110);
+    /// Shadow under overlay content (dialogs, menus, tooltips).
+    public SKColor Shadow         { get; init; } = new(0, 0, 0, 55);
+    public float   ShadowBlur     { get; init; } = 10f;
+    public float   ShadowOffsetY  { get; init; } = 4f;
+
+    // ── Interaction ───────────────────────────────────────────────────────
+
+    /// Keyboard focus outline. Derived: Primary.
     public SKColor FocusRing
     {
         get => field == SKColor.Empty ? Primary : field;
         init;
     }
+    public float FocusRingWidth   { get; init; } = 2f;
+
+    /// Background of selected text. Derived: Primary at 30%.
+    public SKColor Selection
+    {
+        get => field == SKColor.Empty ? Primary.WithAlpha(0.3f) : field;
+        init;
+    }
+
+    /// Movable part of a toggle and the ring around a slider thumb.
+    public SKColor Knob           { get; init; } = new(255, 255, 255);
+
+    // ── Scrollbars ────────────────────────────────────────────────────────
+
+    /// Derived: Border at 25%.
+    public SKColor ScrollbarTrack
+    {
+        get => field == SKColor.Empty ? Border.WithAlpha(0.25f) : field;
+        init;
+    }
+
+    /// Derived: OnSurfaceMuted at 60%.
+    public SKColor ScrollbarThumb
+    {
+        get => field == SKColor.Empty ? OnSurfaceMuted.WithAlpha(0.6f) : field;
+        init;
+    }
+
+    /// Thumb while dragged. Derived: OnSurface at 60%.
+    public SKColor ScrollbarThumbActive
+    {
+        get => field == SKColor.Empty ? OnSurface.WithAlpha(0.6f) : field;
+        init;
+    }
+
+    public float ScrollbarSize     { get; init; } = 8f;
+    public float ScrollbarMinThumb { get; init; } = 20f;
 
     // ── Typography ────────────────────────────────────────────────────────
 
-    public string FontFamily      { get; init; } = "Segoe UI";
-    public float  FontSizeBase    { get; init; } = 14f;   // logical px
-    public float  FontSizeSmall   { get; init; } = 12f;
-    public float  FontSizeLarge   { get; init; } = 18f;
-    public float  FontSizeTitle   { get; init; } = 24f;
+    public string FontFamily         { get; init; } = "Segoe UI";
+    public float  FontSizeSmall      { get; init; } = 12f;
+    public float  FontSizeBody       { get; init; } = 14f;
+    public float  FontSizeSubheading { get; init; } = 16f;
+    public float  FontSizeHeading    { get; init; } = 18f;
+    public float  FontSizeTitle      { get; init; } = 22f;
 
-    // ── Shape ─────────────────────────────────────────────────────────────
+    /// Line height as a multiple of the font size.
+    public float  LineHeight         { get; init; } = 1.4f;
 
-    public float CornerRadiusSm   { get; init; } = 4f;
-    public float CornerRadiusMd   { get; init; } = 8f;
-    public float CornerRadiusLg   { get; init; } = 12f;
+    public float FontSize(TextRole role) => role switch
+    {
+        TextRole.Small      => FontSizeSmall,
+        TextRole.Subheading => FontSizeSubheading,
+        TextRole.Heading    => FontSizeHeading,
+        TextRole.Title      => FontSizeTitle,
+        _                   => FontSizeBody,
+    };
+
+    // ── Corner radii ──────────────────────────────────────────────────────
+
+    /// Checkboxes, tooltips, small badges.
+    public float CornerRadiusSmall   { get; init; } = 4f;
+    /// Buttons, text fields, dropdowns, menu items.
+    public float CornerRadiusControl { get; init; } = 6f;
+    /// Menus and popups.
+    public float CornerRadiusPopup   { get; init; } = 8f;
+    public float CornerRadiusDialog  { get; init; } = 12f;
 
     // ── Spacing ───────────────────────────────────────────────────────────
 
-    public float SpacingXs        { get; init; } = 4f;
-    public float SpacingSm        { get; init; } = 8f;
-    public float SpacingMd        { get; init; } = 16f;
-    public float SpacingLg        { get; init; } = 24f;
+    /// Gaps between related items, e.g. a checkbox and its label (Sm) or a dialog's buttons (Sm).
+    public float SpacingXs { get; init; } = 4f;
+    public float SpacingSm { get; init; } = 8f;
+    public float SpacingMd { get; init; } = 16f;
+    public float SpacingLg { get; init; } = 24f;
+
+    // ── Paddings ──────────────────────────────────────────────────────────
+
+    public Thickness ButtonPadding   { get; init; } = new(16f, 8f);
+    /// Text fields, dropdown buttons and NumberInput's step buttons.
+    public Thickness InputPadding    { get; init; } = new(10f, 6f);
+    public Thickness MenuItemPadding { get; init; } = new(12f, 6f);
+    /// Between a menu's edge and its items.
+    public Thickness PopupPadding    { get; init; } = new(4f);
+    public Thickness TooltipPadding  { get; init; } = new(8f, 4f);
+    public Thickness DialogPadding   { get; init; } = new(20f);
+    public Thickness TabPadding      { get; init; } = new(16f, 10f);
+
+    // ── Control sizes ─────────────────────────────────────────────────────
+
+    public float CheckboxSize      { get; init; } = 18f;
+    /// Diameter of a radio button's ring.
+    public float RadioSize         { get; init; } = 20f;
+    public float ToggleWidth       { get; init; } = 44f;
+    public float ToggleHeight      { get; init; } = 24f;
+    /// Diameter of a slider's thumb; also the slider's height.
+    public float SliderThumbSize   { get; init; } = 20f;
+    public float SliderTrackHeight { get; init; } = 4f;
+    public float ProgressBarHeight { get; init; } = 8f;
+    /// Height of a top or bottom tab bar, width of a side one.
+    public float TabBarSize        { get; init; } = 40f;
 }
+
+/// The font size a Label takes from the theme.
+public enum TextRole { Body, Small, Subheading, Heading, Title }

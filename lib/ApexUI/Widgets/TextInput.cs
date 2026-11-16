@@ -69,8 +69,6 @@ public class TextInput : Widget
     public TextInput(string placeholder = "")
     {
         Placeholder  = placeholder;
-        Padding      = new Thickness(10f, 6f);
-        CornerRadius = 6f;
         MinWidth     = 120f;
         Focusable    = true;
         Cursor       = CursorShape.Text;
@@ -112,7 +110,11 @@ public class TextInput : Widget
 
     // ── Layout ───────────────────────────────────────────────────────────────
 
-    protected override Size MeasureCore(Size available) => new(available.Width, 14f * 1.4f);
+    protected override Thickness DefaultPadding(Theme theme) => theme.InputPadding;
+    protected override float DefaultCornerRadius(Theme theme) => theme.CornerRadiusControl;
+
+    protected override Size MeasureCore(Size available)
+        => new(available.Width, Theme.FontSizeBody * Theme.LineHeight);
 
     protected override void ArrangeCore(Rect finalRect) => ScrollToCaret();
 
@@ -125,13 +127,14 @@ public class TextInput : Widget
             ? (valid ? ctx.Theme.Primary : ctx.Theme.Danger)
             : (valid ? ctx.Theme.Border  : ctx.Theme.Danger);
 
-        ctx.FillRoundRect(LayoutBounds, CornerRadius, ctx.Theme.Background);
-        ctx.StrokeRoundRect(LayoutBounds, CornerRadius, borderColor, IsFocused ? 2f : 1f);
+        float radius = CornerRadius;
+        ctx.FillRoundRect(LayoutBounds, radius, ctx.Theme.Background);
+        ctx.StrokeRoundRect(LayoutBounds, radius, borderColor, IsFocused ? 2f : 1f);
 
         var    inner   = ContentBounds;
         float  textX   = inner.X - _scrollX;
         string display = DisplayText;
-        float  sz      = ctx.Theme.FontSizeBase;
+        float  sz      = ctx.Theme.FontSizeBody;
 
         using (ctx.PushClip(inner))
         {
@@ -140,7 +143,7 @@ public class TextInput : Widget
                 float selX0 = textX + CaretX(SelectionStart);
                 float selX1 = textX + CaretX(SelectionEnd);
                 ctx.FillRect(new Rect(selX0, inner.Y, selX1 - selX0, inner.Height),
-                             ctx.Theme.Primary.WithAlpha(0.3f));
+                             ctx.Theme.Selection);
             }
 
             if (!string.IsNullOrEmpty(display))
@@ -282,16 +285,16 @@ public class TextInput : Widget
     private float CaretX(int index)
     {
         string display  = DisplayText;
-        var    host     = Host;
-        float  fontSize = (host?.Theme ?? Theme.Light).FontSizeBase;
-        string family   = host?.FontFamily ?? FontCache.DefaultFamily;
+        var    theme    = Theme;
+        float  fontSize = theme.FontSizeBody;
+        string family   = theme.FontFamily;
 
         if (!ReferenceEquals(_caretXsText, display) || _caretXsFamily != family || _caretXsFontSize != fontSize)
         {
             if (_caretXs.Length < display.Length + 1)
                 _caretXs = new float[display.Length + 1];
 
-            using var font = LayoutFont.Get(host, fontSize);
+            using var font = LayoutFont.Get(Host, fontSize);
             _caretXs[0] = 0f;
             for (int i = 1; i <= display.Length; i++)
                 _caretXs[i] = font.Font.MeasureText(display.AsSpan(0, i));

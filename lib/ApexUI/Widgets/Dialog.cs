@@ -30,7 +30,7 @@ public sealed class Dialog
     public Dialog(string title, Widget content)
     {
         _content = content;
-        _titleLabel = new Label { Text = title, Bold = true, FontSize = 16f };
+        _titleLabel = new Label { Text = title, Bold = true, Role = TextRole.Subheading };
 
         _overlay = new Overlay
         {
@@ -104,25 +104,44 @@ public sealed class Dialog
 
         var rows = new List<Widget>
         {
-            new Row(_titleLabel, new Spacer()) { Spacing = 8f },
-            new Separator { Margin = new Thickness(0f, 4f) },
+            _titleLabel,
+            new DialogSeparator(),
             _content,
         };
 
         if (buttons.Length > 0)
         {
-            rows.Add(new Separator { Margin = new Thickness(0f, 4f) });
-            rows.Add(new Row(buttons) { Spacing = 8f, HAlign = HAlign.Right });
+            rows.Add(new DialogSeparator());
+            rows.Add(new ButtonRow(buttons) { HAlign = HAlign.Right });
         }
 
-        _overlay.Content = new PaddingBox(
-            new Column(rows.ToArray()).WithSpacing(0f),
-            20f)
+        _overlay.Content = new Panel(new Column(rows.ToArray()));
+    }
+
+    private sealed class Panel : Widget
+    {
+        public Panel(Widget content)
         {
-            BackgroundSource = t => t.Surface,
-            CornerRadius     = 12f,
-            MinWidth         = 320f,
-            MaxWidth         = 520f,
-        };
+            BackgroundSource = t => t.Surface;
+            MinWidth         = 320f;
+            MaxWidth         = 520f;
+            AddChild(content);
+        }
+
+        protected override Thickness DefaultPadding(Theme theme) => theme.DialogPadding;
+        protected override float DefaultCornerRadius(Theme theme) => theme.CornerRadiusDialog;
+    }
+
+    private sealed class DialogSeparator : Separator
+    {
+        protected override Size MeasureCore(Size available)
+            => base.MeasureCore(available) with { Height = 1f + Theme.SpacingSm };
+    }
+
+    private sealed class ButtonRow : Row
+    {
+        public ButtonRow(Widget[] buttons) : base(buttons) { }
+
+        protected override float DefaultSpacing(Theme theme) => theme.SpacingSm;
     }
 }

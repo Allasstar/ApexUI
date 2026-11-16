@@ -9,25 +9,25 @@ public class CollectionExample : Widget
             new Column(
 
                 // ── VirtualList — large static dataset ────────────────────────
-                new Label { Text = "VirtualList — 2 000 rows", Bold = true, FontSize = 18f },
+                new Label { Text = "VirtualList — 2 000 rows", Bold = true, Role = TextRole.Heading },
 
                 MakeCard(new Column(
                     new Label { Text = "Only rows in the viewport are measured and drawn. Scroll to verify." },
                     BuildLargeList(),
-                    new Label { Text = "2 000 items · ~10 rows rendered at a time", FontSize = 12f }
+                    new Label { Text = "2 000 items · ~10 rows rendered at a time", Role = TextRole.Small }
                 ).WithSpacing(8f)),
 
                 new Separator { Margin = new Thickness(0, 4f) },
 
                 // ── ObservableList → Dropdown live binding ─────────────────────
-                new Label { Text = "ObservableList — Live Dropdown", Bold = true, FontSize = 18f },
+                new Label { Text = "ObservableList — Live Dropdown", Bold = true, Role = TextRole.Heading },
 
                 MakeCard(BuildLiveDropdown()),
 
                 new Separator { Margin = new Thickness(0, 4f) },
 
                 // ── ObservableList → VirtualList live binding ──────────────────
-                new Label { Text = "ObservableList — Live VirtualList", Bold = true, FontSize = 18f },
+                new Label { Text = "ObservableList — Live VirtualList", Bold = true, Role = TextRole.Heading },
 
                 MakeCard(BuildLiveList())
 

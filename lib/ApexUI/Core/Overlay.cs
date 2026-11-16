@@ -171,10 +171,11 @@ public class Overlay : Widget
 
     protected override void DrawCore(DrawContext ctx)
     {
+        var t = ctx.Theme;
         if (IsModal)
-            ctx.FillRect(LayoutBounds, new SKColor(0, 0, 0, 110));
+            ctx.FillRect(LayoutBounds, t.Scrim);
 
         if (_content is not null)
-            ctx.DrawShadow(_content.LayoutBounds.Translate(0, 4), 12f, 10f, new SKColor(0, 0, 0, 55));
+            ctx.DrawShadow(_content.LayoutBounds.Translate(0, t.ShadowOffsetY), _content.CornerRadius, t.ShadowBlur, t.Shadow);
     }
 }

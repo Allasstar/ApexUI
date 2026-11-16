@@ -9,9 +9,9 @@ public class ScaleExample : Widget
         AddChild(new PaddingBox(
             new Column(
 
-                new Label { Text = "Sample Form", Bold = true, FontSize = 22f },
+                new Label { Text = "Sample Form", Bold = true, Role = TextRole.Title },
 
-                new Label { Text = "Account details", Bold = true, FontSize = 16f },
+                new Label { Text = "Account details", Bold = true, Role = TextRole.Subheading },
 
                 MakeFormRow("Username", new TextInput { Width = 220f }.WithValue("JohnDoe")),
                 MakeFormRow("Email",    new TextInput { Width = 220f }.WithValue("john@example.com")),

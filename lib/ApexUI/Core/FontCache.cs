@@ -5,8 +5,6 @@ namespace ApexUI.Core;
 /// Fonts returned by Get are owned by the cache: do not dispose them.
 public sealed class FontCache : IDisposable
 {
-    public const string DefaultFamily = "Segoe UI";
-
     private readonly Dictionary<(string Family, bool Bold), SKTypeface> _typefaces = new();
     private readonly Dictionary<(string Family, bool Bold, float Size), SKFont> _fonts = new();
 

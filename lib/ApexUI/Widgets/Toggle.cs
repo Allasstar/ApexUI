@@ -2,11 +2,6 @@ namespace ApexUI.Widgets;
 
 public class Toggle : Widget
 {
-    private const float TrackW   = 44f;
-    private const float TrackH   = 24f;
-    private const float ThumbR   = 10f;
-    private const float LabelGap = 8f;
-
     public bool IsChecked
     {
         get;
@@ -27,8 +22,9 @@ public class Toggle : Widget
         Label     = label;
         OnChanged = onChanged;
         Focusable = true;
-        CornerRadius = TrackH * 0.5f;
     }
+
+    protected override float DefaultCornerRadius(Theme theme) => theme.ToggleHeight * 0.5f;
 
     protected override void OnClick(PointerEventArgs e)
     {
@@ -61,38 +57,42 @@ public class Toggle : Widget
 
     protected override Size MeasureCore(Size available)
     {
-        float w = TrackW;
+        var   t = Theme;
+        float w = t.ToggleWidth;
         if (!string.IsNullOrEmpty(Label))
         {
-            using var font = LayoutFont.Get(Host, 14f);
-            w += LabelGap + font.Font.MeasureText(Label) + 2f;
+            using var font = LayoutFont.Get(Host, t.FontSizeBody);
+            w += t.SpacingSm + font.Font.MeasureText(Label) + 2f;
         }
-        return new Size(w, TrackH);
+        return new Size(w, t.ToggleHeight);
     }
 
     // ── Drawing ──────────────────────────────────────────────────────────────
 
     protected override void DrawCore(DrawContext ctx)
     {
-        float ty = LayoutBounds.Y + (LayoutBounds.Height - TrackH) * 0.5f;
+        var   t      = ctx.Theme;
+        float trackW = t.ToggleWidth;
+        float trackH = t.ToggleHeight;
+        float thumbR = trackH * 0.5f - 2f;
+        float ty     = LayoutBounds.Y + (LayoutBounds.Height - trackH) * 0.5f;
 
         var trackColor = IsEnabled
-            ? (IsChecked ? ctx.Theme.Primary : ctx.Theme.Border)
-            : ctx.Theme.SurfaceHover;
-        ctx.FillRoundRect(new Rect(LayoutBounds.X, ty, TrackW, TrackH), TrackH * 0.5f, trackColor);
+            ? (IsChecked ? t.Primary : t.Border)
+            : t.SurfaceHover;
+        ctx.FillRoundRect(new Rect(LayoutBounds.X, ty, trackW, trackH), trackH * 0.5f, trackColor);
 
         float thumbX = IsChecked
-            ? LayoutBounds.X + TrackW - ThumbR - 2f
-            : LayoutBounds.X + ThumbR + 2f;
-        ctx.FillCircle(thumbX, ty + TrackH * 0.5f, ThumbR, SKColors.White);
+            ? LayoutBounds.X + trackW - thumbR - 2f
+            : LayoutBounds.X + thumbR + 2f;
+        ctx.FillCircle(thumbX, ty + trackH * 0.5f, thumbR, t.Knob);
 
-        // Optional label
         if (!string.IsNullOrEmpty(Label))
         {
-            float lx = LayoutBounds.X + TrackW + LabelGap;
+            float offset = trackW + t.SpacingSm;
             ctx.DrawText(Label,
-                new Rect(lx, LayoutBounds.Y, LayoutBounds.Width - TrackW - LabelGap, LayoutBounds.Height),
-                IsEnabled ? ctx.Theme.OnSurface : ctx.Theme.OnSurfaceMuted, 14f);
+                new Rect(LayoutBounds.X + offset, LayoutBounds.Y, LayoutBounds.Width - offset, LayoutBounds.Height),
+                IsEnabled ? t.OnSurface : t.OnSurfaceMuted, t.FontSizeBody);
         }
     }
 

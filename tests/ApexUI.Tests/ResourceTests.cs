@@ -168,9 +168,9 @@ public class FontCacheTests
     {
         using var cache = new FontCache();
 
-        var first  = cache.Get(FontCache.DefaultFamily, 14, bold: false);
-        var second = cache.Get(FontCache.DefaultFamily, 14, bold: false);
-        var bold   = cache.Get(FontCache.DefaultFamily, 14, bold: true);
+        var first  = cache.Get(Theme.Light.FontFamily, 14, bold: false);
+        var second = cache.Get(Theme.Light.FontFamily, 14, bold: false);
+        var bold   = cache.Get(Theme.Light.FontFamily, 14, bold: true);
 
         Assert.Same(first, second);
         Assert.NotSame(first, bold);
@@ -181,11 +181,11 @@ public class FontCacheTests
     {
         using var surface = SKSurface.Create(new SKImageInfo(10, 10));
         using var cache   = new FontCache();
-        var font = cache.Get(FontCache.DefaultFamily, 14);
+        var font = cache.Get(Theme.Light.FontFamily, 14);
 
         new DrawContext(surface.Canvas, Theme.Light, 1f, fonts: cache).Dispose();
 
-        Assert.Same(font, cache.Get(FontCache.DefaultFamily, 14));
+        Assert.Same(font, cache.Get(Theme.Light.FontFamily, 14));
         Assert.True(font.MeasureText("abc") > 0);
     }
 }

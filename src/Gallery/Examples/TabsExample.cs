@@ -7,9 +7,9 @@ public class TabsExample : Widget
     public Bindable<string> FontFamily { get; }
     public Bindable<string> Preset     { get; }
 
-    public TabsExample()
+    public TabsExample(ThemeRegistry themes)
     {
-        var settings = new SettingsExample();
+        var settings = new SettingsExample(themes);
         Scale      = settings.Scale;
         DarkMode   = settings.DarkMode;
         FontFamily = settings.FontFamily;

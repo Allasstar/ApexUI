@@ -32,10 +32,11 @@ public class Button : Widget
         };
         AddChild(_label);
         OnPressed = onPressed;
-        Padding = new Thickness(16f, 8f);
-        CornerRadius = 8f;
         Focusable = true;
     }
+
+    protected override Thickness DefaultPadding(Theme theme) => theme.ButtonPadding;
+    protected override float DefaultCornerRadius(Theme theme) => theme.CornerRadiusControl;
 
     public Button WithText(string text)    { Text = text; return this; }
     public Button WithVariant(ButtonVariant v) { Variant = v; return this; }
@@ -70,10 +71,11 @@ public class Button : Widget
             _ => ctx.Theme.Primary
         };
 
+        float radius = CornerRadius;
         if (bg != SKColor.Empty)
-            ctx.FillRoundRect(LayoutBounds, CornerRadius, bg);
+            ctx.FillRoundRect(LayoutBounds, radius, bg);
 
         if (Variant != ButtonVariant.Primary)
-            ctx.StrokeRoundRect(LayoutBounds, CornerRadius, ctx.Theme.Border);
+            ctx.StrokeRoundRect(LayoutBounds, radius, ctx.Theme.Border);
     }
 }

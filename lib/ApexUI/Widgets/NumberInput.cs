@@ -6,7 +6,7 @@ namespace ApexUI.Widgets;
 /// Layout: [−] [TextInput] [+] — TextInput fills remaining width.
 public class NumberInput : Widget
 {
-    private const float BtnSpacing = 4f;
+    private float BtnSpacing => Theme.SpacingXs;
 
     // ── Properties ────────────────────────────────────────────────────────────
 
@@ -58,9 +58,7 @@ public class NumberInput : Widget
 
     public NumberInput(float value = 0f)
     {
-        _minus         = new Button("−").WithVariant(ButtonVariant.Secondary);
-        _minus.Padding = new Thickness(10f, 6f);
-        _minus.CornerRadius = 6f;
+        _minus = new StepButton("−");
 
         _input = new TextInput().AsFloat();
         _input.MinWidth = 40f;
@@ -77,9 +75,7 @@ public class NumberInput : Widget
         };
         _input.OnSubmit = _ => SyncDisplay();   // re-sync display to clamped value on Enter
 
-        _plus         = new Button("+").WithVariant(ButtonVariant.Secondary);
-        _plus.Padding = new Thickness(10f, 6f);
-        _plus.CornerRadius = 6f;
+        _plus = new StepButton("+");
 
         _minus.OnPressed = () => Value = _value - Step;
         _plus.OnPressed  = () => Value = _value + Step;
@@ -93,6 +89,14 @@ public class NumberInput : Widget
 
         _value = Math.Clamp(value, Min, Max);
         SyncDisplay();
+    }
+
+    // Sized like the text field between them.
+    private sealed class StepButton : Button
+    {
+        public StepButton(string text) : base(text) => Variant = ButtonVariant.Secondary;
+
+        protected override Thickness DefaultPadding(Theme theme) => theme.InputPadding;
     }
 
     // ── Fluent ────────────────────────────────────────────────────────────────

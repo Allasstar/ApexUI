@@ -5,7 +5,7 @@ public class RenderLoopTests
     [Fact]
     public void An_untouched_gallery_stops_asking_for_frames_on_every_tab()
     {
-        var gallery = new Gallery.Examples.TabsExample();
+        var gallery = new Gallery.Examples.TabsExample(new ThemeRegistry());
         var tabs    = Assert.IsType<Tabs>(Assert.Single(gallery.Children));
         var (_, platform) = TestPlatform.Show(gallery, 900, 700);
 
@@ -21,7 +21,7 @@ public class RenderLoopTests
     [Fact]
     public void Hovering_over_the_gallery_draws_once_per_change()
     {
-        var gallery = new Gallery.Examples.TabsExample();
+        var gallery = new Gallery.Examples.TabsExample(new ThemeRegistry());
         var (_, platform) = TestPlatform.Show(gallery, 900, 700);
         platform.Render().Dispose();
 

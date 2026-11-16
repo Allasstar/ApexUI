@@ -7,7 +7,7 @@ public class SettingsExample : Widget
     public Bindable<float>  Scale      { get; } = new(1f);
     public Bindable<bool>   DarkMode   { get; } = new(false);
     public Bindable<string> FontFamily { get; } = new("Segoe UI");
-    public Bindable<string> Preset     { get; } = new(ThemeLibrary.DefaultName);
+    public Bindable<string> Preset     { get; }
 
     private static readonly string[] Fonts =
     [
@@ -15,14 +15,15 @@ public class SettingsExample : Widget
         "Georgia", "Times New Roman", "Consolas", "Courier New",
     ];
 
-    public SettingsExample()
+    public SettingsExample(ThemeRegistry themes)
     {
+        Preset = new(themes.DefaultName);
         AddChild(new PaddingBox(
             new Column(
-                new Label { Text = "Settings", Bold = true, FontSize = 22f },
+                new Label { Text = "Settings", Bold = true, Role = TextRole.Title },
 
                 Section("Appearance",
-                    Row("Theme",         BuildThemeDropdown()),
+                    Row("Theme",         BuildThemeDropdown(themes)),
                     Row("Color mode",    new Toggle().WithLabel("Dark mode").Bind(DarkMode)),
                     Row("Font family",   BuildFontDropdown()),
                     Row("UI Scale  (0.5× – 2.0×)",
@@ -41,12 +42,11 @@ public class SettingsExample : Widget
 
     // ── Helpers ───────────────────────────────────────────────────────────────
 
-    private Widget BuildThemeDropdown()
+    private Widget BuildThemeDropdown(ThemeRegistry themes)
     {
         var dd = new Dropdown<string>();
-        // Reads whatever is registered at UI-build time — includes any custom themes
-        // added via ThemeLibrary.Register() before this constructor runs.
-        foreach (var name in ThemeLibrary.Names)
+        // Lists what is registered now, so custom themes must be registered before this runs.
+        foreach (var name in themes.Names)
             dd.AddItem(name, name);
         dd.Bind(Preset);
         return dd;
@@ -61,7 +61,7 @@ public class SettingsExample : Widget
     }
 
     private static Widget Section(string title, params Widget[] rows)
-        => new Column([new Label { Text = title, Bold = true, FontSize = 16f }, .. rows]).WithSpacing(12f);
+        => new Column([new Label { Text = title, Bold = true, Role = TextRole.Subheading }, .. rows]).WithSpacing(12f);
 
     private static Widget Row(string label, Widget control)
         => new Column(new Label { Text = label }, control).WithSpacing(4f);

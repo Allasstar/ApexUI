@@ -18,7 +18,7 @@ public class PrimitivesExample : Widget
 
         var dialogContent = new PaddingBox(
             new Column(
-                new Label { Text = "Overlay Dialog", Bold = true, FontSize = 18f },
+                new Label { Text = "Overlay Dialog", Bold = true, Role = TextRole.Heading },
                 new Separator(),
                 new Label { Text = "A modal Overlay renders above the entire widget tree,\nregardless of how deeply nested the caller is." },
                 new Row(
@@ -54,7 +54,7 @@ public class PrimitivesExample : Widget
             new Column(
 
                 // Progress bars
-                new Label { Text = "ProgressBar", Bold = true, FontSize = 18f },
+                new Label { Text = "ProgressBar", Bold = true, Role = TextRole.Heading },
 
                 MakeBarRow("Primary",  new ProgressBar().Bind(fill)),
                 MakeBarRow("Success",  new ProgressBar { Variant = ProgressBarVariant.Success }.Bind(fill)),
@@ -66,7 +66,7 @@ public class PrimitivesExample : Widget
                 new Separator { Margin = new Thickness(0, 4f) },
 
                 // Separators
-                new Label { Text = "Separator", Bold = true, FontSize = 18f },
+                new Label { Text = "Separator", Bold = true, Role = TextRole.Heading },
 
                 new Column(
                     new Label { Text = "Horizontal (default)" },
@@ -86,7 +86,7 @@ public class PrimitivesExample : Widget
                 new Separator { Margin = new Thickness(0, 4f) },
 
                 // Overlay
-                new Label { Text = "Overlay", Bold = true, FontSize = 18f },
+                new Label { Text = "Overlay", Bold = true, Role = TextRole.Heading },
 
                 new Row(
                     new Button("Open Modal Dialog").OnPress(() => dialog.Open(Host!)),

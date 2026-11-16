@@ -14,7 +14,7 @@ public class SliderExample : Widget
             new Column(
 
                 // ── Slider binding ────────────────────────────────────────────
-                new Label { Text = "Sliders — two-way binding", Bold = true, FontSize = 18f },
+                new Label { Text = "Sliders — two-way binding", Bold = true, Role = TextRole.Heading },
 
                 MakeSliderRow(
                     "Volume  (0 – 1.0,  continuous)",
@@ -41,7 +41,7 @@ public class SliderExample : Widget
                         .BindFloat(temp, "F1")),
 
                 // ── Input modes & validation ──────────────────────────────────
-                new Label { Text = "Input modes & validation", Bold = true, FontSize = 18f },
+                new Label { Text = "Input modes & validation", Bold = true, Role = TextRole.Heading },
 
                 MakeInputRow("Password",
                     new TextInput { Width = 260f }

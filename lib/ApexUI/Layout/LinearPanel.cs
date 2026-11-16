@@ -12,11 +12,15 @@ public abstract class LinearPanel : Widget
 
     public Orientation Orientation { get; }
 
+    /// Gap between neighbouring children. Until set, DefaultSpacing (0 unless a subclass takes it from the theme).
     public float Spacing
     {
-        get;
-        set => SetLayoutProperty(ref field, value);
+        get => float.IsNaN(_spacing) ? DefaultSpacing(Theme) : _spacing;
+        set => SetLayoutProperty(ref _spacing, value);
     }
+    private float _spacing = float.NaN;
+
+    protected virtual float DefaultSpacing(Theme theme) => 0f;
 
     private bool Horizontal => Orientation == Orientation.Horizontal;
 

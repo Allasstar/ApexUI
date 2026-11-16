@@ -30,7 +30,6 @@ public class Tabs : Widget
         {
             Position  = position;
             _onSelect = onSelect;
-            Padding   = new Thickness(16f, 10f);
             AddChild(new Label
             {
                 Text             = title,
@@ -38,6 +37,8 @@ public class Tabs : Widget
                 ColorSource      = t => IsActive ? t.Primary : IsHovered ? t.OnSurface : t.OnSurfaceMuted,
             });
         }
+
+        protected override Thickness DefaultPadding(Theme theme) => theme.TabPadding;
 
         protected override void OnClick(PointerEventArgs e)
         {
@@ -78,7 +79,7 @@ public class Tabs : Widget
 
     // ── Tabs state ────────────────────────────────────────────────────────────
 
-    private const float BarThick = 40f;  // tab bar height (Top/Bottom) or width (Left/Right)
+    private float BarThick => Theme.TabBarSize;
 
     private readonly List<TabEntry>   _tabs    = [];
     private readonly List<TabButton>  _buttons = [];

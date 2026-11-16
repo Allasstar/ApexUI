@@ -2,9 +2,6 @@ namespace ApexUI.Widgets;
 
 public class Checkbox : Widget
 {
-    private const float BoxSize = 18f;
-    private const float Gap     = 8f;
-
     public bool IsChecked
     {
         get;
@@ -58,48 +55,49 @@ public class Checkbox : Widget
 
     protected override Size MeasureCore(Size available)
     {
-        float w = BoxSize;
+        var   t = Theme;
+        float w = t.CheckboxSize;
         if (!string.IsNullOrEmpty(Label))
         {
-            using var font = LayoutFont.Get(Host, 14f);
-            w += Gap + font.Font.MeasureText(Label) + 2f;
+            using var font = LayoutFont.Get(Host, t.FontSizeBody);
+            w += t.SpacingSm + font.Font.MeasureText(Label) + 2f;
         }
-        return new Size(w, BoxSize);
+        return new Size(w, t.CheckboxSize);
     }
 
     // ── Drawing ──────────────────────────────────────────────────────────────
 
     protected override void DrawCore(DrawContext ctx)
     {
+        var   t       = ctx.Theme;
+        float size    = t.CheckboxSize;
         float cy      = LayoutBounds.CenterY;
-        float cx      = LayoutBounds.X + BoxSize * 0.5f;
-        var   boxRect = new Rect(LayoutBounds.X, cy - BoxSize * 0.5f, BoxSize, BoxSize);
-        float r       = ctx.Theme.CornerRadiusSm;
-        
+        float cx      = LayoutBounds.X + size * 0.5f;
+        var   boxRect = new Rect(LayoutBounds.X, cy - size * 0.5f, size, size);
+        float r       = t.CornerRadiusSmall;
+
         if (IsChecked && IsEnabled)
         {
-            ctx.FillRoundRect(boxRect, r, ctx.Theme.Primary);
-            ctx.DrawCheckmark(cx, cy, BoxSize * 0.35f, ctx.Theme.OnPrimary);
+            ctx.FillRoundRect(boxRect, r, t.Primary);
+            ctx.DrawCheckmark(cx, cy, size * 0.35f, t.OnPrimary);
         }
         else
         {
-            ctx.FillRoundRect(boxRect, r, ctx.Theme.Surface);
-            ctx.StrokeRoundRect(boxRect, r, IsEnabled ? ctx.Theme.Border : ctx.Theme.SurfaceHover, 1.5f);
+            ctx.FillRoundRect(boxRect, r, t.Surface);
+            ctx.StrokeRoundRect(boxRect, r, IsEnabled ? t.Border : t.SurfaceHover, 1.5f);
             if (IsChecked) // disabled + checked
-                ctx.DrawCheckmark(cx, cy, BoxSize * 0.35f, ctx.Theme.Border);
+                ctx.DrawCheckmark(cx, cy, size * 0.35f, t.Border);
         }
-        
+
         if ((IsHovered || IsPressed) && IsEnabled)
-        {
-            ctx.FillRoundRect(boxRect, r, ctx.Theme.PrimaryHoverGhost);
-        }
+            ctx.FillRoundRect(boxRect, r, t.PrimaryHoverGhost);
 
         if (!string.IsNullOrEmpty(Label))
         {
-            float tx = LayoutBounds.X + BoxSize + Gap;
+            float offset = size + t.SpacingSm;
             ctx.DrawText(Label,
-                new Rect(tx, LayoutBounds.Y, LayoutBounds.Width - BoxSize - Gap, LayoutBounds.Height),
-                IsEnabled ? ctx.Theme.OnSurface : ctx.Theme.OnSurfaceMuted, 14f);
+                new Rect(LayoutBounds.X + offset, LayoutBounds.Y, LayoutBounds.Width - offset, LayoutBounds.Height),
+                IsEnabled ? t.OnSurface : t.OnSurfaceMuted, t.FontSizeBody);
         }
     }
 

@@ -1,78 +1,27 @@
 namespace ApexUI.Core;
 
-/// Ordered registry of named theme pairs (light + dark variant each).
+/// The theme pairs every ThemeRegistry starts with. Reuse them as a base for your own:
 ///
-/// To add a custom theme, register it before building the UI that lists themes:
-///
-///   ThemeLibrary.Register("Neon", new Theme { ... }, new Theme { ... });
-///
-/// To hide a built-in theme call Remove(name).
-///
-public static class ThemeLibrary
+///   BuiltInThemes.ForestDark with { Primary = new(0, 200, 120) }
+public static class BuiltInThemes
 {
-    // ── Built-in name constants ───────────────────────────────────────────────
-
     public const string Default  = "Default";
     public const string Contrast = "Contrast";
     public const string Forest   = "Forest";
     public const string Desert   = "Desert";
     public const string Space    = "Space";
 
-    // ── Internal storage ─────────────────────────────────────────────────────
-
-    private static readonly List<string> _order = [];
-    private static readonly Dictionary<string, (Theme Light, Theme Dark)> _registry
-        = new(StringComparer.OrdinalIgnoreCase);
-
-    static ThemeLibrary()
+    internal static void RegisterAll(ThemeRegistry registry)
     {
-        Register(Default,  Theme.Light,   Theme.Dark);
-        Register(Contrast, ContrastLight, ContrastDark);
-        Register(Forest,   ForestLight,   ForestDark);
-        Register(Desert,   DesertLight,   DesertDark);
-        Register(Space,    SpaceLight,    SpaceDark);
+        registry.Register(Default,  Theme.Light,   Theme.Dark);
+        registry.Register(Contrast, ContrastLight, ContrastDark);
+        registry.Register(Forest,   ForestLight,   ForestDark);
+        registry.Register(Desert,   DesertLight,   DesertDark);
+        registry.Register(Space,    SpaceLight,    SpaceDark);
     }
-
-    // ── Registry API ─────────────────────────────────────────────────────────
-
-    /// All registered theme names in registration order.
-    public static IReadOnlyList<string> Names => _order;
-
-    /// First registered theme name (used as the application default).
-    public static string DefaultName => _order.Count > 0 ? _order[0] : Default;
-
-    /// Add or replace a theme. If the name is new it is appended at the end.
-    public static void Register(string name, Theme light, Theme dark)
-    {
-        if (!_registry.ContainsKey(name))
-            _order.Add(name);
-        _registry[name] = (light, dark);
-    }
-
-    /// Remove a theme by name. No-op if not found.
-    public static void Remove(string name)
-    {
-        if (_registry.Remove(name))
-            _order.Remove(name);
-    }
-
-    /// Resolve a theme by name + dark flag.
-    /// Falls back to the first registered theme if name is not found.
-    public static Theme Get(string name, bool dark)
-    {
-        if (_registry.TryGetValue(name, out var pair))
-            return dark ? pair.Dark : pair.Light;
-
-        if (_order.Count > 0 && _registry.TryGetValue(_order[0], out var first))
-            return dark ? first.Dark : first.Light;
-
-        return dark ? Theme.Dark : Theme.Light;
-    }
-
-    // ── Built-in palettes ─────────────────────────────────────────────────────
 
     // Contrast — maximum readability, saturated accent on pure white/black.
-    private static readonly Theme ContrastLight = new()
+    public static Theme ContrastLight { get; } = new()
     {
         Background     = new(255, 255, 255),
         Surface        = new(240, 240, 240),
@@ -88,7 +37,7 @@ public static class ThemeLibrary
         Danger         = new(204, 0,   0),
         Border         = new(112, 112, 112),
     };
-    private static readonly Theme ContrastDark = new()
+    public static Theme ContrastDark { get; } = new()
     {
         Background     = new(0,   0,   0),
         Surface        = new(20,  20,  20),
@@ -106,7 +55,7 @@ public static class ThemeLibrary
     };
 
     // Forest — warm cream + deep greens; dark is deep-woods night.
-    private static readonly Theme ForestLight = new()
+    public static Theme ForestLight { get; } = new()
     {
         Background     = new(240, 238, 221),
         Surface        = new(228, 216, 192),
@@ -122,7 +71,7 @@ public static class ThemeLibrary
         Danger         = new(168, 48,  48),
         Border         = new(154, 170, 120),
     };
-    private static readonly Theme ForestDark = new()
+    public static Theme ForestDark { get; } = new()
     {
         Background     = new(12,  22,  12),
         Surface        = new(24,  34,  24),
@@ -140,7 +89,7 @@ public static class ThemeLibrary
     };
 
     // Desert — sandy warmth + terracotta; dark is canyon at night.
-    private static readonly Theme DesertLight = new()
+    public static Theme DesertLight { get; } = new()
     {
         Background     = new(251, 242, 220),
         Surface        = new(242, 232, 200),
@@ -156,7 +105,7 @@ public static class ThemeLibrary
         Danger         = new(188, 44,  44),
         Border         = new(200, 176, 112),
     };
-    private static readonly Theme DesertDark = new()
+    public static Theme DesertDark { get; } = new()
     {
         Background     = new(28,  16,  0),
         Surface        = new(42,  26,  0),
@@ -174,7 +123,7 @@ public static class ThemeLibrary
     };
 
     // Space — soft lavender surfaces; dark is deep cosmic with neon accents.
-    private static readonly Theme SpaceLight = new()
+    public static Theme SpaceLight { get; } = new()
     {
         Background     = new(240, 238, 248),
         Surface        = new(228, 224, 244),
@@ -190,7 +139,7 @@ public static class ThemeLibrary
         Danger         = new(224, 32,  80),
         Border         = new(144, 144, 204),
     };
-    private static readonly Theme SpaceDark = new()
+    public static Theme SpaceDark { get; } = new()
     {
         Background     = new(5,   2,   16),
         Surface        = new(14,  10,  40),

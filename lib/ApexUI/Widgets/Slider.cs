@@ -2,9 +2,6 @@ namespace ApexUI.Widgets;
 
 public class Slider : Widget
 {
-    private const float TrackH = 4f;
-    private const float ThumbR = 10f;
-
     private bool _dragging;
 
     public float Min  { get; set { if (SetRenderProperty(ref field, value)) ClampToRange(); } } = 0f;
@@ -32,8 +29,9 @@ public class Slider : Widget
     {
         MinWidth  = 80f;
         Focusable = true;
-        CornerRadius = ThumbR;
     }
+
+    protected override float DefaultCornerRadius(Theme theme) => theme.SliderThumbSize * 0.5f;
 
     protected override void OnPointerPressed(PointerEventArgs e)
     {
@@ -98,7 +96,7 @@ public class Slider : Widget
     // ── Layout ───────────────────────────────────────────────────────────────
 
     protected override Size MeasureCore(Size available)
-        => new(float.IsNaN(Width) ? Math.Max(MinWidth, available.Width) : Width, ThumbR * 2);
+        => new(float.IsNaN(Width) ? Math.Max(MinWidth, available.Width) : Width, Theme.SliderThumbSize);
 
     // ── Drawing ──────────────────────────────────────────────────────────────
 
@@ -106,30 +104,33 @@ public class Slider : Widget
     {
         if (LayoutBounds.Width <= 0) return;
 
+        var   theme  = ctx.Theme;
+        float thumbR = theme.SliderThumbSize * 0.5f;
+        float trackH = theme.SliderTrackHeight;
         float range  = Max - Min;
         float t      = range > 0f ? (Value - Min) / range : 0f;
-        float cx0    = LayoutBounds.X + ThumbR;
-        float cx1    = LayoutBounds.Right - ThumbR;
-        float trackW = cx1 - cx0;
-        float thumbX = cx0 + t * trackW;
-        float trackY = LayoutBounds.CenterY - TrackH * 0.5f;
+        float cx0    = LayoutBounds.X + thumbR;
+        float cx1    = LayoutBounds.Right - thumbR;
+        float thumbX = cx0 + t * (cx1 - cx0);
+        float trackY = LayoutBounds.CenterY - trackH * 0.5f;
 
-        ctx.FillRoundRect(new Rect(cx0, trackY, cx1 - cx0, TrackH), TrackH * 0.5f, ctx.Theme.Border);
+        ctx.FillRoundRect(new Rect(cx0, trackY, cx1 - cx0, trackH), trackH * 0.5f, theme.Border);
 
         if (thumbX > cx0)
-            ctx.FillRoundRect(new Rect(cx0, trackY, thumbX - cx0, TrackH), TrackH * 0.5f, ctx.Theme.Primary);
+            ctx.FillRoundRect(new Rect(cx0, trackY, thumbX - cx0, trackH), trackH * 0.5f, theme.Primary);
 
-        var thumbColor = (IsPressed || IsHovered) ? ctx.Theme.PrimaryHover : ctx.Theme.Primary;
-        ctx.FillCircle(thumbX, LayoutBounds.CenterY, ThumbR, thumbColor);
-        ctx.StrokeCircle(thumbX, LayoutBounds.CenterY, ThumbR - 1f, SKColors.White, 2f);
+        var thumbColor = (IsPressed || IsHovered) ? theme.PrimaryHover : theme.Primary;
+        ctx.FillCircle(thumbX, LayoutBounds.CenterY, thumbR, thumbColor);
+        ctx.StrokeCircle(thumbX, LayoutBounds.CenterY, thumbR - 1f, theme.Knob, 2f);
     }
 
     // ── Private ──────────────────────────────────────────────────────────────
 
     private void UpdateFromX(float x)
     {
-        float cx0    = LayoutBounds.X + ThumbR;
-        float trackW = LayoutBounds.Width - ThumbR * 2f;
+        float thumbR = Theme.SliderThumbSize * 0.5f;
+        float cx0    = LayoutBounds.X + thumbR;
+        float trackW = LayoutBounds.Width - thumbR * 2f;
         if (trackW <= 0f) return;
         Value = Min + Math.Clamp((x - cx0) / trackW, 0f, 1f) * (Max - Min);
     }

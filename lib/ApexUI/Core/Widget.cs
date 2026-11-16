@@ -95,11 +95,21 @@ public abstract partial class Widget
         set => SetRenderProperty(ref field, value);
     }
 
+    /// Rounds the background, the focus ring and widget-drawn outlines. Until set, the widget's
+    /// themed default (DefaultCornerRadius).
     public float CornerRadius
     {
-        get;
-        set => SetRenderProperty(ref field, value);
-    } = 0f;
+        get => float.IsNaN(_cornerRadius) ? DefaultCornerRadius(Theme) : _cornerRadius;
+        set => SetRenderProperty(ref _cornerRadius, value);
+    }
+    private float _cornerRadius = float.NaN;
+
+    /// CornerRadius used until it is set. Override to take it from the theme.
+    protected virtual float DefaultCornerRadius(Theme theme) => 0f;
+
+    /// The host's theme, or Theme.Light while the widget is not on screen.
+    /// Read it in MeasureCore, ArrangeCore and DrawCore: a theme change re-measures and redraws everything.
+    protected Theme Theme => Host?.Theme ?? Theme.Light;
 
     // ── Interaction ────────────────────────────────────────────────────────
 
@@ -158,8 +168,9 @@ public abstract partial class Widget
         var bg = BackgroundSource?.Invoke(ctx.Theme) ?? Background;
         if (bg != SkiaSharp.SKColor.Empty)
         {
-            if (CornerRadius > 0)
-                ctx.FillRoundRect(LayoutBounds, CornerRadius, bg);
+            float radius = CornerRadius;
+            if (radius > 0)
+                ctx.FillRoundRect(LayoutBounds, radius, bg);
             else
                 ctx.FillRect(LayoutBounds, bg);
         }

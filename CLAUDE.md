@@ -92,7 +92,7 @@ float MinWidth, MaxWidth, MinHeight, MaxHeight;
 float AspectRatio;             // NaN = no constraint
 AspectRatioMode AspectRatioMode;
 Thickness Margin;              // outside LayoutBounds
-Thickness Padding;             // inside LayoutBounds, applied by Widget for every subclass
+Thickness Padding;             // inside LayoutBounds, applied by Widget for every subclass; DefaultPadding(Theme) until set
 float Grow;                    // share of a LinearPanel's leftover length (0 = none)
 HAlign HAlign;  // Left | Center | Right | Stretch
 VAlign VAlign;  // Top | Center | Bottom | Stretch
@@ -100,7 +100,7 @@ VAlign VAlign;  // Top | Center | Bottom | Stretch
 // Visual
 SKColor Background;
 Func<Theme, SKColor>? BackgroundSource;  // theme-aware, overrides Background (Label has the same ColorSource)
-float CornerRadius;
+float CornerRadius;   // DefaultCornerRadius(Theme) until set
 float Opacity;   // 0..1
 bool  IsVisible;
 
@@ -115,6 +115,10 @@ bool Focus();
 bool CapturePointer(); void ReleasePointerCapture();
 Size DesiredSize;
 Rect LayoutBounds;
+protected Theme Theme;   // host's theme, Theme.Light while detached; read it in MeasureCore/ArrangeCore/DrawCore
+protected virtual Thickness DefaultPadding(Theme theme);      // themed defaults; a set value wins
+protected virtual float     DefaultCornerRadius(Theme theme);
+// Never hardcode colors, font sizes, radii, paddings or control sizes in a widget: use a Theme token.
 Rect ContentBounds;   // LayoutBounds minus Padding
 
 // Input (Widget.Input.cs). Each event: protected virtual On…(args) first (widget behavior), then the public event.
@@ -156,16 +160,16 @@ UiHost(IPlatform platform)
 void Run(Widget root)          // sets Root, then platform.Run(this)
 IPlatform Platform   { get; }
 Widget?   Root       { get; set; }
-Theme     Theme      { get; set; }
-string    FontFamily { get; set; }
+Theme     Theme      { get; set; }   // re-measures everything when changed
+ThemeRegistry Themes { get; }       // per host; starts with BuiltInThemes; register before building theme pickers
 float     DpiScale   { get; }       // display scaling reported by the platform
 float     PixelScale { get; }       // DpiScale × UiScale, applied once as the canvas transform
 float     UiScale    { get; set; }   // clamped 0.1–10; scales entire tree uniformly
 
 UiHost BindUiScale(Bindable<float>)
-UiHost BindTheme(Bindable<string>)
-UiHost BindDarkMode(Bindable<bool>)  // true → Dark, false → Light
-UiHost BindFontFamily(Bindable<string>)
+UiHost BindTheme(Bindable<string>)      // name in Themes
+UiHost BindDarkMode(Bindable<bool>)     // dark or light variant of that name
+UiHost BindFontFamily(Bindable<string>) // overrides the selected theme's FontFamily
 
 void RequestAnimationFrame(Action<TimeSpan> callback)   // once, before the next frame; re-request to animate. Cache the delegate.
 // Frames are drawn only when something invalidates; an idle window renders nothing.
@@ -209,10 +213,11 @@ DesktopPlatform WithIcon(string path)   // .svg / .ico / raster; call before Run
 ### `DrawContext` · `lib/ApexUI/Core/DrawContext.cs`
 
 ```csharp
-DrawContext(SKCanvas canvas, Theme theme, float pixelScale, string fontFamily = FontCache.DefaultFamily, FontCache? fonts = null)
+DrawContext(SKCanvas canvas, Theme theme, float pixelScale, FontCache? fonts = null)
 // IDisposable: owns reusable paints, a path, blur filters, and the font cache unless one is passed in.
 SKCanvas Canvas   { get; }
 Theme    Theme    { get; }
+string   FontFamily { get; }   // Theme.FontFamily
 float    PixelScale { get; }   // canvas pixels per logical unit; drawing is already scaled, use only for pixel snapping
 
 SKFont  GetFont(float sizePx, bool bold = false)   // cached; owned by the context, never dispose
@@ -255,7 +260,7 @@ bool IsIdentity
 
 ```csharp
 enum Orientation { Horizontal, Vertical }
-abstract class LinearPanel : Widget { Orientation Orientation { get; }  float Spacing; }
+abstract class LinearPanel : Widget { Orientation Orientation { get; }  float Spacing; }   // Spacing: DefaultSpacing(Theme) until set
 // Children get their desired length along the line and the full thickness across it; leftover length goes
 // to children with Grow > 0 in proportion. Subclasses: Row, Column, RadioGroup<T>, Tabs' bar.
 Row(params Widget[] children)    Row Add(Widget)    Row WithSpacing(float)
@@ -306,19 +311,38 @@ float Horizontal, Vertical
 ### `Theme` · `lib/ApexUI/Core/Theme.cs`
 
 ```csharp
+sealed record Theme   // immutable; make variants with `with`
 static Theme Theme.Light, Theme.Dark
 
-// SKColor (init-only)
+// SKColor (* = derived from another token unless set)
 Background, Surface, SurfaceHover, SurfacePressed
 OnSurface, OnSurfaceMuted
-Primary, PrimaryHover, OnPrimary
-Success, Warning, Danger, Border
-FocusRing   // defaults to Primary
+Primary, PrimaryHover, OnPrimary, PrimaryHoverGhost*
+Success, Warning, Danger
+Border, BorderSubtle*
+Scrim, Shadow (+ float ShadowBlur, ShadowOffsetY)
+FocusRing* (+ float FocusRingWidth), Selection*, Knob
+ScrollbarTrack*, ScrollbarThumb*, ScrollbarThumbActive* (+ float ScrollbarSize, ScrollbarMinThumb)
 
 string FontFamily   // "Segoe UI"
-float  FontSizeBase, FontSizeSmall, FontSizeLarge, FontSizeTitle
-float  CornerRadiusSm, CornerRadiusMd, CornerRadiusLg
+float  FontSizeSmall, FontSizeBody, FontSizeSubheading, FontSizeHeading, FontSizeTitle, LineHeight (multiplier)
+float  FontSize(TextRole role)   // enum TextRole { Body, Small, Subheading, Heading, Title }; Label.Role
+float  CornerRadiusSmall, CornerRadiusControl, CornerRadiusPopup, CornerRadiusDialog
 float  SpacingXs, SpacingSm, SpacingMd, SpacingLg
+Thickness ButtonPadding, InputPadding, MenuItemPadding, PopupPadding, TooltipPadding, DialogPadding, TabPadding
+float  CheckboxSize, RadioSize, ToggleWidth, ToggleHeight, SliderThumbSize, SliderTrackHeight, ProgressBarHeight, TabBarSize
+```
+
+### `ThemeRegistry`, `BuiltInThemes` · `lib/ApexUI/Core/`
+
+```csharp
+ThemeRegistry(bool includeBuiltIns = true)
+IReadOnlyList<string> Names; string DefaultName   // first registered
+void  Register(string name, Theme light, Theme dark)   // replacing keeps the position
+void  Remove(string name)
+Theme Get(string name, bool dark)                      // unknown name → first theme
+
+static class BuiltInThemes   // names Default, Contrast, Forest, Desert, Space; palettes ContrastLight, ForestDark, ...
 ```
 
 ---

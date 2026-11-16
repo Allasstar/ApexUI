@@ -38,7 +38,7 @@ public class InputsExample : Widget
             new Column(
 
                 // ── Toggle ─────────────────────────────────────────────────────
-                new Label { Text = "Toggle", Bold = true, FontSize = 18f },
+                new Label { Text = "Toggle", Bold = true, Role = TextRole.Heading },
 
                 MakeCard(new Column(
                     new Label { Text = "Bound to Bindable<bool> — status updates live:" },
@@ -59,7 +59,7 @@ public class InputsExample : Widget
                 new Separator { Margin = new Thickness(0, 4f) },
 
                 // ── Checkbox ───────────────────────────────────────────────────
-                new Label { Text = "Checkbox", Bold = true, FontSize = 18f },
+                new Label { Text = "Checkbox", Bold = true, Role = TextRole.Heading },
 
                 MakeCard(new Column(
                     new Label { Text = "Bound to Bindable<bool>:" },
@@ -77,7 +77,7 @@ public class InputsExample : Widget
                 new Separator { Margin = new Thickness(0, 4f) },
 
                 // ── RadioGroup — Vertical ──────────────────────────────────────
-                new Label { Text = "RadioGroup — Vertical", Bold = true, FontSize = 18f },
+                new Label { Text = "RadioGroup — Vertical", Bold = true, Role = TextRole.Heading },
 
                 MakeCard(new Column(
                     new Label { Text = "Mutually-exclusive options sharing a Bindable<string>:" },
@@ -92,7 +92,7 @@ public class InputsExample : Widget
                 new Separator { Margin = new Thickness(0, 4f) },
 
                 // ── RadioGroup — Horizontal ────────────────────────────────────
-                new Label { Text = "RadioGroup — Horizontal", Bold = true, FontSize = 18f },
+                new Label { Text = "RadioGroup — Horizontal", Bold = true, Role = TextRole.Heading },
 
                 MakeCard(new Column(
                     new Label { Text = "Same widget, Orientation.Horizontal:" },
@@ -108,7 +108,7 @@ public class InputsExample : Widget
                 new Separator { Margin = new Thickness(0, 4f) },
 
                 // ── NumberInput ────────────────────────────────────────────────
-                new Label { Text = "NumberInput", Bold = true, FontSize = 18f },
+                new Label { Text = "NumberInput", Bold = true, Role = TextRole.Heading },
 
                 MakeCard(new Column(
 
@@ -137,7 +137,7 @@ public class InputsExample : Widget
                 new Separator { Margin = new Thickness(0, 4f) },
 
                 // ── Combined form ──────────────────────────────────────────────
-                new Label { Text = "Combined — RadioGroup + NumberInput", Bold = true, FontSize = 18f },
+                new Label { Text = "Combined — RadioGroup + NumberInput", Bold = true, Role = TextRole.Heading },
 
                 MakeCard(BuildCombinedForm())
 

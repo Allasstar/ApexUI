@@ -229,7 +229,7 @@ public class LayoutCacheTests
         platform.Render().Dispose();
         float before = label.LayoutBounds.Height;
 
-        host.Theme = new Theme { FontSizeBase = Theme.Light.FontSizeBase * 2 };
+        host.Theme = new Theme { FontSizeBody = Theme.Light.FontSizeBody * 2 };
         platform.Render().Dispose();
 
         Assert.Equal(before * 2, label.LayoutBounds.Height, 3);

@@ -146,46 +146,25 @@ public sealed class ContextMenu
     // ── Panel widget ──────────────────────────────────────────────────────────
 
     // Flat panel: Surface background + rounded border + Column of items.
-    // No Scroll or PaddingBox wrappers — padding is managed directly so
-    // layout is straightforward and the background renders reliably.
     private sealed class ContextPanel : Widget
     {
         private readonly Column _column;
-        private readonly float  _minWidth;
-        private const float     Pad = 4f;
 
         public ContextPanel(float minWidth = 180f)
         {
-            _minWidth        = minWidth;
+            MinWidth         = minWidth;
             BackgroundSource = t => t.Surface;
-            CornerRadius     = 8f;
             _column          = new Column { Spacing = 2f };
             AddChild(_column);
         }
 
         public void Add(Widget item) => _column.Add(item);
 
-        protected override Size MeasureCore(Size available)
-        {
-            // Measure column at minWidth so items report a stable preferred width.
-            float innerW = Math.Max(0f, _minWidth - Pad * 2f);
-            _column.Measure(new Size(innerW, float.PositiveInfinity));
-            float w = Math.Max(_column.DesiredSize.Width + Pad * 2f, _minWidth);
-            float h = _column.DesiredSize.Height + Pad * 2f;
-            return new Size(w, h);
-        }
-
-        protected override void ArrangeCore(Rect r)
-        {
-            float innerW = r.Width  - Pad * 2f;
-            float innerH = r.Height - Pad * 2f;
-            // Re-measure so DesiredSize reflects the final width before arrange.
-            _column.Measure(new Size(innerW, float.PositiveInfinity));
-            _column.Arrange(new Rect(r.X + Pad, r.Y + Pad, innerW, Math.Max(innerH, _column.DesiredSize.Height)));
-        }
+        protected override Thickness DefaultPadding(Theme theme) => theme.PopupPadding;
+        protected override float DefaultCornerRadius(Theme theme) => theme.CornerRadiusPopup;
 
         protected override void DrawCore(DrawContext ctx)
-            => ctx.StrokeRoundRect(LayoutBounds, CornerRadius, ctx.Theme.Border.WithAlpha(0.4f));
+            => ctx.StrokeRoundRect(LayoutBounds, CornerRadius, ctx.Theme.BorderSubtle);
     }
 
     // ── Entry data ────────────────────────────────────────────────────────────

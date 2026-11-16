@@ -11,7 +11,7 @@ public class GallerySmokeTests
     public void Every_gallery_tab_lays_out_and_draws(string themeName)
     {
         var theme   = themeName == "dark" ? Theme.Dark : Theme.Light;
-        var gallery = new TabsExample();
+        var gallery = new TabsExample(new ThemeRegistry());
         var tabs    = Assert.IsType<Tabs>(Assert.Single(gallery.Children));
 
         Assert.True(tabs.TabCount > 0);

@@ -176,14 +176,12 @@ public class Dropdown<T> : Widget
         private readonly Action _onToggle;
         private bool _isOpen;
 
-        private const float PadH       = 10f;
-        private const float ChevronW   = 28f;
-        private const float MinW       = 120f;
+        private const float ChevronW = 28f;
 
         public DropdownTrigger(Action onToggle)
         {
             _onToggle    = onToggle;
-            CornerRadius = 6f;
+            MinWidth     = 120f;
             Focusable    = true;
             _label = new Label
             {
@@ -212,22 +210,14 @@ public class Dropdown<T> : Widget
             _onToggle();
         }
 
-        // ── Layout ───────────────────────────────────────────────────────────
-
-        protected override Size MeasureCore(Size available)
+        // The chevron sits in the right padding.
+        protected override Thickness DefaultPadding(Theme theme)
         {
-            _label.Measure(new Size(Math.Max(0f, available.Width - PadH - ChevronW), float.PositiveInfinity));
-            float w = Math.Max(_label.DesiredSize.Width + PadH + ChevronW, MinW);
-            float h = _label.DesiredSize.Height + 14f; // ~7px top+bottom padding
-            return new Size(w, h);
+            var p = theme.InputPadding;
+            return new Thickness(p.Left, p.Top, ChevronW, p.Bottom);
         }
 
-        protected override void ArrangeCore(Rect r)
-        {
-            var lr = new Rect(r.X + PadH, r.Y, r.Width - PadH - ChevronW, r.Height);
-            _label.Measure(new Size(lr.Width, lr.Height));
-            _label.Arrange(lr);
-        }
+        protected override float DefaultCornerRadius(Theme theme) => theme.CornerRadiusControl;
 
         // ── Drawing ──────────────────────────────────────────────────────────
 
@@ -243,7 +233,7 @@ public class Dropdown<T> : Widget
             ctx.StrokeRoundRect(lb, CornerRadius, _isOpen ? t.Primary : t.Border, _isOpen ? 2f : 1f);
 
             float divX = lb.Right - ChevronW;
-            ctx.DrawLine(divX, lb.Y + 6f, divX, lb.Bottom - 6f, t.Border.WithAlpha(0.5f), cap: SKStrokeCap.Butt);
+            ctx.DrawLine(divX, lb.Y + 6f, divX, lb.Bottom - 6f, t.BorderSubtle, cap: SKStrokeCap.Butt);
 
             ctx.DrawChevron(lb.Right - ChevronW * 0.5f, lb.CenterY, 3.5f, pointUp: _isOpen, t.OnSurfaceMuted);
         }

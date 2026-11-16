@@ -23,16 +23,23 @@ public sealed partial class UiHost : IPlatformListener
     private float _pixelWidth;
     private float _pixelHeight;
 
-    private string _preset = ThemeLibrary.DefaultName;
-    private bool   _isDark;
+    private string  _preset;
+    private bool    _isDark;
+    private string? _fontFamily;
 
     public UiHost(IPlatform platform)
     {
         Platform = platform;
+        _preset  = Themes.DefaultName;
     }
 
     public IPlatform Platform { get; }
 
+    /// Theme pairs BindTheme chooses from; starts with BuiltInThemes.
+    public ThemeRegistry Themes { get; } = new();
+
+    /// The theme every widget is laid out and drawn with. Setting it re-measures the whole tree.
+    /// BindTheme, BindDarkMode and BindFontFamily set it from Themes.
     public Theme Theme
     {
         get;
@@ -46,17 +53,6 @@ public sealed partial class UiHost : IPlatformListener
 
     /// Surface pixels per logical unit reported by the platform (display scaling).
     public float DpiScale { get; private set; } = 1f;
-
-    public string FontFamily
-    {
-        get;
-        set
-        {
-            if (field == value) return;
-            field = value;
-            InvalidateAllMeasurements();
-        }
-    } = FontCache.DefaultFamily;
 
     public float UiScale
     {
@@ -91,7 +87,7 @@ public sealed partial class UiHost : IPlatformListener
     // the generation they were measured at instead of the host walking the tree.
     internal int LayoutGeneration { get; private set; } = 1;
 
-    /// Surface pixels per logical unit: DpiScale Ã— UiScale. Applied once, as the canvas transform;
+    /// Surface pixels per logical unit: DpiScale × UiScale. Applied once, as the canvas transform;
     /// layout, drawing and input all work in logical units.
     public float PixelScale => DpiScale * UiScale;
 
@@ -125,16 +121,22 @@ public sealed partial class UiHost : IPlatformListener
         return this;
     }
 
+    /// Overrides the font family of whichever theme BindTheme and BindDarkMode select.
     public UiHost BindFontFamily(Bindable<string> source)
     {
-        FontFamily = source.Value;
-        source.Changed += v => FontFamily = v;
+        _fontFamily = source.Value;
+        ApplyTheme();
+        source.Changed += v => { _fontFamily = v; ApplyTheme(); };
         return this;
     }
 
-    private void ApplyTheme() => Theme = ThemeLibrary.Get(_preset, _isDark);
+    private void ApplyTheme()
+    {
+        var theme = Themes.Get(_preset, _isDark);
+        Theme = _fontFamily is null || _fontFamily == theme.FontFamily ? theme : theme with { FontFamily = _fontFamily };
+    }
 
-    // â”€â”€ Frames â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── Frames ────────────────────────────────────────────────────────────────
 
     /// Calls callback once, just before the next frame is laid out and drawn, with that frame's time.
     /// Request again from inside the callback to animate; frames stop once nothing is requested.
@@ -174,7 +176,7 @@ public sealed partial class UiHost : IPlatformListener
         _runningFrameCallbacks.Clear();
     }
 
-    // â”€â”€ Overlays â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── Overlays ──────────────────────────────────────────────────────────────
 
     internal void ShowOverlay(Overlay overlay)
     {
@@ -199,7 +201,7 @@ public sealed partial class UiHost : IPlatformListener
         return _root?.HitTest(x, y);
     }
 
-    // â”€â”€ Layout and drawing â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── Layout and drawing ────────────────────────────────────────────────────
 
     void IPlatformListener.Resize(float pixelWidth, float pixelHeight, float dpiScale)
     {
@@ -223,8 +225,8 @@ public sealed partial class UiHost : IPlatformListener
         canvas.Save();
         canvas.Scale(PixelScale, PixelScale);
 
-        _drawContext ??= new DrawContext(canvas, Theme, PixelScale, FontFamily, Fonts);
-        _drawContext.BeginFrame(canvas, Theme, PixelScale, FontFamily);
+        _drawContext ??= new DrawContext(canvas, Theme, PixelScale, Fonts);
+        _drawContext.BeginFrame(canvas, Theme, PixelScale);
         _root?.Draw(_drawContext);
         // Overlays are drawn after the root tree so they appear above everything
         // without inheriting any clip stack.

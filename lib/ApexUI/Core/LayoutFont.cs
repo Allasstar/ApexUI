@@ -18,9 +18,9 @@ internal readonly ref struct LayoutFont
     public static LayoutFont Get(UiHost? host, float sizePx, bool bold = false)
     {
         if (host is not null)
-            return new LayoutFont(host.Fonts.Get(host.FontFamily, sizePx, bold), owned: false);
+            return new LayoutFont(host.Fonts.Get(host.Theme.FontFamily, sizePx, bold), owned: false);
 
-        using var typeface = SKTypeface.FromFamilyName(FontCache.DefaultFamily, bold ? SKFontStyle.Bold : SKFontStyle.Normal);
+        using var typeface = SKTypeface.FromFamilyName(Theme.Light.FontFamily, bold ? SKFontStyle.Bold : SKFontStyle.Normal);
         return new LayoutFont(new SKFont(typeface, sizePx), owned: true);
     }
 

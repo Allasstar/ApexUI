@@ -1,12 +1,13 @@
 namespace ApexUI.Gallery.Examples;
 
-/// Custom theme pair added to ThemeLibrary at startup, before any UI lists the themes.
+/// Custom theme pair added to the host's ThemeRegistry at startup, before any UI lists the themes.
+/// Luna also overrides tokens beyond the palette: knob, scrim, shadow and rounder corners.
 public static class SolAndLunaTheme
 {
     public const string Name = "Sol & Luna";
 
-    public static void Register()
-        => ThemeLibrary.Register(Name, Sol, Luna);
+    public static void Register(ThemeRegistry themes)
+        => themes.Register(Name, Sol, Luna);
 
     // Sol — warm sunlit day: golden surfaces, vivid sun-orange primary.
     private static readonly Theme Sol = new()
@@ -42,5 +43,11 @@ public static class SolAndLunaTheme
         Warning        = new(208, 160, 64),
         Danger         = new(224, 80,  112),
         Border         = new(42,  58,  88),
+        Knob           = new(232, 239, 248),
+        Scrim          = new(0,   4,   16,  170),
+        Shadow         = new(0,   0,   0,   120),
+        CornerRadiusControl = 10f,
+        CornerRadiusPopup   = 12f,
+        CornerRadiusDialog  = 16f,
     };
 }

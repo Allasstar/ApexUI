@@ -12,8 +12,6 @@ internal sealed class MenuList : Widget
     public MenuList(float minWidth = 160f, float maxHeight = 280f)
     {
         BackgroundSource = t => t.Surface;
-        CornerRadius     = 8f;
-        Padding          = new Thickness(4f);
         MinWidth         = minWidth;
         MaxHeight        = maxHeight;
 
@@ -25,6 +23,9 @@ internal sealed class MenuList : Widget
 
     public void Add(Widget item)  => _column.Add(item);
     public void Clear()           => _column.RemoveAllChildren();
+
+    protected override Thickness DefaultPadding(Theme theme) => theme.PopupPadding;
+    protected override float DefaultCornerRadius(Theme theme) => theme.CornerRadiusPopup;
 
     // Infinite height makes the Scroll report the items' natural height; MaxHeight caps it.
     protected override Size MeasureCore(Size available)
@@ -38,7 +39,7 @@ internal sealed class MenuList : Widget
     // We draw the border on top of it here.
 
     protected override void DrawCore(DrawContext ctx)
-        => ctx.StrokeRoundRect(LayoutBounds, CornerRadius, ctx.Theme.Border.WithAlpha(0.4f));
+        => ctx.StrokeRoundRect(LayoutBounds, CornerRadius, ctx.Theme.BorderSubtle);
 }
 
 /// Shared clickable row for Dropdown and ContextMenu.
@@ -48,8 +49,6 @@ internal sealed class MenuItemWidget : Widget
     private readonly Func<bool>? _isChecked;
     private readonly Action _onActivate;
 
-    private const float PadV    =  6f;
-    private const float PadH    = 12f;
     private const float CheckW  = 20f;
 
     public MenuItemWidget(string text, Action onActivate, bool enabled = true, Func<bool>? isChecked = null)
@@ -57,10 +56,6 @@ internal sealed class MenuItemWidget : Widget
         _isChecked  = isChecked;
         _onActivate = onActivate;
 
-        // Extra left padding reserved for the check indicator when one is used.
-        float padLeft = isChecked is not null ? PadH + CheckW : PadH;
-        Padding      = new Thickness(padLeft, PadV, PadH, PadV);
-        CornerRadius = 6f;
         IsEnabled    = enabled;
         AddChild(new Label
         {
@@ -69,6 +64,15 @@ internal sealed class MenuItemWidget : Widget
             ColorSource      = enabled ? t => t.OnSurface : t => t.OnSurfaceMuted,
         });
     }
+
+    // Extra left padding holds the check indicator when one is used.
+    protected override Thickness DefaultPadding(Theme theme)
+    {
+        var p = theme.MenuItemPadding;
+        return _isChecked is null ? p : p with { Left = p.Left + CheckW };
+    }
+
+    protected override float DefaultCornerRadius(Theme theme) => theme.CornerRadiusControl;
 
     protected override void OnClick(PointerEventArgs e)
     {
@@ -87,7 +91,7 @@ internal sealed class MenuItemWidget : Widget
             ctx.FillRoundRect(LayoutBounds, CornerRadius, bg);
 
         if (_isChecked is not null && _isChecked())
-            ctx.FillCircle(LayoutBounds.X + PadH + CheckW * 0.5f, LayoutBounds.CenterY, 4f, t.Primary);
+            ctx.FillCircle(LayoutBounds.X + t.MenuItemPadding.Left + CheckW * 0.5f, LayoutBounds.CenterY, 4f, t.Primary);
     }
 }
 
@@ -96,8 +100,13 @@ internal sealed class MenuHeaderWidget : Widget
 {
     public MenuHeaderWidget(string text)
     {
-        Padding = new Thickness(12f, 4f, 12f, 2f);
         IsHitTestVisible = false;
-        AddChild(new Label { Text = text, FontSize = 11f, Bold = true, IsHitTestVisible = false });
+        AddChild(new Label { Text = text, Role = TextRole.Small, Bold = true, IsHitTestVisible = false });
+    }
+
+    protected override Thickness DefaultPadding(Theme theme)
+    {
+        var p = theme.MenuItemPadding;
+        return new Thickness(p.Left, theme.SpacingXs, p.Right, theme.SpacingXs * 0.5f);
     }
 }

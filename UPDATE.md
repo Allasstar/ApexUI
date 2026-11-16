@@ -4,6 +4,24 @@ Newest first. **Breaking** marks changes that need edits in apps using ApexUI.
 
 ## Unreleased
 
+### Theme
+- Built-in widgets take every visual value from the theme: no hardcoded colors, font sizes, radii, paddings or control sizes remain in the library. New tokens:
+  - Colors: `BorderSubtle`, `Scrim`, `Shadow`, `Selection`, `Knob`, `ScrollbarTrack`, `ScrollbarThumb`, `ScrollbarThumbActive`. `PrimaryHoverGhost` can now be set. Colors marked derived (`PrimaryHoverGhost`, `BorderSubtle`, `FocusRing`, `Selection`, scrollbar colors) follow their base token (e.g. `Selection` = `Primary` at 30%) unless set.
+  - Shadow and focus: `ShadowBlur`, `ShadowOffsetY`, `FocusRingWidth`.
+  - Typography: `FontSizeSubheading`, `FontSizeHeading`, `LineHeight` (multiplier, 1.4), `FontSize(TextRole)`.
+  - Paddings (`Thickness`): `ButtonPadding`, `InputPadding`, `MenuItemPadding`, `PopupPadding`, `TooltipPadding`, `DialogPadding`, `TabPadding`.
+  - Control sizes: `CheckboxSize`, `RadioSize`, `ToggleWidth`, `ToggleHeight`, `SliderThumbSize`, `SliderTrackHeight`, `ProgressBarHeight`, `ScrollbarSize`, `ScrollbarMinThumb`, `TabBarSize`.
+- **Breaking:** `Theme` is a `sealed record`: make variants with `with` (`Theme.Dark with { Primary = ... }`). It can no longer be subclassed.
+- **Breaking:** renamed tokens. `FontSizeBase` → `FontSizeBody`; `FontSizeLarge` → `FontSizeHeading` (still 18); `CornerRadiusSm` / `Md` / `Lg` → `CornerRadiusSmall` (4) / `CornerRadiusControl` (6) / `CornerRadiusPopup` (8), plus new `CornerRadiusDialog` (12). `FontSizeTitle` is now 22 (was 24).
+- **Breaking:** the static `ThemeLibrary` is replaced by a `ThemeRegistry` instance per host, `UiHost.Themes`, so two hosts no longer share registrations. `ThemeLibrary.Register/Remove/Names/DefaultName/Get` → `host.Themes.Register/...`. The built-in names and palettes moved to `BuiltInThemes` (`BuiltInThemes.Default`, `BuiltInThemes.ForestDark`, ...); the palettes are now public for reuse. Register custom themes on the host before building UI that lists `host.Themes.Names`.
+- **Breaking:** `UiHost.FontFamily` is removed; the font family is `Theme.FontFamily` (before, that token was ignored). `BindFontFamily` still works and overrides the family of whichever theme `BindTheme`/`BindDarkMode` select. `FontCache.DefaultFamily` is removed (use `Theme.Light.FontFamily`).
+- **Breaking:** `DrawContext(canvas, theme, pixelScale, fontFamily, fonts)` loses the `fontFamily` parameter; `DrawContext.FontFamily` returns `Theme.FontFamily`.
+- New `Label.Role` (`TextRole`: `Body`, `Small`, `Subheading`, `Heading`, `Title`) and `WithRole(...)`: the label's size comes from the theme. An explicit `FontSize` still wins.
+- `Widget.Padding` and `Widget.CornerRadius` use the widget's themed default until set; a set value always wins. Custom widgets override the new `protected virtual DefaultPadding(Theme)` / `DefaultCornerRadius(Theme)`, and read tokens through the new protected `Widget.Theme` (the host's theme, `Theme.Light` while detached). `LinearPanel.Spacing` likewise has `DefaultSpacing(Theme)` (0 for `Row`/`Column`).
+- `RadioGroup<T>`'s `spacing` parameter defaults to the theme's `SpacingSm` (was 8).
+- `Theme.Dark` sets a heavier `Scrim` and `Shadow` for dark backgrounds.
+- Small visual changes from aligning to shared tokens: buttons use `CornerRadiusControl` (6, was 8) like text fields and dropdowns; the dropdown button is 2 units shorter, matching a text field; radio labels sit 8 units from the circle (was 10); `VirtualList`'s scrollbar matches `Scroll`'s; menu headers are 12 (was 11); dialog titles use `FontSizeSubheading`; overlay shadows follow the content's corner radius.
+
 ### Layout
 - **Breaking:** `Widget` applies `Padding` itself. `MeasureCore` gets the space inside the padding and returns the content size; `ArrangeCore` gets the content box. `LayoutBounds` (background, border, hit area) and explicit `Width`/`Height` include the padding. Setting `Padding` on a `Column`, `Row`, `Grid` or any widget now works; before, only `PaddingBox`, `Button`, `TextInput` and menu items honored it. Custom widgets that subtracted `Padding` themselves must stop doing so. New `ContentBounds` (`LayoutBounds` minus `Padding`) for drawing content. `PaddingBox` still works and is now just a widget with `Padding` set.
 - **Breaking:** `Row` and `Column` are the two forms of the new `LinearPanel` (`Orientation`: `Horizontal`/`Vertical`, `Spacing`). Any child can take leftover length with the new `Widget.Grow` (default 0): leftover space is shared by `Grow` factor. `Spacer` is now an empty widget with `Grow = 1` (`new Spacer(2f)` for a factor), no longer a type the panels look for; it behaves as before.

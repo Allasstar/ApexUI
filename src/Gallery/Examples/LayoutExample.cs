@@ -9,7 +9,7 @@ public class LayoutExample : Widget
             new Column(
 
                 // ── Spacer and Grow ───────────────────────────────────────────
-                new Label { Text = "Spacer and Grow", Bold = true, FontSize = 18f },
+                new Label { Text = "Spacer and Grow", Bold = true, Role = TextRole.Heading },
 
                 MakeCard(new Column(
                     new Label { Text = "Pushes siblings to opposite edges:" },
@@ -43,14 +43,14 @@ public class LayoutExample : Widget
                 new Separator { Margin = new Thickness(0, 4f) },
 
                 // ── Grid — Inventory ──────────────────────────────────────────
-                new Label { Text = "Grid — Inventory", Bold = true, FontSize = 18f },
+                new Label { Text = "Grid — Inventory", Bold = true, Role = TextRole.Heading },
 
                 MakeCard(BuildInventoryGrid()),
 
                 new Separator { Margin = new Thickness(0, 4f) },
 
                 // ── Wrap ──────────────────────────────────────────────────────
-                new Label { Text = "Wrap", Bold = true, FontSize = 18f },
+                new Label { Text = "Wrap", Bold = true, Role = TextRole.Heading },
 
                 MakeCard(new Column(
                     new Label { Text = "Children reflow to the next line when they overflow the container width:" },
@@ -65,7 +65,7 @@ public class LayoutExample : Widget
                 new Separator { Margin = new Thickness(0, 4f) },
 
                 // ── Grid — Square Tiles (1:1 aspect ratio) ───────────────────
-                new Label { Text = "Grid — Aspect Ratio (1:1 Square Tiles)", Bold = true, FontSize = 18f },
+                new Label { Text = "Grid — Aspect Ratio (1:1 Square Tiles)", Bold = true, Role = TextRole.Heading },
 
                 MakeCard(new Column(
                     new Label { Text = "WithColumns(4): four equal Star columns. AspectRatio=1 makes every cell square — height tracks width as the window scales." },
@@ -75,7 +75,7 @@ public class LayoutExample : Widget
                 new Separator { Margin = new Thickness(0, 4f) },
 
                 // ── Grid — 16:9 Cards ─────────────────────────────────────────
-                new Label { Text = "Grid — Aspect Ratio (16:9 Cards)", Bold = true, FontSize = 18f },
+                new Label { Text = "Grid — Aspect Ratio (16:9 Cards)", Bold = true, Role = TextRole.Heading },
 
                 MakeCard(new Column(
                     new Label { Text = "WithColumns(2): two equal Star columns. AspectRatio=16/9 keeps cards widescreen at any window width." },
@@ -137,7 +137,7 @@ public class LayoutExample : Widget
                     new Thickness(4f, 28f, 4f, 4f)
                 ) { Background = iconColor, CornerRadius = 4f },
                 // Item name
-                new Label { Text = name, FontSize = 12f, HAlign = HAlign.Center }
+                new Label { Text = name, Role = TextRole.Small, HAlign = HAlign.Center }
             ).WithSpacing(4f),
             6f
         ) { BackgroundSource = t => t.SurfaceHover, CornerRadius = 6f };
@@ -193,7 +193,7 @@ public class LayoutExample : Widget
             grid.Add(new PaddingBox(
                 new Column(
                     new Label { Text = $"Card {i + 1}", FontSize = 16f, Bold = true, Color = SKColors.White },
-                    new Label { Text = "16 : 9 — width controls height", FontSize = 12f, Color = new SKColor(255, 255, 255, 160) }
+                    new Label { Text = "16 : 9 — width controls height", Role = TextRole.Small, Color = new SKColor(255, 255, 255, 160) }
                 ).WithSpacing(4f),
                 12f
             )

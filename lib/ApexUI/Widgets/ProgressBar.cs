@@ -4,8 +4,6 @@ public enum ProgressBarVariant { Primary, Success, Warning, Danger }
 
 public class ProgressBar : Widget
 {
-    private const float TrackH = 8f;
-
     public float Value
     {
         get;
@@ -35,7 +33,7 @@ public class ProgressBar : Widget
     }
 
     protected override Size MeasureCore(Size available)
-        => new(float.IsNaN(Width) ? Math.Max(MinWidth, available.Width) : Width, TrackH);
+        => new(float.IsNaN(Width) ? Math.Max(MinWidth, available.Width) : Width, Theme.ProgressBarHeight);
 
     protected override void DrawCore(DrawContext ctx)
     {

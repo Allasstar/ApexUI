@@ -8,10 +8,6 @@ public class RadioGroup<T> : LinearPanel
 
     private sealed class RadioItem : Widget
     {
-        private const float CircleR = 10f;
-        private const float DotR    = 5f;
-        private const float Gap     = 10f;
-
         private readonly Action _onSelect;
 
         public string ItemLabel { get; }
@@ -22,8 +18,9 @@ public class RadioGroup<T> : LinearPanel
             ItemLabel    = label;
             _onSelect    = onSelect;
             Focusable    = true;
-            CornerRadius = 4f;
         }
+
+        protected override float DefaultCornerRadius(Theme theme) => theme.CornerRadiusSmall;
 
         protected override void OnClick(PointerEventArgs e)
         {
@@ -40,35 +37,34 @@ public class RadioGroup<T> : LinearPanel
 
         protected override Size MeasureCore(Size available)
         {
-            using var font = LayoutFont.Get(Host, 14f);
+            var t = Theme;
+            using var font = LayoutFont.Get(Host, t.FontSizeBody);
             float textW = string.IsNullOrEmpty(ItemLabel) ? 0f : font.Font.MeasureText(ItemLabel) + 2f;
-            return new Size(CircleR * 2 + Gap + textW, MathF.Max(CircleR * 2 + 4f, 14f * 1.4f));
+            return new Size(t.RadioSize + t.SpacingSm + textW, MathF.Max(t.RadioSize + 4f, t.FontSizeBody * t.LineHeight));
         }
 
         protected override void DrawCore(DrawContext ctx)
         {
-            float cx = LayoutBounds.X + CircleR + 2;
+            var   t  = ctx.Theme;
+            float r  = t.RadioSize * 0.5f;
+            float cx = LayoutBounds.X + r + 2;
             float cy = LayoutBounds.CenterY;
 
-            // Hover ripple
             if ((IsHovered || IsPressed) && IsEnabled)
-                ctx.FillCircle(cx, cy, CircleR, ctx.Theme.PrimaryHoverGhost);
+                ctx.FillCircle(cx, cy, r, t.PrimaryHoverGhost);
 
-            // Outer ring
-            var ringColor = IsSelected && IsEnabled ? ctx.Theme.Primary : ctx.Theme.Border;
-            ctx.StrokeCircle(cx, cy, CircleR, ringColor, 2f);
+            var ringColor = IsSelected && IsEnabled ? t.Primary : t.Border;
+            ctx.StrokeCircle(cx, cy, r, ringColor, 2f);
 
-            // Inner dot when selected
             if (IsSelected)
-                ctx.FillCircle(cx, cy, DotR, IsEnabled ? ctx.Theme.Primary : ctx.Theme.Border);
+                ctx.FillCircle(cx, cy, r * 0.5f, IsEnabled ? t.Primary : t.Border);
 
-            // Label text
             if (!string.IsNullOrEmpty(ItemLabel))
             {
-                float tx = LayoutBounds.X + CircleR * 2 + Gap;
+                float offset = t.RadioSize + t.SpacingSm;
                 ctx.DrawText(ItemLabel,
-                    new Rect(tx, LayoutBounds.Y, LayoutBounds.Width - CircleR * 2 - Gap, LayoutBounds.Height),
-                    IsEnabled ? ctx.Theme.OnSurface : ctx.Theme.OnSurfaceMuted, 14f);
+                    new Rect(LayoutBounds.X + offset, LayoutBounds.Y, LayoutBounds.Width - offset, LayoutBounds.Height),
+                    IsEnabled ? t.OnSurface : t.OnSurfaceMuted, t.FontSizeBody);
             }
         }
     }
@@ -93,10 +89,13 @@ public class RadioGroup<T> : LinearPanel
 
     public Action<T?>? OnChanged;
 
-    public RadioGroup(Orientation orientation = Orientation.Vertical, float spacing = 8f) : base(orientation)
+    /// spacing: gap between options; NaN takes the theme's SpacingSm.
+    public RadioGroup(Orientation orientation = Orientation.Vertical, float spacing = float.NaN) : base(orientation)
     {
         Spacing = spacing;
     }
+
+    protected override float DefaultSpacing(Theme theme) => theme.SpacingSm;
 
     // ── Fluent ────────────────────────────────────────────────────────────────
 

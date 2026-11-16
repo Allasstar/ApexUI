@@ -2,11 +2,14 @@ namespace ApexUI.Tests;
 
 public class ThemeTests
 {
+    // Colors that read the same on light and dark backgrounds.
+    private static readonly string[] SharedColors = [nameof(Theme.Knob)];
+
     [Fact]
     public void Dark_theme_sets_every_color_instead_of_inheriting_light_values()
     {
         var colorProperties = typeof(Theme).GetProperties()
-            .Where(p => p.PropertyType == typeof(SKColor) && p.CanWrite);
+            .Where(p => p.PropertyType == typeof(SKColor) && p.CanWrite && !SharedColors.Contains(p.Name));
 
         foreach (var property in colorProperties)
             Assert.NotEqual(property.GetValue(Theme.Light), property.GetValue(Theme.Dark));

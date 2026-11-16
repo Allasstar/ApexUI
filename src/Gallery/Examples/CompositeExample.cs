@@ -93,18 +93,18 @@ public class CompositeExample : Widget
         AddChild(new PaddingBox(
             new Column(
 
-                new Label { Text = "Dropdown", Bold = true, FontSize = 18f },
+                new Label { Text = "Dropdown", Bold = true, Role = TextRole.Heading },
                 new Row(dropdown, dropdownStatus) { Spacing = 16f },
 
                 new Separator { Margin = new Thickness(0, 4f) },
 
-                new Label { Text = "Tooltip", Bold = true, FontSize = 18f },
+                new Label { Text = "Tooltip", Bold = true, Role = TextRole.Heading },
                 new Label { Text = "Hover either button to see a tooltip (0.6 s delay)." },
                 new Row(tooltipBtn, tooltipAbove) { Spacing = 12f },
 
                 new Separator { Margin = new Thickness(0, 4f) },
 
-                new Label { Text = "Dialog / Modal", Bold = true, FontSize = 18f },
+                new Label { Text = "Dialog / Modal", Bold = true, Role = TextRole.Heading },
                 new Row(
                     new Button("Alert").OnPress(() => alertDialog.Show(Host!)),
                     new Button("Confirm").OnPress(() => confirmDialog.Show(Host!)),
@@ -115,7 +115,7 @@ public class CompositeExample : Widget
 
                 new Separator { Margin = new Thickness(0, 4f) },
 
-                new Label { Text = "ContextMenu", Bold = true, FontSize = 18f },
+                new Label { Text = "ContextMenu", Bold = true, Role = TextRole.Heading },
                 new Label { Text = "Right-click the box below. Toggle items stay checked across opens." },
                 contextPanel
 

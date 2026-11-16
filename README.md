@@ -45,8 +45,8 @@ var platform = new DesktopPlatform("My App", 900, 700)
 new UiHost(platform)
     .BindUiScale(example.Scale)    // Bindable<float>  — 0.1 – 10
     .BindDarkMode(example.Dark)    // Bindable<bool>   — true = Dark
-    .BindTheme(example.Preset)     // Bindable<string> — theme name from ThemeLibrary
-    .BindFontFamily(example.Font)  // Bindable<string> — font family name
+    .BindTheme(example.Preset)     // Bindable<string> — theme name from host.Themes
+    .BindFontFamily(example.Font)  // Bindable<string> — overrides the theme's font family
     .Run(example);
 ```
 
@@ -181,62 +181,70 @@ volume.Value = 0.8f;  // notifies all listeners
 
 ### Built-in themes
 
-ApexUI ships five themes, each with a light and dark variant:
+Every `UiHost` owns a `ThemeRegistry` (`host.Themes`) that starts with five themes, each with a light and dark variant:
 
 | Name | Palette |
 |------|---------|
-| `ThemeLibrary.Default` | Clean blue — framework default |
-| `ThemeLibrary.Contrast` | Pure black/white, max readability |
-| `ThemeLibrary.Forest` | Warm cream surfaces, deep green accent |
-| `ThemeLibrary.Desert` | Sandy warmth, terracotta primary |
-| `ThemeLibrary.Space` | Soft lavender / deep cosmic dark |
+| `BuiltInThemes.Default` | Clean blue — framework default |
+| `BuiltInThemes.Contrast` | Pure black/white, max readability |
+| `BuiltInThemes.Forest` | Warm cream surfaces, deep green accent |
+| `BuiltInThemes.Desert` | Sandy warmth, terracotta primary |
+| `BuiltInThemes.Space` | Soft lavender / deep cosmic dark |
 
 ```csharp
-var preset  = new Bindable<string>(ThemeLibrary.Default);
+var preset  = new Bindable<string>(BuiltInThemes.Default);
 var isDark  = new Bindable<bool>(false);
 
 new UiHost(new DesktopPlatform("App", 900, 700))
-    .BindTheme(preset)       // pick the palette
+    .BindTheme(preset)       // pick the palette from host.Themes
     .BindDarkMode(isDark)    // flip light ↔ dark within that palette
     .Run(root);
 
 // Change at runtime — updates instantly
-preset.Value = ThemeLibrary.Space;
+preset.Value = BuiltInThemes.Space;
 isDark.Value = true;
 ```
 
+Or set one directly: `host.Theme = Theme.Dark with { Primary = new(255, 128, 0) };`. `Theme` is an immutable record, so `with` makes variants.
+
 ### Custom themes
 
-Register it at startup, before building UI that lists the available themes:
+Register it on the host at startup, before building UI that lists the available themes:
 
 ```csharp
-ThemeLibrary.Register("Neon", new Theme
-{
-    Background = new SKColor(0x0A, 0x0A, 0x0A),
-    Primary    = new SKColor(0x00, 0xFF, 0x99),
-    // ... other tokens
-},
-new Theme { /* dark variant */ });
+var host = new UiHost(platform);
+host.Themes.Register("Neon",
+    new Theme { Background = new(10, 10, 10), Primary = new(0, 255, 153) },
+    BuiltInThemes.SpaceDark with { Primary = new(0, 255, 153) });
 ```
 
-The new theme appears in `ThemeLibrary.Names`, so it shows up in any theme picker built afterwards. To remove a built-in call `ThemeLibrary.Remove(name)`. See `src/Gallery/Examples/SolAndLunaTheme.cs`.
+The new theme appears in `host.Themes.Names`, so it shows up in any theme picker built afterwards. `host.Themes.Remove(name)` hides a built-in. See `src/Gallery/Examples/SolAndLunaTheme.cs`.
 
 ### Theme tokens
 
-| Token | Purpose |
-|-------|---------|
-| `Background` | Window / app background |
-| `Surface` | Card and widget surface |
-| `SurfaceHover` / `SurfacePressed` | Interactive surface states |
-| `OnSurface` / `OnSurfaceMuted` | Primary and muted text |
-| `Primary` / `PrimaryHover` | Accent / interactive color |
-| `OnPrimary` | Text on primary-colored backgrounds |
-| `Success` / `Warning` / `Danger` | Semantic feedback colors |
-| `Border` | Borders and separators |
-| `FontFamily` | Default font family name |
-| `FontSizeBase` / `Small` / `Large` / `Title` | Logical pixel sizes |
-| `CornerRadiusSm` / `Md` / `Lg` | Rounded corner radii |
-| `SpacingXs` / `Sm` / `Md` / `Lg` | Standard spacing steps |
+Built-in widgets take every color, size, radius, padding and font from the theme, so any token can be restyled.
+
+| Group | Tokens |
+|-------|--------|
+| Surfaces | `Background`, `Surface`, `SurfaceHover`, `SurfacePressed` |
+| Text | `OnSurface`, `OnSurfaceMuted` |
+| Accent | `Primary`, `PrimaryHover`, `OnPrimary`, `PrimaryHoverGhost`* |
+| Semantic | `Success`, `Warning`, `Danger` |
+| Lines | `Border`, `BorderSubtle`* |
+| Overlays | `Scrim`, `Shadow`, `ShadowBlur`, `ShadowOffsetY` |
+| Interaction | `FocusRing`*, `FocusRingWidth`, `Selection`*, `Knob` |
+| Scrollbars | `ScrollbarTrack`*, `ScrollbarThumb`*, `ScrollbarThumbActive`*, `ScrollbarSize`, `ScrollbarMinThumb` |
+| Typography | `FontFamily`, `FontSizeSmall` / `Body` / `Subheading` / `Heading` / `Title`, `LineHeight` |
+| Corner radii | `CornerRadiusSmall`, `CornerRadiusControl`, `CornerRadiusPopup`, `CornerRadiusDialog` |
+| Spacing | `SpacingXs` / `Sm` / `Md` / `Lg` |
+| Paddings | `ButtonPadding`, `InputPadding`, `MenuItemPadding`, `PopupPadding`, `TooltipPadding`, `DialogPadding`, `TabPadding` |
+| Control sizes | `CheckboxSize`, `RadioSize`, `ToggleWidth`, `ToggleHeight`, `SliderThumbSize`, `SliderTrackHeight`, `ProgressBarHeight`, `TabBarSize` |
+
+\* Derived: follows another token (e.g. `Selection` is `Primary` at 30%) unless set.
+
+Labels pick a size by role: `new Label { Text = "Settings", Role = TextRole.Title, Bold = true }`. An explicit `FontSize` still wins.
+
+A widget's `Padding` and `CornerRadius` come from the theme until you set them. Custom widgets do the same by overriding `DefaultPadding(Theme)` / `DefaultCornerRadius(Theme)` (and `LinearPanel.DefaultSpacing(Theme)`), and read sizes from the protected `Theme` property in `MeasureCore`/`DrawCore`.
 
 ---
 
@@ -256,7 +264,7 @@ new UiHost(new DesktopPlatform("App", 900, 700))
 scale.Value = 1.5f;  // everything scales instantly
 ```
 
-Font family is also live-swappable:
+Font family is also live-swappable; it overrides the font of whichever theme is bound:
 
 ```csharp
 var font = new Bindable<string>("Segoe UI");
@@ -297,7 +305,7 @@ protected override void DrawCore(DrawContext ctx)
     ctx.StrokeTriangle(x0, y0, x1, y1, x2, y2, t.Border);
 
     // Drop shadow (blurred, behind content)
-    ctx.DrawShadow(rect.Translate(0, 4), cornerRadius: 12f, blur: 10f, new SKColor(0, 0, 0, 55));
+    ctx.DrawShadow(rect.Translate(0, t.ShadowOffsetY), cornerRadius: 12f, t.ShadowBlur, t.Shadow);
 
     // Indicators
     ctx.DrawChevron(cx, cy, size: 4f, pointUp: false, t.OnSurfaceMuted, thickness: 1.5f);
@@ -313,7 +321,7 @@ protected override void DrawCore(DrawContext ctx)
 Text: `ctx.DrawText` and `ctx.MeasureText` use cached fonts. For raw Skia text, `GetFont` returns a cached font owned by the context (do not dispose it):
 
 ```csharp
-var font = ctx.GetFont(ctx.Theme.FontSizeBase, bold: false);
+var font = ctx.GetFont(ctx.Theme.FontSizeBody, bold: false);
 using var paint = ctx.MakeTextPaint(ctx.Theme.OnSurface);
 ctx.Canvas.DrawText("Hello", x, y, SKTextAlign.Left, font, paint);
 ```
@@ -360,7 +368,7 @@ Directory.Build.props   ← shared settings (net10.0, nullable, warnings as erro
 UPDATE.md               ← changelog, including API breaks
 lib/                    ← library projects only
   ApexUI/               ← the platform-neutral framework library (SkiaSharp only)
-    Core/               ← Widget, UiHost, IPlatform, Theme, ThemeLibrary, Bindable, DrawContext
+    Core/               ← Widget, UiHost, IPlatform, Theme, ThemeRegistry, Bindable, DrawContext
     Layout/             ← Column, Row, Stack, PaddingBox, Wrap, Grid, Spacer
     Widgets/            ← all widgets
     Extensions/         ← SKColor helpers

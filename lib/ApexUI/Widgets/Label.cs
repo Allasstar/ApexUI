@@ -12,7 +12,14 @@ public class Label : Widget
     {
         get;
         set => SetLayoutProperty(ref field, value);
-    } = float.NaN; // NaN = use Theme default
+    } = float.NaN; // NaN = the theme's size for Role
+
+    /// Which of the theme's font sizes the label uses while FontSize is not set.
+    public TextRole Role
+    {
+        get;
+        set => SetLayoutProperty(ref field, value);
+    }
 
     public bool Bold
     {
@@ -34,6 +41,7 @@ public class Label : Widget
 
     public Label WithText(string text)    { Text = text;  return this; }
     public Label WithSize(float size)     { FontSize = size; return this; }
+    public Label WithRole(TextRole role)  { Role = role; return this; }
     public Label WithColor(SKColor color) { Color = color; return this; }
     public Label AsBold()                 { Bold = true;  return this; }
     public Label WithWordWrap()           { WordWrap = true; return this; }
@@ -56,8 +64,9 @@ public class Label : Widget
     protected override Size MeasureCore(Size available)
     {
         // Must match the size DrawCore uses, or the measured box and the drawn text disagree.
-        float fontSize = float.IsNaN(FontSize) ? (Host?.Theme ?? Theme.Light).FontSizeBase : FontSize;
-        float lineH    = fontSize * 1.4f;
+        var   theme    = Theme;
+        float fontSize = ResolvedFontSize(theme);
+        float lineH    = fontSize * theme.LineHeight;
 
         if (!WordWrap || float.IsInfinity(available.Width))
             return new Size(SingleLineWidth(fontSize) + 2, lineH);
@@ -67,7 +76,7 @@ public class Label : Widget
 
     protected override void DrawCore(DrawContext ctx)
     {
-        float fontSize = float.IsNaN(FontSize) ? ctx.Theme.FontSizeBase : FontSize;
+        float fontSize = ResolvedFontSize(ctx.Theme);
         var color = ColorSource?.Invoke(ctx.Theme) ?? Color ?? ctx.Theme.OnSurface;
 
         var blobs   = Blobs(ctx, fontSize);
@@ -78,7 +87,7 @@ public class Label : Widget
             return;
         }
 
-        float lineH = fontSize * 1.4f;
+        float lineH = fontSize * ctx.Theme.LineHeight;
         for (int i = 0; i < blobs.Count; i++)
         {
             var lineRect = new Rect(content.X, content.Y + i * lineH, content.Width, lineH);
@@ -87,6 +96,8 @@ public class Label : Widget
     }
 
     protected override void OnDetached() => ReleaseBlobs();
+
+    private float ResolvedFontSize(Theme theme) => float.IsNaN(FontSize) ? theme.FontSize(Role) : FontSize;
 
     private List<SKTextBlob?> Blobs(DrawContext ctx, float fontSize)
     {
@@ -119,7 +130,7 @@ public class Label : Widget
     }
 
     private TextKey CurrentKey(float fontSize)
-        => new(Text, Host?.FontFamily ?? FontCache.DefaultFamily, fontSize, Bold);
+        => new(Text, Theme.FontFamily, fontSize, Bold);
 
     private float SingleLineWidth(float fontSize)
     {

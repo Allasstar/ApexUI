@@ -9,8 +9,8 @@ public enum ScrollDirection { Vertical, Horizontal, Both }
 /// so scrolling redraws without a layout pass.
 public class Scroll : Widget
 {
-    private const float BarSize  = 8f;
-    private const float MinThumb = 20f;
+    private float BarSize  => Theme.ScrollbarSize;
+    private float MinThumb => Theme.ScrollbarMinThumb;
     private const float WheelSpd = 40f;
 
     private float _scrollX;
@@ -141,10 +141,10 @@ public class Scroll : Widget
             float th   = Math.Max(MinThumb, vpH * vpH / _content.DesiredSize.Height);
             float range = vpH - th;
             float ty   = range > 0f ? lb.Y + _scrollY / maxSY * range : lb.Y;
-            ctx.FillRoundRect(track, BarSize * 0.5f, t.Border.WithAlpha(0.25f));
+            ctx.FillRoundRect(track, BarSize * 0.5f, t.ScrollbarTrack);
             ctx.FillRoundRect(new Rect(lb.Right - BarSize, ty, BarSize, th),
                 BarSize * 0.5f,
-                _draggingV ? t.OnSurface.WithAlpha(0.6f) : t.OnSurfaceMuted.WithAlpha(0.6f));
+                _draggingV ? t.ScrollbarThumbActive : t.ScrollbarThumb);
         }
 
         if (hasH && maxSX > 0f)
@@ -153,10 +153,10 @@ public class Scroll : Widget
             float tw   = Math.Max(MinThumb, vpW * vpW / _content.DesiredSize.Width);
             float range = vpW - tw;
             float tx   = range > 0f ? lb.X + _scrollX / maxSX * range : lb.X;
-            ctx.FillRoundRect(track, BarSize * 0.5f, t.Border.WithAlpha(0.25f));
+            ctx.FillRoundRect(track, BarSize * 0.5f, t.ScrollbarTrack);
             ctx.FillRoundRect(new Rect(tx, lb.Bottom - BarSize, tw, BarSize),
                 BarSize * 0.5f,
-                _draggingH ? t.OnSurface.WithAlpha(0.6f) : t.OnSurfaceMuted.WithAlpha(0.6f));
+                _draggingH ? t.ScrollbarThumbActive : t.ScrollbarThumb);
         }
     }
 

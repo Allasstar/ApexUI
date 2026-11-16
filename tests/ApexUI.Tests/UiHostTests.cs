@@ -98,7 +98,7 @@ public class UiHostTests
     [Fact]
     public void Gallery_renders_through_the_host()
     {
-        var gallery = new Gallery.Examples.TabsExample();
+        var gallery = new Gallery.Examples.TabsExample(new ThemeRegistry());
         var tabs    = Assert.IsType<Tabs>(Assert.Single(gallery.Children));
         var (_, platform) = TestPlatform.Show(gallery, 900, 700);
 

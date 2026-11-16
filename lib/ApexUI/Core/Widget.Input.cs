@@ -140,7 +140,7 @@ public abstract partial class Widget
     /// Drawn after the widget and its children while it has keyboard focus that came from the keyboard.
     /// Override to draw nothing when the widget shows focus its own way.
     protected virtual void DrawFocusRing(DrawContext ctx)
-        => ctx.StrokeRoundRect(LayoutBounds, CornerRadius, ctx.Theme.FocusRing, 2f);
+        => ctx.StrokeRoundRect(LayoutBounds, CornerRadius, ctx.Theme.FocusRing, ctx.Theme.FocusRingWidth);
 }
 
 internal enum InputKind
