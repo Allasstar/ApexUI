@@ -17,7 +17,8 @@ public sealed partial class DrawContext
     public ClipScope PushClip(Rect r, float radius)
     {
         Canvas.Save();
-        Canvas.ClipRoundRect(new SKRoundRect(r.ToSKRect(), radius), antialias: true);
+        _roundRect.SetRect(r.ToSKRect(), radius, radius);
+        Canvas.ClipRoundRect(_roundRect, antialias: true);
         return new ClipScope(Canvas);
     }
 }

@@ -4,6 +4,23 @@ Newest first. **Breaking** marks changes that need edits in apps using ApexUI.
 
 ## Unreleased
 
+### Performance
+- Drawing no longer creates Skia objects per call. `DrawContext` reuses its fill, stroke, text, shadow and layer paints, one path, one rounded rect and cached blur filters; text uses a `FontCache`. In the Gallery, bytes allocated per frame dropped from 8–52 KB to 2.5–16 KB, and per layout pass from 17–210 KB to 0.7–40 KB. What remains in drawing is SkiaSharp's own `DrawText` (about 160 B per call).
+- The application keeps one `DrawContext` and one `FontCache` for its lifetime instead of creating a context every frame.
+- `Label` caches its measured width and wrapped lines until text, font, size or width change.
+- `TextInput` caches its displayed text and caret positions; clicking to place the caret no longer re-measures every prefix of the text.
+- `Toggle`, `Checkbox` and `RadioGroup` measure labels with cached fonts.
+
+### Added
+- `FontCache`: typefaces and fonts by family, size and weight. Fonts it returns are owned by the cache.
+- `DrawContext.GetFont(sizePx, bold)`: cached font for custom text drawing. Do not dispose it.
+- `DrawContext.MeasureText(ReadOnlySpan<char>, ...)`: measure part of a string without a substring.
+- `DrawContext` constructor takes an optional shared `FontCache`.
+
+### Changed
+- `DrawContext` is now `IDisposable`. Dispose contexts you create yourself (for example when rendering off-screen).
+- `MakePaint`, `MakeTextFont` and `MakeTextPaint` still return new objects the caller must dispose. `MakeTextFont` no longer leaks its typeface.
+
 ### Fixes
 - The built-in dark theme now sets `SurfacePressed`, `PrimaryHover`, `Success`, `Warning` and `Danger`; before, it inherited the light values (pressed buttons turned light grey).
 - Setting `TextInput.Value` from code to a shorter string no longer crashes drawing when the caret or selection was past the new end (e.g. `NumberInput` re-formatting on Enter).

@@ -34,19 +34,25 @@ public class Label : Widget
     public Label AsBold()                 { Bold = true;  return this; }
     public Label WithWordWrap()           { WordWrap = true; return this; }
 
+    // Text measurement results, reused until text, font or wrap width change.
+    private readonly List<string> _lines = [];
+    private TextKey _linesKey;
+    private float   _linesWidth = float.NaN;
+    private TextKey _widthKey;
+    private float   _width;
+
+    private readonly record struct TextKey(string? Text, string? Family, float FontSize, bool Bold);
+
     protected override Size MeasureCore(Size available)
     {
         // Must match the size DrawCore uses, or the measured box and the drawn text disagree.
         float fontSize = float.IsNaN(FontSize) ? (Application.Current?.Theme ?? Theme.Light).FontSizeBase : FontSize;
-        string family  = Application.Current?.FontFamily ?? "Segoe UI";
-        using var typeface = SKTypeface.FromFamilyName(family, Bold ? SKFontStyle.Bold : SKFontStyle.Normal);
-        using var font     = new SKFont(typeface, fontSize);
+        float lineH    = fontSize * 1.4f;
 
         if (!WordWrap || float.IsInfinity(available.Width))
-            return new Size(font.MeasureText(Text) + 2, fontSize * 1.4f);
+            return new Size(SingleLineWidth(fontSize) + 2, lineH);
 
-        var lines = ComputeLines(Text, font, available.Width);
-        return new Size(available.Width, lines.Count * fontSize * 1.4f);
+        return new Size(available.Width, Lines(fontSize, available.Width).Count * lineH);
     }
 
     protected override void DrawCore(DrawContext ctx)
@@ -60,11 +66,7 @@ public class Label : Widget
             return;
         }
 
-        string family = Application.Current?.FontFamily ?? "Segoe UI";
-        using var typeface = SKTypeface.FromFamilyName(family, Bold ? SKFontStyle.Bold : SKFontStyle.Normal);
-        using var font     = new SKFont(typeface, fontSize);
-
-        var   lines = ComputeLines(Text, font, LayoutBounds.Width);
+        var   lines = Lines(fontSize, LayoutBounds.Width);
         float lineH = fontSize * 1.4f;
         for (int i = 0; i < lines.Count; i++)
         {
@@ -73,9 +75,35 @@ public class Label : Widget
         }
     }
 
-    private static List<string> ComputeLines(string text, SKFont font, float maxWidth)
+    private TextKey CurrentKey(float fontSize)
+        => new(Text, Application.Current?.FontFamily ?? FontCache.DefaultFamily, fontSize, Bold);
+
+    private float SingleLineWidth(float fontSize)
     {
-        var result = new List<string>();
+        var key = CurrentKey(fontSize);
+        if (key == _widthKey) return _width;
+
+        using var font = LayoutFont.Get(fontSize, Bold);
+        _width    = font.Font.MeasureText(Text);
+        _widthKey = key;
+        return _width;
+    }
+
+    private List<string> Lines(float fontSize, float maxWidth)
+    {
+        var key = CurrentKey(fontSize);
+        if (key == _linesKey && maxWidth == _linesWidth) return _lines;
+
+        using var font = LayoutFont.Get(fontSize, Bold);
+        ComputeLines(Text, font.Font, maxWidth, _lines);
+        _linesKey   = key;
+        _linesWidth = maxWidth;
+        return _lines;
+    }
+
+    private static void ComputeLines(string text, SKFont font, float maxWidth, List<string> result)
+    {
+        result.Clear();
         foreach (var paragraph in text.Split('\n'))
         {
             if (string.IsNullOrEmpty(paragraph)) { result.Add(""); continue; }
@@ -100,6 +128,5 @@ public class Label : Widget
             }
             if (sb.Length > 0) result.Add(sb.ToString());
         }
-        return result;
     }
 }

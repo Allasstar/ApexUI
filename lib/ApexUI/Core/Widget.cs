@@ -280,10 +280,7 @@ public abstract class Widget
 
         // Opacity layer
         if (Opacity < 1f)
-        {
-            using var alphaPaint = new SkiaSharp.SKPaint { Color = SkiaSharp.SKColors.Black.WithAlpha((byte)(Opacity * 255)) };
-            ctx.Canvas.SaveLayer(alphaPaint);
-        }
+            ctx.Canvas.SaveLayer(ctx.LayerPaint(Opacity));
 
         // Background
         var bg = BackgroundSource?.Invoke(ctx.Theme) ?? Background;

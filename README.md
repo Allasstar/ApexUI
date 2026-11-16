@@ -285,18 +285,21 @@ protected override void DrawCore(DrawContext ctx)
     ctx.DrawCheckmark(cx, cy, size: 8f, t.Success, thickness: 2f);
     ctx.DrawCross(cx, cy, size: 6f, t.Danger, thickness: 2f);
 
-    // Raw Skia canvas for anything else
-    ctx.Canvas.DrawPath(path, ctx.MakePaint(t.Primary));
+    // Raw Skia canvas for anything else (Make* objects are yours to dispose)
+    using var paint = ctx.MakePaint(t.Primary);
+    ctx.Canvas.DrawPath(path, paint);
 }
 ```
 
-Fonts:
+Text: `ctx.DrawText` and `ctx.MeasureText` use cached fonts. For raw Skia text, `GetFont` returns a cached font owned by the context (do not dispose it):
 
 ```csharp
-using var font  = ctx.MakeTextFont(ctx.Theme.FontSizeBase, bold: false);
+var font = ctx.GetFont(ctx.Theme.FontSizeBase, bold: false);
 using var paint = ctx.MakeTextPaint(ctx.Theme.OnSurface);
 ctx.Canvas.DrawText("Hello", x, y, SKTextAlign.Left, font, paint);
 ```
+
+The built-in helpers reuse their paints, paths and fonts, so drawing with them creates no Skia objects per frame.
 
 Add your own shape helpers without touching the library with C# 14 extension members:
 

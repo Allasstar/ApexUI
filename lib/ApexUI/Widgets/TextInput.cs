@@ -124,15 +124,15 @@ public class TextInput : Widget, ITickable
         ctx.StrokeRoundRect(LayoutBounds, CornerRadius, borderColor, IsFocused ? 2f : 1f);
 
         var    inner   = LayoutBounds.Deflate(Padding);
-        string display = IsPassword ? new string('•', Value.Length) : Value;
+        string display = DisplayText;
         float  sz      = ctx.Theme.FontSizeBase;
 
         using (ctx.PushClip(inner))
         {
             if (IsFocused && HasSelection)
             {
-                float selX0 = inner.X + (SelectionStart > 0 ? ctx.MeasureText(display[..SelectionStart], sz) : 0);
-                float selX1 = inner.X + ctx.MeasureText(display[..SelectionEnd], sz);
+                float selX0 = inner.X + CaretX(SelectionStart);
+                float selX1 = inner.X + CaretX(SelectionEnd);
                 ctx.FillRect(new Rect(selX0, inner.Y, selX1 - selX0, inner.Height),
                              ctx.Theme.Primary.WithAlpha(0.3f));
             }
@@ -144,9 +144,7 @@ public class TextInput : Widget, ITickable
 
             if (IsFocused && _cursorVisible)
             {
-                float cx = string.IsNullOrEmpty(display)
-                    ? inner.X
-                    : inner.X + ctx.MeasureText(display[.._cursorPos], sz);
+                float cx = inner.X + CaretX(_cursorPos);
                 ctx.DrawLine(cx, inner.Y + 2, cx, inner.Bottom - 2, ctx.Theme.OnSurface, cap: SKStrokeCap.Butt);
             }
         }
@@ -193,23 +191,66 @@ public class TextInput : Widget, ITickable
         float relX = screenX - inner.X;
         if (relX <= 0) return 0;
 
-        string display = IsPassword ? new string('•', Value.Length) : Value;
-        if (string.IsNullOrEmpty(display)) return 0;
-
-        float sz     = Application.Current?.Theme.FontSizeBase ?? 14f;
-        string family = Application.Current?.FontFamily ?? "Segoe UI";
-        using var typeface = SKTypeface.FromFamilyName(family, SKFontStyle.Normal);
-        using var font     = new SKFont(typeface, sz);
-
-        float prev = 0f;
-        for (int i = 1; i <= display.Length; i++)
+        int length = DisplayText.Length;
+        for (int i = 1; i <= length; i++)
         {
-            float w = font.MeasureText(display[..i]);
+            float prev = CaretX(i - 1);
+            float w    = CaretX(i);
             if (w >= relX)
                 return (relX - prev < w - relX) ? i - 1 : i;
-            prev = w;
         }
-        return display.Length;
+        return length;
+    }
+
+    // ── Text measurement cache ────────────────────────────────────────────────
+    // The shown text and the x offset of every caret slot are rebuilt only when
+    // the text, password mode or font change, not on every frame or click.
+
+    private string  _display = "";
+    private string? _displaySource;
+    private bool    _displayIsPassword;
+
+    private float[] _caretXs = [0f];
+    private string? _caretXsText;
+    private string? _caretXsFamily;
+    private float   _caretXsFontSize;
+
+    private string DisplayText
+    {
+        get
+        {
+            if (!ReferenceEquals(_displaySource, Value) || _displayIsPassword != IsPassword)
+            {
+                _display           = IsPassword ? new string('•', Value.Length) : Value;
+                _displaySource     = Value;
+                _displayIsPassword = IsPassword;
+            }
+            return _display;
+        }
+    }
+
+    // Distance from the start of the text to caret slot index (0..length).
+    private float CaretX(int index)
+    {
+        string display  = DisplayText;
+        float  fontSize = (Application.Current?.Theme ?? Theme.Light).FontSizeBase;
+        string family   = Application.Current?.FontFamily ?? FontCache.DefaultFamily;
+
+        if (!ReferenceEquals(_caretXsText, display) || _caretXsFamily != family || _caretXsFontSize != fontSize)
+        {
+            if (_caretXs.Length < display.Length + 1)
+                _caretXs = new float[display.Length + 1];
+
+            using var font = LayoutFont.Get(fontSize);
+            _caretXs[0] = 0f;
+            for (int i = 1; i <= display.Length; i++)
+                _caretXs[i] = font.Font.MeasureText(display.AsSpan(0, i));
+
+            _caretXsText     = display;
+            _caretXsFamily   = family;
+            _caretXsFontSize = fontSize;
+        }
+        return _caretXs[Math.Clamp(index, 0, display.Length)];
     }
 
     // ── Key handling ──────────────────────────────────────────────────────────

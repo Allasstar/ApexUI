@@ -123,13 +123,19 @@ Application BindDarkMode(Bindable<bool>)  // true → Dark, false → Light
 ### `DrawContext` · `lib/ApexUI/Core/DrawContext.cs`
 
 ```csharp
+DrawContext(SKCanvas canvas, Theme theme, float dpiScale, string fontFamily = FontCache.DefaultFamily, FontCache? fonts = null)
+// IDisposable: owns reusable paints, a path, blur filters, and the font cache unless one is passed in.
 SKCanvas Canvas   { get; }
 Theme    Theme    { get; }
 float    DpiScale { get; }
 
-SKPaint MakePaint(SKColor color, bool antialias = true)
-SKFont  MakeTextFont(float sizePx, bool bold = false)
-SKPaint MakeTextPaint(SKColor color)
+SKFont  GetFont(float sizePx, bool bold = false)   // cached; owned by the context, never dispose
+SKPaint MakePaint(SKColor color, bool antialias = true)   // new object, caller disposes
+SKFont  MakeTextFont(float sizePx, bool bold = false)      // new object, caller disposes
+SKPaint MakeTextPaint(SKColor color)                       // new object, caller disposes
+
+// FontCache · lib/ApexUI/Core/FontCache.cs
+SKFont Get(string family, float sizePx, bool bold = false) // cached; never dispose the result
 
 record struct PointerEvent(float X, float Y, PointerButton Button, bool IsDown)
 record struct KeyEvent(string Key, bool IsDown, bool Ctrl, bool Shift, bool Alt)
@@ -230,6 +236,7 @@ void DrawCross(float cx, float cy, float size, SKColor color, float thickness = 
 ```csharp
 void  DrawText(string text, Rect bounds, SKColor color, float sizePx, bool bold = false, SKTextAlign align = Left)
 float MeasureText(string text, float sizePx, bool bold = false)
+float MeasureText(ReadOnlySpan<char> text, float sizePx, bool bold = false)  // no substring needed
 ```
 
 ### `DrawContext` images · `lib/ApexUI/Core/DrawContext.Images.cs`

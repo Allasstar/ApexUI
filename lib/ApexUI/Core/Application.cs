@@ -22,6 +22,8 @@ public sealed class Application
     private SKSurface?       _surface;
     private GL?              _gl;
 
+    private DrawContext? _drawContext;
+
     private Widget?    _root;
     private Widget?    _hoveredWidget;
     private Widget?    _focusedWidget;
@@ -41,7 +43,10 @@ public sealed class Application
     {
         get;
         set { field = value; _root?.InvalidateLayout(); }
-    } = "Segoe UI";
+    } = FontCache.DefaultFamily;
+
+    // Shared by layout-time text measurement and every frame's DrawContext.
+    internal FontCache Fonts { get; } = new();
 
     public float UiScale
     {
@@ -199,6 +204,8 @@ public sealed class Application
 
     private void OnClosing()
     {
+        _drawContext?.Dispose();
+        Fonts.Dispose();
         _surface?.Dispose();
         _renderTarget?.Dispose();
         _grContext?.Dispose();
@@ -221,7 +228,9 @@ public sealed class Application
         canvas.Save();
         canvas.Scale(UiScale, UiScale);
 
-        var ctx = new DrawContext(canvas, Theme, DpiScale, FontFamily);
+        _drawContext ??= new DrawContext(canvas, Theme, DpiScale, FontFamily, Fonts);
+        _drawContext.BeginFrame(canvas, Theme, DpiScale, FontFamily);
+        var ctx = _drawContext;
         _root.Draw(ctx);
 
         // Overlays are laid out and drawn after the root tree so they

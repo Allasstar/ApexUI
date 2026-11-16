@@ -6,8 +6,25 @@ internal static class TestCanvas
     public static void Draw(Widget widget, int width, int height, Theme? theme = null)
     {
         using var surface = SKSurface.Create(new SKImageInfo(width, height));
+        using var ctx     = new DrawContext(surface.Canvas, theme ?? Theme.Light, 1f);
         widget.Measure(new Size(width, height));
         widget.Arrange(new Rect(0, 0, width, height));
-        widget.Draw(new DrawContext(surface.Canvas, theme ?? Theme.Light, 1f));
+        widget.Draw(ctx);
+    }
+
+    /// Fewest bytes allocated by any of several runs of action, after warming it up.
+    /// Taking the minimum filters out one-off runtime allocations (tiering, first-call setup).
+    public static long MinAllocatedBytes(Action action)
+    {
+        for (int i = 0; i < 50; i++) action();
+
+        long min = long.MaxValue;
+        for (int i = 0; i < 5; i++)
+        {
+            long before = GC.GetAllocatedBytesForCurrentThread();
+            action();
+            min = Math.Min(min, GC.GetAllocatedBytesForCurrentThread() - before);
+        }
+        return min;
     }
 }
