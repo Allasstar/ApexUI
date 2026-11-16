@@ -6,14 +6,14 @@ public class Button : Widget
 {
     public string Text
     {
-        get;
-        set { field = value; InvalidateLayout(); }
-    } = "";
+        get => _label.Text;
+        set => _label.Text = value;
+    }
 
     public ButtonVariant Variant
     {
         get;
-        set { field = value; Invalidate(); }
+        set => SetRenderProperty(ref field, value);
     } = ButtonVariant.Primary;
 
     public Action? OnPressed;
@@ -22,13 +22,18 @@ public class Button : Widget
 
     public Button(string text = "", Action? onPressed = null)
     {
-        Text = text;
+        _label = new Label
+        {
+            Text             = text,
+            HAlign           = HAlign.Center,
+            VAlign           = VAlign.Center,
+            IsHitTestVisible = false,
+            ColorSource      = t => Variant == ButtonVariant.Primary ? t.OnPrimary : t.OnSurface,
+        };
+        AddChild(_label);
         OnPressed = onPressed;
         Padding = new Thickness(16f, 8f);
         CornerRadius = 8f;
-
-        _label = new Label { HAlign = HAlign.Center, VAlign = VAlign.Center, IsHitTestVisible = false };
-        AddChild(_label);
 
         // Wire up click
         OnClick = _ => OnPressed?.Invoke();
@@ -40,7 +45,6 @@ public class Button : Widget
 
     protected override Size MeasureCore(Size available)
     {
-        _label.Text = Text;
         _label.Measure(new Size(available.Width - Padding.Horizontal,
             available.Height - Padding.Vertical));
         return new Size(
@@ -49,10 +53,7 @@ public class Button : Widget
     }
 
     protected override void ArrangeCore(Rect finalRect)
-    {
-        _label.Text = Text;
-        _label.Arrange(finalRect.Deflate(Padding));
-    }
+        => _label.Arrange(finalRect.Deflate(Padding));
 
     protected override void DrawCore(DrawContext ctx)
     {
@@ -70,17 +71,10 @@ public class Button : Widget
             _ => ctx.Theme.Primary
         };
 
-        var textColor = Variant == ButtonVariant.Primary
-            ? ctx.Theme.OnPrimary
-            : ctx.Theme.OnSurface;
-
         if (bg != SKColor.Empty)
             ctx.FillRoundRect(LayoutBounds, CornerRadius, bg);
 
         if (Variant != ButtonVariant.Primary)
             ctx.StrokeRoundRect(LayoutBounds, CornerRadius, ctx.Theme.Border);
-
-        // Update label color
-        _label.Color = textColor;
     }
 }

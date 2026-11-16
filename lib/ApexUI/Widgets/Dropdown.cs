@@ -186,15 +186,19 @@ public class Dropdown<T> : Widget
         public DropdownTrigger()
         {
             CornerRadius = 6f;
-            _label = new Label { IsHitTestVisible = false };
+            _label = new Label
+            {
+                IsHitTestVisible = false,
+                ColorSource      = t => IsPlaceholder ? t.OnSurfaceMuted : t.OnSurface,
+            };
             AddChild(_label);
         }
 
-        public string Text { set { _label.Text = value; InvalidateLayout(); } }
+        public string Text { set => _label.Text = value; }
 
-        public bool IsOpen { set { _isOpen = value; Invalidate(); } }
+        public bool IsOpen { set => SetRenderProperty(ref _isOpen, value); }
 
-        public bool IsPlaceholder { get; set { field = value; Invalidate(); } }
+        public bool IsPlaceholder { get; set => SetRenderProperty(ref field, value); }
 
         // ── Layout ───────────────────────────────────────────────────────────
 
@@ -228,8 +232,6 @@ public class Dropdown<T> : Widget
 
             float divX = lb.Right - ChevronW;
             ctx.DrawLine(divX, lb.Y + 6f, divX, lb.Bottom - 6f, t.Border.WithAlpha(0.5f), cap: SKStrokeCap.Butt);
-
-            _label.Color = IsPlaceholder ? t.OnSurfaceMuted : t.OnSurface;
 
             ctx.DrawChevron(lb.Right - ChevronW * 0.5f, lb.CenterY, 3.5f, pointUp: _isOpen, t.OnSurfaceMuted);
         }

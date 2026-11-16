@@ -7,10 +7,10 @@ public class Separator : Widget
     public SeparatorOrientation Orientation
     {
         get;
-        set { field = value; InvalidateLayout(); }
+        set => SetLayoutProperty(ref field, value);
     } = SeparatorOrientation.Horizontal;
 
-    public SKColor? Color { get; set { field = value; Invalidate(); } }
+    public SKColor? Color { get; set => SetRenderProperty(ref field, value); }
 
     public Separator()
     {

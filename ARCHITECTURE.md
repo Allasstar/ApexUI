@@ -46,7 +46,7 @@ created and removed during arrange.
 
 ## The three-pass model
 
-Every frame runs three passes in order:
+A frame runs three passes in order (Measure and Arrange only when layout is dirty):
 
 ```
 1. Measure(availableSize)
@@ -65,27 +65,36 @@ Every frame runs three passes in order:
 This is the same model used by WPF, Avalonia, Flutter, and HTML/CSS.
 Learning it once means understanding all of them.
 
-## Dirty flags — how redraws work
+## Invalidation — when frames are drawn
+
+Nothing is drawn unless something changed. An untouched window renders no frames.
 
 ```
-Property changes → Invalidate() or InvalidateLayout()
+Property changes → SetLayoutProperty / SetRenderProperty (no-op if the value is the same)
     ↓
-Bubbles up to root via Parent?.Invalidate()
+InvalidateLayout() marks the widget and its ancestors layout-dirty; Invalidate() marks nothing
     ↓
-UiHost.Render() sees root.IsLayoutDirty
+Host.RequestFrame() → IPlatform.RequestFrame()   (once per frame, however many changes)
     ↓
-Runs Measure + Arrange + Draw
+UiHost.Render(): animation-frame callbacks → layout if root.IsLayoutDirty → overlays if needed → draw everything
 ```
 
-Only dirty widgets are re-laid-out. Visual-only changes
-(color, text) skip Measure/Arrange and go straight to Draw.
+Layout of a dirty tree re-runs from the root; drawing always redraws the whole window.
+Pointer input lays out a pending change first, so hit-testing matches what the next frame will show.
+
+Widgets never change their own or other widgets' state inside `MeasureCore`, `ArrangeCore` or `DrawCore`:
+an invalidation there schedules another frame, and a widget that does it every frame keeps the window busy.
+Colors that depend on the theme are picked at draw time through `BackgroundSource` / `Label.ColorSource`.
+
+Things that change over time use `UiHost.Platform.StartTimer` (caret blink, tooltip delay) or
+`UiHost.RequestAnimationFrame` (smooth animation, re-requested each frame while it runs).
 
 ## Adding a new widget (minimum viable)
 
 ```csharp
 public class ProgressBar : Widget
 {
-    public float Value { get; set { field = Math.Clamp(value,0,1); Invalidate(); } }
+    public float Value { get; set => SetRenderProperty(ref field, Math.Clamp(value, 0f, 1f)); }
 
     protected override Size MeasureCore(Size available)
         => new Size(available.Width, 8f);  // fixed 8px height, full width

@@ -9,7 +9,8 @@ public interface IPlatform
     /// Call Resize on the listener before the first Render, and again whenever the size or scale changes.
     void Run(IPlatformListener listener);
 
-    /// Asks for a Render call as soon as possible.
+    /// Asks for one Render call as soon as possible. The platform renders only when asked
+    /// (and after Resize), so an idle window costs nothing; several requests before the frame make one frame.
     void RequestFrame();
 
     string? GetClipboardText();
@@ -18,6 +19,7 @@ public interface IPlatform
     void SetCursor(CursorShape cursor);
 
     /// Calls tick on the UI thread every interval until the returned handle is disposed.
+    /// A tick does not render by itself; widgets it changes invalidate as usual.
     IDisposable StartTimer(TimeSpan interval, Action tick);
 
     /// Asks the user for a file to open. Completes with null when cancelled.
@@ -33,7 +35,8 @@ public interface IPlatformListener
 {
     /// dpiScale: surface pixels per logical unit at UiScale 1 (1.5 on a 150% Windows display, 2 on Retina).
     void Resize(float pixelWidth, float pixelHeight, float dpiScale);
-    void Render(SKCanvas canvas, float deltaSeconds);
+    /// frameTime: a monotonic clock reading for this frame, used to time animations.
+    void Render(SKCanvas canvas, TimeSpan frameTime);
     void PointerMove(float x, float y);
     void PointerDown(float x, float y, PointerButton button);
     void PointerUp(float x, float y, PointerButton button);

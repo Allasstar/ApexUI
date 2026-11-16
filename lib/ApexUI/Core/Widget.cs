@@ -78,62 +78,66 @@ public abstract partial class Widget
     public float Width
     {
         get;
-        set { field = value; InvalidateLayout(); }
+        set => SetLayoutProperty(ref field, value);
     } = float.NaN; // NaN = "auto" (size to content)
 
     public float Height
     {
         get;
-        set { field = value; InvalidateLayout(); }
+        set => SetLayoutProperty(ref field, value);
     } = float.NaN;
 
-    public float MinWidth  { get; set { field = value; InvalidateLayout(); } } = 0f;
-    public float MinHeight { get; set { field = value; InvalidateLayout(); } } = 0f;
-    public float MaxWidth  { get; set { field = value; InvalidateLayout(); } } = float.PositiveInfinity;
-    public float MaxHeight { get; set { field = value; InvalidateLayout(); } } = float.PositiveInfinity;
+    public float MinWidth  { get; set => SetLayoutProperty(ref field, value); } = 0f;
+    public float MinHeight { get; set => SetLayoutProperty(ref field, value); } = 0f;
+    public float MaxWidth  { get; set => SetLayoutProperty(ref field, value); } = float.PositiveInfinity;
+    public float MaxHeight { get; set => SetLayoutProperty(ref field, value); } = float.PositiveInfinity;
 
     // NaN = no constraint. Mode controls which axis drives the other.
-    public float            AspectRatio     { get; set { field = value; InvalidateLayout(); } } = float.NaN;
-    public AspectRatioMode  AspectRatioMode { get; set { field = value; InvalidateLayout(); } } = AspectRatioMode.WidthControlsHeight;
+    public float            AspectRatio     { get; set => SetLayoutProperty(ref field, value); } = float.NaN;
+    public AspectRatioMode  AspectRatioMode { get; set => SetLayoutProperty(ref field, value); } = AspectRatioMode.WidthControlsHeight;
 
-    public Thickness Margin  { get; set { field = value; InvalidateLayout(); } } = Thickness.Zero;
-    public Thickness Padding { get; set { field = value; InvalidateLayout(); } } = Thickness.Zero;
+    public Thickness Margin  { get; set => SetLayoutProperty(ref field, value); } = Thickness.Zero;
+    public Thickness Padding { get; set => SetLayoutProperty(ref field, value); } = Thickness.Zero;
 
-    public HAlign HAlign { get; set { field = value; InvalidateLayout(); } } = HAlign.Stretch;
-    public VAlign VAlign { get; set { field = value; InvalidateLayout(); } } = VAlign.Stretch;
+    public HAlign HAlign { get; set => SetLayoutProperty(ref field, value); } = HAlign.Stretch;
+    public VAlign VAlign { get; set => SetLayoutProperty(ref field, value); } = VAlign.Stretch;
 
     // ── Visual properties ─────────────────────────────────────────────────
 
     public bool IsVisible
     {
         get;
-        set { field = value; Invalidate(); }
+        set => SetLayoutProperty(ref field, value);
     } = true;
 
     public float Opacity
     {
         get;
-        set { field = Math.Clamp(value, 0f, 1f); Invalidate(); }
+        set => SetRenderProperty(ref field, Math.Clamp(value, 0f, 1f));
     } = 1f;
 
     public SkiaSharp.SKColor Background
     {
         get;
-        set { field = value; Invalidate(); }
+        set => SetRenderProperty(ref field, value);
     } = SkiaSharp.SKColor.Empty;
 
     /// When set, overrides Background at draw time using the current theme.
-    public Func<Theme, SkiaSharp.SKColor>? BackgroundSource { get; set; }
+    public Func<Theme, SkiaSharp.SKColor>? BackgroundSource
+    {
+        get;
+        set => SetRenderProperty(ref field, value);
+    }
 
     public float CornerRadius
     {
         get;
-        set { field = value; Invalidate(); }
+        set => SetRenderProperty(ref field, value);
     } = 0f;
 
     // ── Interaction ────────────────────────────────────────────────────────
 
-    public bool IsEnabled        { get; set { field = value; Invalidate(); } } = true;
+    public bool IsEnabled        { get; set => SetRenderProperty(ref field, value); } = true;
     public bool IsHitTestVisible { get; set; } = true;
     public bool IsHovered        { get; internal set; }
     public bool IsPressed        { get; internal set; }
@@ -158,34 +162,41 @@ public abstract partial class Widget
     /// Desired size, set during Measure pass.
     public Size DesiredSize  { get; private set; }
 
-    // ── Dirty flags ────────────────────────────────────────────────────────
+    // ── Invalidation ──────────────────────────────────────────────────────
 
-    private bool _layoutDirty  = true;
-    private bool _visualDirty  = true;
+    private bool _layoutDirty = true;
 
-    /// Mark this widget and its ancestors as needing a full layout + redraw.
+    /// Marks this widget and its ancestors for measure and arrange, and asks the host for a frame.
     public void InvalidateLayout()
     {
-        _layoutDirty = true;
-        _visualDirty = true;
-        Parent?.InvalidateLayout();
+        for (var w = this; w is not null; w = w.Parent)
+            w._layoutDirty = true;
+        Host?.RequestFrame();
     }
 
-    /// Mark only visual as dirty (color change, text change, etc.)
-    public void Invalidate()
+    /// Asks the host to redraw. The whole window is redrawn, so nothing is tracked per widget.
+    public void Invalidate() => Host?.RequestFrame();
+
+    internal bool IsLayoutDirty => _layoutDirty;
+
+    /// Sets a property that changes the widget's size or position; does nothing when the value is unchanged.
+    /// Returns whether it changed.
+    protected bool SetLayoutProperty<T>(ref T field, T value)
     {
-        _visualDirty = true;
-        // Bubble up so the root knows to redraw
-        Parent?.Invalidate();
+        if (EqualityComparer<T>.Default.Equals(field, value)) return false;
+        field = value;
+        InvalidateLayout();
+        return true;
     }
 
-    internal bool IsLayoutDirty  => _layoutDirty;
-    internal bool IsVisualDirty  => _visualDirty;
-
-    internal void ClearDirty()
+    /// Sets a property that changes only how the widget looks; does nothing when the value is unchanged.
+    /// Returns whether it changed.
+    protected bool SetRenderProperty<T>(ref T field, T value)
     {
-        _layoutDirty = false;
-        _visualDirty = false;
+        if (EqualityComparer<T>.Default.Equals(field, value)) return false;
+        field = value;
+        Invalidate();
+        return true;
     }
 
     // ── Layout pass ──────────────────────────────────────────────────────
@@ -252,7 +263,7 @@ public abstract partial class Widget
 
         LayoutBounds = arranged;
         ArrangeCore(arranged);
-        ClearDirty();
+        _layoutDirty = false;
     }
 
     // Override in subclasses to measure content.

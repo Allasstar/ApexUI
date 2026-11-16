@@ -58,7 +58,6 @@ internal sealed class MenuList : Widget
 internal sealed class MenuItemWidget : Widget
 {
     private readonly Label _label;
-    private readonly bool _enabled;
     private readonly Func<bool>? _isChecked;
 
     private const float PadV    =  6f;
@@ -67,9 +66,13 @@ internal sealed class MenuItemWidget : Widget
 
     public MenuItemWidget(string text, bool enabled = true, Func<bool>? isChecked = null)
     {
-        _enabled   = enabled;
         _isChecked = isChecked;
-        _label     = new Label { Text = text, IsHitTestVisible = false };
+        _label     = new Label
+        {
+            Text             = text,
+            IsHitTestVisible = false,
+            ColorSource      = enabled ? t => t.OnSurface : t => t.OnSurfaceMuted,
+        };
 
         // Extra left padding reserved for the check indicator when one is used.
         float padLeft = isChecked is not null ? PadH + CheckW : PadH;
@@ -101,8 +104,6 @@ internal sealed class MenuItemWidget : Widget
 
         if (bg != SKColor.Empty)
             ctx.FillRoundRect(LayoutBounds, CornerRadius, bg);
-
-        _label.Color = _enabled ? t.OnSurface : t.OnSurfaceMuted;
 
         if (_isChecked is not null && _isChecked())
             ctx.FillCircle(LayoutBounds.X + PadH + CheckW * 0.5f, LayoutBounds.CenterY, 4f, t.Primary);

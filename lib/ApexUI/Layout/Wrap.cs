@@ -3,8 +3,8 @@ namespace ApexUI.Layout;
 /// Children arranged left-to-right, wrapping to the next line when they overflow.
 public class Wrap : Widget
 {
-    public float HorizontalSpacing { get; set { field = value; InvalidateLayout(); } }
-    public float VerticalSpacing   { get; set { field = value; InvalidateLayout(); } }
+    public float HorizontalSpacing { get; set => SetLayoutProperty(ref field, value); }
+    public float VerticalSpacing   { get; set => SetLayoutProperty(ref field, value); }
 
     public Wrap(params Widget[] children)
     {

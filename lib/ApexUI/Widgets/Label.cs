@@ -5,28 +5,32 @@ public class Label : Widget
     public string Text
     {
         get;
-        set { field = value; InvalidateLayout(); }
+        set => SetLayoutProperty(ref field, value);
     } = "";
 
     public float FontSize
     {
         get;
-        set { field = value; InvalidateLayout(); }
+        set => SetLayoutProperty(ref field, value);
     } = float.NaN; // NaN = use Theme default
 
     public bool Bold
     {
         get;
-        set { field = value; InvalidateLayout(); }
+        set => SetLayoutProperty(ref field, value);
     }
 
     public bool WordWrap
     {
         get;
-        set { field = value; InvalidateLayout(); }
+        set => SetLayoutProperty(ref field, value);
     }
 
-    public SKColor? Color { get; set { field = value; Invalidate(); } }
+    public SKColor? Color { get; set => SetRenderProperty(ref field, value); }
+
+    /// When set, overrides Color at draw time using the current theme. It may read other widgets' state
+    /// (a button's hover, a tab's selection); whatever changes that state must invalidate.
+    public Func<Theme, SKColor>? ColorSource { get; set => SetRenderProperty(ref field, value); }
 
     public Label WithText(string text)    { Text = text;  return this; }
     public Label WithSize(float size)     { FontSize = size; return this; }
@@ -64,7 +68,7 @@ public class Label : Widget
     protected override void DrawCore(DrawContext ctx)
     {
         float fontSize = float.IsNaN(FontSize) ? ctx.Theme.FontSizeBase : FontSize;
-        var color = Color ?? ctx.Theme.OnSurface;
+        var color = ColorSource?.Invoke(ctx.Theme) ?? Color ?? ctx.Theme.OnSurface;
 
         var blobs = Blobs(ctx, fontSize);
         if (!WordWrap)

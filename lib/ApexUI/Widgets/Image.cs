@@ -13,7 +13,7 @@ public class Image : Widget, IDisposable
     public ImageStretch Stretch
     {
         get;
-        set { field = value; Invalidate(); }
+        set => SetRenderProperty(ref field, value);
     } = ImageStretch.Uniform;
 
     /// When true (the default) the decoded image is disposed when the widget leaves the screen,

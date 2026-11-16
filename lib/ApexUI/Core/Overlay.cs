@@ -29,27 +29,27 @@ public class Overlay : Widget
     }
 
     /// Widget used to anchor the content position (optional).
-    public Widget? Anchor { get; set; }
+    public Widget? Anchor { get; set => SetLayoutProperty(ref field, value); }
 
     /// Which edge of Anchor to place Content against. Ignored when Anchor is null.
-    public OverlayAnchor AnchorEdge { get; set; } = OverlayAnchor.BelowAnchor;
+    public OverlayAnchor AnchorEdge { get; set => SetLayoutProperty(ref field, value); } = OverlayAnchor.BelowAnchor;
 
     /// Explicit screen position used when Anchor is null and alignment is Left/Top.
-    public float PositionX { get; set; }
-    public float PositionY { get; set; }
+    public float PositionX { get; set => SetLayoutProperty(ref field, value); }
+    public float PositionY { get; set => SetLayoutProperty(ref field, value); }
 
     /// Content alignment on screen when Anchor is null.
-    public HAlign ContentHAlign { get; set; } = HAlign.Left;
-    public VAlign ContentVAlign { get; set; } = VAlign.Top;
+    public HAlign ContentHAlign { get; set => SetLayoutProperty(ref field, value); } = HAlign.Left;
+    public VAlign ContentVAlign { get; set => SetLayoutProperty(ref field, value); } = VAlign.Top;
 
     /// Draws a semi-transparent backdrop behind Content.
-    public bool IsModal { get; set; }
+    public bool IsModal { get; set => SetRenderProperty(ref field, value); }
 
     /// Clicking outside Content closes the overlay (default true).
     public bool DismissOnClickOutside { get; set; } = true;
 
     /// When Anchor is set, stretches Content to match the anchor's width (e.g. for dropdowns).
-    public bool MatchAnchorWidth { get; set; }
+    public bool MatchAnchorWidth { get; set => SetLayoutProperty(ref field, value); }
 
     public Action? OnDismiss { get; set; }
 

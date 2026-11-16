@@ -4,6 +4,21 @@ Newest first. **Breaking** marks changes that need edits in apps using ApexUI.
 
 ## Unreleased
 
+### Event-driven rendering
+- A window draws only when something changed. An untouched app renders no frames and uses no CPU; before, it redrew the whole tree every vsync. `Invalidate()` and `InvalidateLayout()` ask the host for a frame, and every change made before that frame is drawn in it.
+- `DesktopPlatform` sleeps until input, a due timer or a frame request instead of polling every frame, and redraws when the window is restored, moved, resized or focused.
+- Layout runs at the start of the next frame (or before routing pointer input, if a change is still pending) instead of immediately on resize.
+- Property setters do nothing when given the current value: no layout, no frame, no `OnChanged`. Affects every built-in widget, `TextInput.Value`, `UiHost.Theme`, `UiScale` and `FontFamily`.
+- New `UiHost.RequestAnimationFrame(Action<TimeSpan>)`: runs the callback once before the next frame with that frame's time. Request again from the callback to keep animating; frames stop when nothing asks.
+- New `protected bool SetLayoutProperty<T>(ref T field, T value)` and `SetRenderProperty<T>(...)` on `Widget` for custom widget properties: they compare, store and invalidate. Use them as `set => SetLayoutProperty(ref field, value);`.
+- New `Label.ColorSource` (`Func<Theme, SKColor>?`), like `BackgroundSource`: picks the text color from the theme at draw time and overrides `Color`. Built-in buttons, tabs, menus and dropdowns use it instead of setting `Color` while drawing.
+- `TextInput` blinks its caret with a platform timer (two frames a second while focused, none otherwise); `Tooltip` waits for its delay with a timer and reacts to hover changes, instead of both polling every frame.
+- Overlays are laid out only when they open, change, or the window or root tree is laid out again; before, every open overlay was measured and arranged every frame.
+- **Breaking:** `Widget.IsVisible` now invalidates layout (it changes the size a widget reports), not just drawing.
+- **Breaking:** `IPlatformListener.Render(SKCanvas, float deltaSeconds)` → `Render(SKCanvas, TimeSpan frameTime)`, a monotonic clock reading. `IPlatform.RequestFrame()` must now render exactly when asked (and after `Resize`); a platform that keeps rendering continuously still works but wastes the savings.
+- **Breaking:** the internal `ITickable` is removed; use `RequestAnimationFrame` for per-frame work and `UiHost.Platform.StartTimer` for delays.
+- `Overlay.Anchor`, `AnchorEdge`, `PositionX`/`PositionY`, `ContentHAlign`/`ContentVAlign`, `MatchAnchorWidth` and `IsModal` now invalidate when changed, so moving an open overlay redraws it.
+
 ### Widget lifecycle
 - Widgets are attached while they are in a tree a `UiHost` shows. New `protected virtual void OnAttached(UiHost host)` and `OnDetached()`; `Widget.Host` is now set on each widget as it is attached instead of being looked up through the parents.
 - New `protected IDisposable Observe(Bindable<T>, Action<T>)` and `Observe(ObservableList<T>, Action)`: the subscription is dropped when the widget is detached and restored (with the current value) when it is attached again. Every built-in `Bind`, `BindInt`, `BindFloat` and `WithItems(ObservableList)` uses it, so removed widgets are no longer kept alive by the bindables and lists they were bound to.
@@ -11,7 +26,7 @@ Newest first. **Breaking** marks changes that need edits in apps using ApexUI.
 - Hover, press and focus are cleared when the widget holding them is detached, so a removed widget stops receiving input.
 - `Image` disposes its decoded image when detached. New `DisposeOnDetach` (default true) and `KeepOnDetach()` for images you remove and add again.
 - **Breaking:** a closed `Overlay` stays attached to the host it was opened on, so dialogs and menus keep their state and images between openings. New `Overlay.Detach()` closes it and releases it. `Dropdown` and `Tooltip` detach their overlays when they are removed.
-- **Breaking:** `VirtualList` rows are real children: created and removed during layout (not while drawing), attached and detached like any widget, hit-tested and ticked normally. Scrolling a `VirtualList` now re-runs layout.
+- **Breaking:** `VirtualList` rows are real children: created and removed during layout (not while drawing), attached and detached like any widget, hit-tested normally. Scrolling a `VirtualList` now re-runs layout.
 - **Breaking:** `Widget.Children` is a `ChildList` (read-only, `IReadOnlyList<Widget>`) instead of `IReadOnlyList<Widget>`. `foreach` over it no longer allocates.
 
 ### Performance

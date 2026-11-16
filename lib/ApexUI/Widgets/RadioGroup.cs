@@ -15,7 +15,7 @@ public class RadioGroup<T> : Widget
         private const float Gap     = 10f;
 
         public string ItemLabel { get; }
-        public bool IsSelected  { get; set { field = value; Invalidate(); } }
+        public bool IsSelected  { get; set => SetRenderProperty(ref field, value); }
 
         public RadioItem(string label) => ItemLabel = label;
 

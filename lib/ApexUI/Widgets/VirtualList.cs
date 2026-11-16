@@ -10,7 +10,7 @@ public class VirtualList<T> : Widget
     public float RowHeight
     {
         get;
-        set { field = value; InvalidateLayout(); }
+        set => SetLayoutProperty(ref field, value);
     } = 36f;
 
     private IReadOnlyList<T>?  _source;

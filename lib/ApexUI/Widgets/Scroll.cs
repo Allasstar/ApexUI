@@ -22,13 +22,13 @@ public class Scroll : Widget
     public bool ShowScrollbar
     {
         get;
-        set { field = value; InvalidateLayout(); }
+        set => SetLayoutProperty(ref field, value);
     } = true;
 
     public ScrollDirection Direction
     {
         get;
-        set { field = value; InvalidateLayout(); }
+        set => SetLayoutProperty(ref field, value);
     } = ScrollDirection.Vertical;
 
     public Scroll(Widget content)

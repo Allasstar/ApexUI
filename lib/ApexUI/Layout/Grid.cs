@@ -28,8 +28,8 @@ public class Grid : Widget
     private readonly record struct CellInfo(Widget Child, int Col, int Row, int ColSpan, int RowSpan);
     private readonly List<CellInfo> _cells = [];
 
-    public float ColumnSpacing { get; set { field = value; InvalidateLayout(); } }
-    public float RowSpacing    { get; set { field = value; InvalidateLayout(); } }
+    public float ColumnSpacing { get; set => SetLayoutProperty(ref field, value); }
+    public float RowSpacing    { get; set => SetLayoutProperty(ref field, value); }
 
     public Grid DefineColumns(params GridLength[] columns)
     {

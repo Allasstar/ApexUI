@@ -7,6 +7,7 @@ public class DpiTests
     {
         var root = new FixedBox(10, 10);
         var (host, platform) = TestPlatform.Show(root, 800, 600, dpiScale: 2f);
+        platform.Render().Dispose();
 
         Assert.Equal(new Rect(0, 0, 400, 300), root.LayoutBounds);
 

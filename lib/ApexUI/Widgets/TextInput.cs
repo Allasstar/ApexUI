@@ -4,13 +4,14 @@ namespace ApexUI.Widgets;
 
 public enum InputMode { Any, Integer, Float }
 
-public class TextInput : Widget, ITickable
+public class TextInput : Widget
 {
     public string Value
     {
         get;
         set
         {
+            if (field == value) return;
             field = value;
             // Text can shrink under the caret when set from code (e.g. re-formatting on submit).
             _cursorPos = Math.Min(_cursorPos, value.Length);
@@ -23,14 +24,14 @@ public class TextInput : Widget, ITickable
     public string Placeholder
     {
         get;
-        set { field = value; Invalidate(); }
+        set => SetRenderProperty(ref field, value);
     } = "";
 
     /// Restricts which characters can be typed. Does not re-validate existing Value.
-    public InputMode InputMode  { get; set { field = value; Invalidate(); } } = InputMode.Any;
+    public InputMode InputMode  { get; set => SetRenderProperty(ref field, value); } = InputMode.Any;
 
     /// Replaces visible characters with '•'. Value still holds the real text.
-    public bool IsPassword      { get; set { field = value; Invalidate(); } } = false;
+    public bool IsPassword      { get; set => SetRenderProperty(ref field, value); } = false;
 
     /// When set, only characters present in this string are accepted. Applied after InputMode.
     public string? AllowedChars { get; set; }
@@ -43,13 +44,25 @@ public class TextInput : Widget, ITickable
 
     public bool IsValid => Validate is null || Validate(Value);
 
-    public bool IsFocused { get; internal set; }
+    public bool IsFocused
+    {
+        get;
+        internal set
+        {
+            if (field == value) return;
+            field = value;
+            if (value) ResetBlink();
+            else StopBlink();
+        }
+    }
     public Action<string>? OnChanged;
     public Action<string>? OnSubmit;   // fired on Enter
 
     private int   _cursorPos;
     private int   _selAnchor;          // selection anchor; differs from _cursorPos when text is selected
-    private float _blinkTimer;
+    private static readonly TimeSpan BlinkInterval = TimeSpan.FromSeconds(0.53);
+    private readonly Action _toggleCaret;
+    private IDisposable? _blinkTimer;
     private bool  _cursorVisible = true;
     private bool  _isDragging;
 
@@ -68,6 +81,7 @@ public class TextInput : Widget, ITickable
         OnPointerDown = HandlePointerDown;
         OnPointerMove = HandlePointerMove;
         OnPointerUp   = _ => _isDragging = false;
+        _toggleCaret  = ToggleCaret;
     }
 
     // ── Fluent ───────────────────────────────────────────────────────────────
@@ -151,19 +165,31 @@ public class TextInput : Widget, ITickable
         }
     }
 
-    // ── Tick (cursor blink) ───────────────────────────────────────────────────
+    // ── Caret blink ───────────────────────────────────────────────────────────
+    // A timer instead of per-frame polling, so a focused field costs two frames a second.
 
-    public void Tick(float deltaSeconds)
+    private void ToggleCaret()
     {
-        if (!IsFocused) return;
-        _blinkTimer += deltaSeconds;
-        if (_blinkTimer >= 0.53f)
-        {
-            _blinkTimer    = 0;
-            _cursorVisible = !_cursorVisible;
-            Invalidate();
-        }
+        _cursorVisible = !_cursorVisible;
+        Invalidate();
     }
+
+    private void ResetBlink()
+    {
+        _cursorVisible = true;
+        _blinkTimer?.Dispose();
+        _blinkTimer = IsFocused ? Host?.Platform.StartTimer(BlinkInterval, _toggleCaret) : null;
+        Invalidate();
+    }
+
+    private void StopBlink()
+    {
+        _blinkTimer?.Dispose();
+        _blinkTimer = null;
+        Invalidate();
+    }
+
+    protected override void OnDetached() => IsFocused = false;
 
     // ── Pointer handling ──────────────────────────────────────────────────────
 
@@ -326,13 +352,6 @@ public class TextInput : Widget, ITickable
         int start = SelectionStart;
         Value      = Value.Remove(start, SelectionEnd - start);
         _cursorPos = _selAnchor = start;
-    }
-
-    private void ResetBlink()
-    {
-        _cursorVisible = true;
-        _blinkTimer    = 0;
-        Invalidate();
     }
 
     // ── Character filtering ───────────────────────────────────────────────────

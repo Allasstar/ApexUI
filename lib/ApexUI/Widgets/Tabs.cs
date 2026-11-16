@@ -59,7 +59,7 @@ public class Tabs : Widget
         public bool IsActive
         {
             get;
-            set { field = value; Invalidate(); }
+            set => SetRenderProperty(ref field, value);
         }
 
         public TabPosition Position { get; }
@@ -67,7 +67,12 @@ public class Tabs : Widget
         public TabButton(string title, TabPosition position, Action onSelect)
         {
             Position = position;
-            _label   = new Label { Text = title, IsHitTestVisible = false };
+            _label   = new Label
+            {
+                Text             = title,
+                IsHitTestVisible = false,
+                ColorSource      = t => IsActive ? t.Primary : IsHovered ? t.OnSurface : t.OnSurfaceMuted,
+            };
             AddChild(_label);
             OnClick = e =>
             {
@@ -118,10 +123,6 @@ public class Tabs : Widget
                 };
                 if (ind.HasValue) ctx.FillRect(ind.Value, t.Primary);
             }
-
-            _label.Color = IsActive ? t.Primary
-                         : IsHovered ? t.OnSurface
-                         : t.OnSurfaceMuted;
         }
     }
 

@@ -9,13 +9,13 @@ public class ProgressBar : Widget
     public float Value
     {
         get;
-        set { field = Math.Clamp(value, 0f, 1f); Invalidate(); }
+        set => SetRenderProperty(ref field, Math.Clamp(value, 0f, 1f));
     } = 0f;
 
     public ProgressBarVariant Variant
     {
         get;
-        set { field = value; Invalidate(); }
+        set => SetRenderProperty(ref field, value);
     } = ProgressBarVariant.Primary;
 
     public ProgressBar()

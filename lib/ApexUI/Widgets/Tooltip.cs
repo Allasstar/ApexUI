@@ -4,11 +4,13 @@ public enum TooltipPosition { Below, Above, Right, Left }
 
 /// Transparent decorator that shows a floating tooltip after a hover delay.
 /// Wrap any widget: new Tooltip(new Button("Save"), "Save the document")
-public sealed class Tooltip : Widget, ITickable
+public sealed class Tooltip : Widget
 {
     private readonly Widget _child;
     private readonly Overlay _overlay;
-    private float _hoverTimer;
+    private readonly Action _onHoverChanged;
+    private readonly Action _show;
+    private IDisposable? _delay;
     private bool _tooltipVisible;
 
     public float ShowDelay { get; set; } = 0.6f;
@@ -33,46 +35,59 @@ public sealed class Tooltip : Widget, ITickable
             BackgroundSource = t => t.Surface,
             CornerRadius = 4f,
         };
+
+        _onHoverChanged = OnHoverChanged;
+        _show           = Show;
     }
+
+    protected override void OnAttached(UiHost host) => host.HoveredWidgetChanged += _onHoverChanged;
 
     protected override void OnDetached()
     {
+        Host!.HoveredWidgetChanged -= _onHoverChanged;
+        Hide();
         _overlay.Detach();
-        _tooltipVisible = false;
-        _hoverTimer     = 0f;
     }
 
-    // ── ITickable ─────────────────────────────────────────────────────────────
+    // ── Hover ─────────────────────────────────────────────────────────────────
 
-    public void Tick(float deltaSeconds)
+    private void OnHoverChanged()
     {
-        bool hovered = IsDescendantHovered(_child);
+        if (!IsWithinChild(Host!.HoveredWidget))
+        {
+            Hide();
+            return;
+        }
+        if (_tooltipVisible || _delay is not null) return;
 
-        if (hovered && !_tooltipVisible)
+        if (ShowDelay > 0f)
+            _delay = Host.Platform.StartTimer(TimeSpan.FromSeconds(ShowDelay), _show);
+        else
+            Show();
+    }
+
+    private void Show()
+    {
+        _delay?.Dispose();
+        _delay = null;
+        _tooltipVisible = true;
+        var edge = Position switch
         {
-            _hoverTimer += deltaSeconds;
-            if (_hoverTimer >= ShowDelay)
-            {
-                _tooltipVisible = true;
-                var edge = Position switch
-                {
-                    TooltipPosition.Above => OverlayAnchor.AboveAnchor,
-                    TooltipPosition.Right => OverlayAnchor.RightOfAnchor,
-                    TooltipPosition.Left  => OverlayAnchor.LeftOfAnchor,
-                    _                     => OverlayAnchor.BelowAnchor,
-                };
-                _overlay.Open(_child, edge);
-            }
-        }
-        else if (!hovered)
-        {
-            _hoverTimer = 0f;
-            if (_tooltipVisible)
-            {
-                _tooltipVisible = false;
-                _overlay.Close();
-            }
-        }
+            TooltipPosition.Above => OverlayAnchor.AboveAnchor,
+            TooltipPosition.Right => OverlayAnchor.RightOfAnchor,
+            TooltipPosition.Left  => OverlayAnchor.LeftOfAnchor,
+            _                     => OverlayAnchor.BelowAnchor,
+        };
+        _overlay.Open(_child, edge);
+    }
+
+    private void Hide()
+    {
+        _delay?.Dispose();
+        _delay = null;
+        if (!_tooltipVisible) return;
+        _tooltipVisible = false;
+        _overlay.Close();
     }
 
     // ── Transparent layout ────────────────────────────────────────────────────
@@ -96,11 +111,10 @@ public sealed class Tooltip : Widget, ITickable
 
     // ── Helpers ───────────────────────────────────────────────────────────────
 
-    private static bool IsDescendantHovered(Widget w)
+    private bool IsWithinChild(Widget? hovered)
     {
-        if (w.IsHovered) return true;
-        foreach (var child in w.Children)
-            if (IsDescendantHovered(child)) return true;
+        for (var w = hovered; w is not null; w = w.Parent)
+            if (w == _child) return true;
         return false;
     }
 }

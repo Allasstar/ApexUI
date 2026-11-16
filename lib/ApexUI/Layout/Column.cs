@@ -6,7 +6,7 @@ public class Column : Widget
     public float Spacing
     {
         get;
-        set { field = value; InvalidateLayout(); }
+        set => SetLayoutProperty(ref field, value);
     } = 0f;
 
     public Column(params Widget[] children)

@@ -10,13 +10,13 @@ public class Toggle : Widget
     public bool IsChecked
     {
         get;
-        set { field = value; Invalidate(); }
+        set => SetRenderProperty(ref field, value);
     }
 
     public string Label
     {
         get;
-        set { field = value; InvalidateLayout(); }
+        set => SetLayoutProperty(ref field, value);
     } = "";
 
     public Action<bool>? OnChanged;
@@ -39,7 +39,7 @@ public class Toggle : Widget
     {
         IsChecked  = source.Value;
         OnChanged += v => source.Value = v;
-        Observe(source, v => { IsChecked = v; Invalidate(); });
+        Observe(source, v => IsChecked = v);
         return this;
     }
 

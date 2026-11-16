@@ -7,11 +7,11 @@ public class Slider : Widget
 
     private bool _dragging;
 
-    public float Min  { get; set { field = value; ClampToRange(); Invalidate(); } } = 0f;
-    public float Max  { get; set { field = value; ClampToRange(); Invalidate(); } } = 1f;
+    public float Min  { get; set { if (SetRenderProperty(ref field, value)) ClampToRange(); } } = 0f;
+    public float Max  { get; set { if (SetRenderProperty(ref field, value)) ClampToRange(); } } = 1f;
 
     /// 0 = continuous (no snapping); any other positive value snaps to that interval.
-    public float Step { get; set { field = value; } } = 0f;
+    public float Step { get; set; } = 0f;
 
     public float Value
     {

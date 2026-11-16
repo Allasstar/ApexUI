@@ -10,6 +10,7 @@ namespace ApexUI.Desktop;
 /// Desktop backend: a GLFW window (via Silk.NET) with an OpenGL-backed Skia surface.
 /// The window size is given in logical units; on a scaled display the window grows to match,
 /// and it is resized again when it moves to a display with another scale.
+/// The loop sleeps until an input event, a due timer or a frame request, so an idle window uses no CPU.
 ///
 ///   new UiHost(new DesktopPlatform("My App", 900, 700).WithIcon("res/icon.svg")).Run(root);
 public sealed class DesktopPlatform : IPlatform
@@ -17,6 +18,8 @@ public sealed class DesktopPlatform : IPlatform
     private readonly IWindow   _window;
     private readonly Stopwatch _clock = Stopwatch.StartNew();
     private readonly List<DesktopTimer> _timers = [];
+    // Wakes the event wait when the next timer is due; GLFW has no timers of its own.
+    private readonly Timer _wakeTimer;
 
     private IPlatformListener? _listener;
     private GL?                _gl;
@@ -38,6 +41,8 @@ public sealed class DesktopPlatform : IPlatform
 
     private string?     _iconPath;
     private CursorShape _cursor = CursorShape.Arrow;
+    // The first frame is drawn once the window is sized, before anything asks for one.
+    private bool        _frameRequested = true;
 
     public DesktopPlatform(string title = "ApexUI App", int width = 900, int height = 600)
     {
@@ -53,12 +58,15 @@ public sealed class DesktopPlatform : IPlatform
         _window = Window.Create(options);
 
         _window.Load    += OnLoad;
-        _window.Update  += _ => RunDueTimers();
         _window.Render  += OnRender;
-        _window.Resize            += _ => SyncSize();
-        _window.FramebufferResize += _ => SyncSize();
-        _window.Move              += _ => SyncSize();
+        _window.Resize            += _ => OnWindowChanged();
+        _window.FramebufferResize += _ => OnWindowChanged();
+        _window.Move              += _ => OnWindowChanged();
+        _window.StateChanged      += _ => OnWindowChanged();
+        _window.FocusChanged      += _ => OnWindowChanged();
         _window.Closing += OnClosing;
+
+        _wakeTimer = new Timer(_ => _window.ContinueEvents());
     }
 
     /// Window icon from a raster or SVG file (by extension). Call before Run.
@@ -71,12 +79,34 @@ public sealed class DesktopPlatform : IPlatform
     public void Run(IPlatformListener listener)
     {
         _listener = listener;
-        _window.Run();
+        _window.Initialize();
+        while (!_window.IsClosing)
+        {
+            // Wait for events only when there is nothing to draw; otherwise just collect them.
+            _window.IsEventDriven = !_frameRequested;
+            _window.DoEvents();
+            if (_window.IsClosing) break;
+            _window.DoUpdate();
+            RunDueTimers();
+            if (_frameRequested)
+            {
+                _frameRequested = false;
+                _window.DoRender();
+            }
+        }
+        _window.DoEvents();
+        _window.Reset();
+
+        // Wait for a wake callback in flight, so none reaches the window after it is gone.
+        using (var stopped = new ManualResetEvent(false))
+            if (_wakeTimer.Dispose(stopped)) stopped.WaitOne();
         _window.Dispose();
     }
 
     public void RequestFrame()
     {
+        if (_frameRequested) return;
+        _frameRequested = true;
         if (_window.IsInitialized) _window.ContinueEvents();
     }
 
@@ -98,6 +128,7 @@ public sealed class DesktopPlatform : IPlatform
         ArgumentOutOfRangeException.ThrowIfLessThanOrEqual(interval, TimeSpan.Zero);
         var timer = new DesktopTimer(interval, tick, _clock.Elapsed + interval);
         _timers.Add(timer);
+        ScheduleWake();
         return timer;
     }
 
@@ -138,6 +169,13 @@ public sealed class DesktopPlatform : IPlatform
 
         SyncSize();
         _window.IsVisible = true;
+    }
+
+    // A restored, uncovered or re-focused window may show stale content, and the scale may have changed.
+    private void OnWindowChanged()
+    {
+        SyncSize();
+        RequestFrame();
     }
 
     // Brings the window size, the surface and the listener in line with the display's scale.
@@ -187,7 +225,7 @@ public sealed class DesktopPlatform : IPlatform
         SyncSize();
         if (_surface is null) return;
         var canvas = _surface.Canvas;
-        _listener!.Render(canvas, (float)delta);
+        _listener!.Render(canvas, _clock.Elapsed);
         canvas.Flush();
     }
 
@@ -214,7 +252,22 @@ public sealed class DesktopPlatform : IPlatform
             timer.Due = now + timer.Interval;
             timer.Tick();
         }
+        ScheduleWake();
     }
+
+    private void ScheduleWake()
+    {
+        var next = TimeSpan.MaxValue;
+        foreach (var timer in _timers)
+            if (!timer.IsStopped && timer.Due < next) next = timer.Due;
+
+        if (next == TimeSpan.MaxValue)
+            _wakeTimer.Change(Timeout.InfiniteTimeSpan, Timeout.InfiniteTimeSpan);
+        else
+            _wakeTimer.Change(Max(next - _clock.Elapsed, TimeSpan.Zero), Timeout.InfiniteTimeSpan);
+    }
+
+    private static TimeSpan Max(TimeSpan a, TimeSpan b) => a > b ? a : b;
 
     private void ApplyCursor()
     {

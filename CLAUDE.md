@@ -53,8 +53,10 @@ protected virtual void ArrangeCore(Rect finalRect);
 protected virtual void DrawCore(DrawContext ctx);
 
 Widget? HitTest(float x, float y);
-void Invalidate();        // visual-only dirty
-void InvalidateLayout();  // layout+visual dirty
+void Invalidate();        // redraw on the next frame (asks the host for one)
+void InvalidateLayout();  // re-layout and redraw on the next frame
+// Setters: `set => SetLayoutProperty(ref field, value);` or `SetRenderProperty(...)`; both skip unchanged values.
+// Never change widget state inside MeasureCore/ArrangeCore/DrawCore: an invalidation there schedules another frame.
 
 // Child management (protected)
 void AddChild(Widget child);
@@ -83,7 +85,7 @@ VAlign VAlign;  // Top | Center | Bottom | Stretch
 
 // Visual
 SKColor Background;
-Func<Theme, SKColor>? BackgroundSource;  // theme-aware, overrides Background
+Func<Theme, SKColor>? BackgroundSource;  // theme-aware, overrides Background (Label has the same ColorSource)
 float CornerRadius;
 float Opacity;   // 0..1
 bool  IsVisible;
@@ -134,6 +136,9 @@ UiHost BindUiScale(Bindable<float>)
 UiHost BindTheme(Bindable<string>)
 UiHost BindDarkMode(Bindable<bool>)  // true → Dark, false → Light
 UiHost BindFontFamily(Bindable<string>)
+
+void RequestAnimationFrame(Action<TimeSpan> callback)   // once, before the next frame; re-request to animate. Cache the delegate.
+// Frames are drawn only when something invalidates; an idle window renders nothing.
 ```
 
 ### `IPlatform` · `lib/ApexUI/Core/IPlatform.cs`
@@ -142,13 +147,13 @@ The only seam to the OS. Nothing outside `lib/ApexUI.Desktop/` may reference Sil
 
 ```csharp
 void Run(IPlatformListener listener)   // call listener.Resize before the first Render
-void RequestFrame()
+void RequestFrame()            // render once, soon; render only when asked (and after Resize)
 string? GetClipboardText(); void SetClipboardText(string)
 void SetCursor(CursorShape)
 IDisposable StartTimer(TimeSpan interval, Action tick)   // UI thread; dispose to stop
 Task<string?> OpenFileAsync(FileDialogOptions) / SaveFileAsync(FileDialogOptions)   // not implemented on desktop yet
 
-// IPlatformListener: Resize, Render(SKCanvas, dt), PointerMove/Down/Up, Wheel, KeyDown/KeyUp(Key, KeyModifiers), TextEntered(string), Close
+// IPlatformListener: Resize, Render(SKCanvas, TimeSpan frameTime), PointerMove/Down/Up, Wheel, KeyDown/KeyUp(Key, KeyModifiers), TextEntered(string), Close
 // Resize(pixelWidth, pixelHeight, dpiScale). Sizes and pointer positions are surface pixels; UiHost converts to logical units.
 // Everything above the platform (layout, drawing, fonts, input) is in logical units.
 ```
@@ -392,4 +397,4 @@ Dropdown<T> WithItems(ObservableList<T> source)   // uses ToString()
 ## TODO
 
 - **Tab focus navigation** — focus only moves on click; implement `Tab`/`Shift+Tab` traversal in `UiHost` across focusable widgets (`TextInput` etc.)
-- **Animation primitives** — add a simple `Lerp`-based value animator driven by the tick loop for smooth hover/press transitions
+- **Animation primitives** — add a simple `Lerp`-based value animator driven by `UiHost.RequestAnimationFrame` for smooth hover/press transitions
