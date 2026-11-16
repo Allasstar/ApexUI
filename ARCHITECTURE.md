@@ -4,35 +4,17 @@
 
 ```
 ApexUI/
-├── Program.cs                     ← App developer writes ONLY this
-├── ApexUI.csproj                 ← imports lib/ApexUI.props; adds src/**/*.cs
-│
-├── lib/                           ← framework source
-│   ├── Core/
-│   │   ├── Rect.cs                ← Rect value type
-│   │   ├── Size.cs                ← Size value type
-│   │   ├── Thickness.cs           ← Thickness value type
-│   │   ├── Widget.cs              ← BASE CLASS — every widget inherits this
-│   │   ├── DrawContext.cs         ← Canvas + theme passed into every Draw()
-│   │   ├── Theme.cs               ← All colors/fonts in one place
-│   │   └── Application.cs         ← Window, event loop, input dispatch
-│   │
-│   ├── Layout/
-│   │   ├── Stack.cs               ← Stack panel
-│   │   ├── Column.cs              ← Column panel
-│   │   ├── Row.cs                 ← Row panel
-│   │   └── PaddingBox.cs          ← PaddingBox panel
-│   │
-│   ├── Widgets/
-│   │   ├── Label.cs               ← Label widget
-│   │   ├── Button.cs              ← Button widget
-│   │   └── TextInput.cs           ← TextInput widget
-│   │
-│   └── Extensions/
-│       ├── SKColorExtensions.cs   ← C# 14 extension members on SKColor
-│       └── SKCanvasExtensions.cs  ← C# 14 extension members on SKCanvas
-│
-└── src/                           ← app-specific code
+├── ApexUI.sln
+├── Directory.Build.props          ← shared build settings
+├── lib/                           ← library projects only
+│   └── ApexUI/                    ← framework library (ApexUI.csproj)
+│       ├── Core/                  ← Widget, Application, DrawContext, Theme, Rect/Size/Thickness, Overlay, Bindable
+│       ├── Layout/                ← Row, Column, Stack, PaddingBox, Spacer, Grid, Wrap, Canvas
+│       ├── Widgets/               ← Label, Button, TextInput, Scroll, Dropdown, Tabs, Dialog, ...
+│       └── Extensions/            ← C# 14 extension members on SKColor and SKCanvas
+├── src/                           ← apps and examples that use ApexUI
+│   └── Gallery/                   ← demo app (Program.cs + Examples/)
+└── tests/ApexUI.Tests/            ← xUnit tests
 ```
 
 ## The three-pass model
@@ -120,6 +102,7 @@ That's it. `FillRoundRect` comes from the C# 14 extension member on SKCanvas.
 ## Running
 
 ```bash
-dotnet run           # debug build, opens window immediately
-dotnet run -c Release  # optimized, ~15-30% faster layout math (JIT AVX-512)
+dotnet run --project src/Gallery              # debug build, opens the Gallery
+dotnet run --project src/Gallery -c Release   # optimized
+dotnet test                                       # run ApexUI.Tests
 ```

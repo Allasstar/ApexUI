@@ -1,13 +1,12 @@
-// Custom theme registered as a partial extension of ThemeLibrary.
-// namespace must be ApexUI.Core to extend the partial class in lib.
-namespace ApexUI.Core;
+namespace ApexUI.Gallery.Examples;
 
-public static partial class ThemeLibrary
+/// Custom theme pair added to ThemeLibrary at startup, before any UI lists the themes.
+public static class SolAndLunaTheme
 {
-    public const string SolAndLuna = "Sol & Luna";
+    public const string Name = "Sol & Luna";
 
-    static partial void RegisterCustom()
-        => Register(SolAndLuna, Sol, Luna);
+    public static void Register()
+        => ThemeLibrary.Register(Name, Sol, Luna);
 
     // Sol — warm sunlit day: golden surfaces, vivid sun-orange primary.
     private static readonly Theme Sol = new()

@@ -1,4 +1,4 @@
-namespace ApexUI.App.Examples;
+namespace ApexUI.Gallery.Examples;
 
 /// Demonstrates Toggle, Checkbox, RadioGroup<T>, and NumberInput with binding.
 public class InputsExample : Widget

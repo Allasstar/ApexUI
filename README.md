@@ -6,10 +6,10 @@ A minimal desktop UI framework for C#. No markup languages, no code generators, 
 
 Most C# UI frameworks require a project wizard, a designer, XAML files, or a package you can't read. ApexUI is the opposite:
 
-- **Zero setup** — clone, open, run. `dotnet run` is all you need.
-- **Open source core** — the entire framework lives in `lib/`. Read it, understand it, change it.
+- **Zero setup** — clone, open, run. `dotnet run --project src/Gallery` is all you need.
+- **Open source core** — the entire framework lives in `lib/ApexUI/`. Read it, understand it, change it.
 - **Pure C#** — no XAML, no markup, no DSL. Your UI is just C# code.
-- **Cross-platform** — built on Silk.NET (GLFW) + SkiaSharp (OpenGL). Windows, macOS, and Linux.
+- **Portable foundations** — built on Silk.NET (GLFW) + SkiaSharp (OpenGL). Windows is the tested platform today.
 
 ---
 
@@ -18,7 +18,13 @@ Most C# UI frameworks require a project wizard, a designer, XAML files, or a pac
 ```bash
 git clone https://github.com/Allasstar/ApexUI.git
 cd ApexUI
-dotnet run
+dotnet run --project src/Gallery
+```
+
+To use ApexUI in your own app, reference `lib/ApexUI/ApexUI.csproj`:
+
+```xml
+<ProjectReference Include="path/to/ApexUI/lib/ApexUI/ApexUI.csproj" />
 ```
 
 ---
@@ -184,30 +190,19 @@ isDark.Value = true;
 
 ### Custom themes
 
-Add a partial class file anywhere in your project (no lib edits required):
+Register it at startup, before building UI that lists the available themes:
 
 ```csharp
-// src/MyTheme.cs
-namespace ApexUI.Core;   // must match ThemeLibrary's namespace
-
-public static partial class ThemeLibrary
+ThemeLibrary.Register("Neon", new Theme
 {
-    public const string Neon = "Neon";
-
-    static partial void RegisterCustom()
-        => Register(Neon, new Theme
-        {
-            Background = new SKColor(0x0A, 0x0A, 0x0A),
-            Primary    = new SKColor(0x00, 0xFF, 0x99),
-            // ... other tokens
-        },
-        new Theme { /* dark variant */ });
-}
+    Background = new SKColor(0x0A, 0x0A, 0x0A),
+    Primary    = new SKColor(0x00, 0xFF, 0x99),
+    // ... other tokens
+},
+new Theme { /* dark variant */ });
 ```
 
-`RegisterCustom()` is called once at startup, after all built-ins are registered. The new theme appears automatically in the Settings dropdown and can be referenced by its constant.
-
-To remove a built-in call `Remove(name)` inside `RegisterCustom()`.
+The new theme appears in `ThemeLibrary.Names`, so it shows up in any theme picker built afterwards. To remove a built-in call `ThemeLibrary.Remove(name)`. See `src/Gallery/Examples/SolAndLunaTheme.cs`.
 
 ### Theme tokens
 
@@ -303,14 +298,15 @@ using var paint = ctx.MakeTextPaint(ctx.Theme.OnSurface);
 ctx.Canvas.DrawText("Hello", x, y, SKTextAlign.Left, font, paint);
 ```
 
-Add your own shape helpers without touching the library — `DrawContext` is `partial`:
+Add your own shape helpers without touching the library with C# 14 extension members:
 
 ```csharp
-// anywhere in src/ — same namespace, same assembly
-namespace ApexUI.Core;
-public sealed partial class DrawContext
+public static class MyDrawing
 {
-    public void DrawStar(float cx, float cy, float size, SKColor color) { ... }
+    extension(DrawContext ctx)
+    {
+        public void DrawStar(float cx, float cy, float size, SKColor color) { ... }
+    }
 }
 ```
 
@@ -337,32 +333,33 @@ new TextInput().WithBlockedChars(" \t")                    // no whitespace
 ## Project structure
 
 ```
-lib/          ← framework (open, readable, replaceable as a unit)
-  Core/       ← Widget, Application, Theme, ThemeLibrary, Bindable, DrawContext
-  Layout/     ← Column, Row, Stack, PaddingBox, Wrap, Grid, Spacer
-  Widgets/    ← all widgets
-  Extensions/ ← SKColor and SKCanvas helpers
-
-src/          ← your app code
-  Examples/   ← self-contained demos (one Widget subclass per file)
-  Screens/    ← full-screen views
-  Widgets/    ← app-specific widgets
-  Models/     ← data models
-
-Program.cs    ← entry point
+ApexUI.sln
+Directory.Build.props   ← shared settings (net10.0, nullable, warnings as errors)
+UPDATE.md               ← changelog, including API breaks
+lib/                    ← library projects only
+  ApexUI/               ← the framework library
+    Core/               ← Widget, Application, Theme, ThemeLibrary, Bindable, DrawContext
+    Layout/             ← Column, Row, Stack, PaddingBox, Wrap, Grid, Spacer
+    Widgets/            ← all widgets
+    Extensions/         ← SKColor and SKCanvas helpers
+src/                    ← apps and examples that use ApexUI
+  Gallery/              ← demo app showing every widget
+    Examples/           ← self-contained demos (one Widget subclass per file)
+    res/                ← icons copied to the output folder
+tests/ApexUI.Tests/     ← xUnit tests (layout runs without a window)
 ```
 
 ---
 
 ## Distribution
 
-The project is **self-contained** — the .NET runtime is bundled, users need nothing installed.
+The Gallery is published **self-contained** (profiles live in `src/Gallery/Gallery.csproj`; copy them into your app) — the .NET runtime is bundled, users need nothing installed.
 
 | Profile | Command | Output | Size |
 |---------|---------|--------|------|
-| **Full** (default) | `dotnet publish` | `bin/Publish/Full/` | ~100 MB |
-| **SingleFile** | `dotnet publish -p:BuildProfile=SingleFile` | `bin/Publish/SingleFile/` | ~100 MB (one `.exe`) |
-| **MinSize** | `dotnet publish -p:BuildProfile=MinSize` | `bin/Publish/MinSize/` | ~20–40 MB (one `.exe`) |
+| **Full** (default) | `dotnet publish src/Gallery` | `src/Gallery/bin/Publish/Full/` | ~100 MB |
+| **SingleFile** | `dotnet publish src/Gallery -p:BuildProfile=SingleFile` | `src/Gallery/bin/Publish/SingleFile/` | ~100 MB (one `.exe`) |
+| **MinSize** | `dotnet publish src/Gallery -p:BuildProfile=MinSize` | `src/Gallery/bin/Publish/MinSize/` | ~20–40 MB (one `.exe`) |
 
 `SingleFile` packs managed DLLs, native libs, and the runtime into one executable. Native libs are extracted to a temp folder on first launch.
 

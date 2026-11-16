@@ -1,47 +1,49 @@
 # ApexUI — Code Organization Rules
 
-## Namespaces
+## Projects and namespaces
 
-| Folder | Namespace |
-|--------|-----------|
-| `lib/Core/` | `ApexUI.Core` |
-| `lib/Layout/` | `ApexUI.Layout` |
-| `lib/Widgets/` | `ApexUI.Widgets` |
-| `lib/Extensions/` | `ApexUI.Extensions` |
-| `src/Examples/` | `ApexUI.App.Examples` |
-| `src/Screens/` | `ApexUI.App.Screens` |
-| `src/Widgets/` | `ApexUI.App.Widgets` |
-| `src/Models/` | `ApexUI.App.Models` |
+Folder rule: **`lib/` holds library projects only** (one subfolder per project, e.g. `lib/ApexUI/`, later `lib/ApexUI.Desktop/`). **`src/` holds only code that uses ApexUI**: examples and apps. Tests live in `tests/`.
 
-`GlobalUsings.cs` globally imports all `ApexUI.*` + `SkiaSharp` — do **not** repeat in `src/` or `Program.cs`.
-`ApexUI.App.*` are **not** global — add explicit `using` per file.
+| Folder | Project | Namespace |
+|--------|---------|-----------|
+| `lib/ApexUI/Core/` | `ApexUI` (class library) | `ApexUI.Core` |
+| `lib/ApexUI/Layout/` | `ApexUI` | `ApexUI.Layout` |
+| `lib/ApexUI/Widgets/` | `ApexUI` | `ApexUI.Widgets` |
+| `lib/ApexUI/Extensions/` | `ApexUI` | `ApexUI.Extensions` |
+| `tests/ApexUI.Tests/` | `ApexUI.Tests` (xUnit) | `ApexUI.Tests` |
+| `src/Gallery/Examples/` | `Gallery` (exe) | `ApexUI.Gallery.Examples` |
+
+`lib/ApexUI/GlobalUsings.cs` imports all `ApexUI.*` + `SkiaSharp` inside the library only. Consumers (Gallery, tests, apps) declare their own usings.
 
 ## Rules
 
-1. **Reusable code → `lib/`** with `ApexUI.*` namespace. No `<Compile>` entries needed — wildcard picks it up.
-2. **App-specific code → `src/`** with `ApexUI.App.*` namespace. No csproj changes needed.
-3. **Never add `<Compile>` for lib files** — causes duplicate-compile error.
-4. **New `lib/` subfolder**: add `.cs` files + `global using ApexUI.NewNs;` to `GlobalUsings.cs`. Nothing else.
-5. **NuGet**: framework dep → `lib/ApexUI.props`; app-only dep → `ApexUI.csproj`.
-6. **Examples → `src/Examples/`**: one `Widget` subclass per file, named `<Topic>Example`, all state via constructor closures.
+1. **Reusable framework code → `lib/ApexUI/`** (or another `lib/` project) with an `ApexUI.*` namespace. SDK globbing picks up new files; no `<Compile>` entries.
+2. **Demo code → `src/Gallery/`**. Every widget appears there with its main states.
+3. **New namespace folder in `lib/ApexUI/`**: add `global using ApexUI.NewNs;` to `lib/ApexUI/GlobalUsings.cs` and to the Gallery's and tests' `GlobalUsings.cs`.
+4. **NuGet**: framework deps in `lib/ApexUI/ApexUI.csproj` with exact versions; app-only deps in the app's project.
+5. **Examples → `src/Gallery/Examples/`**: one `Widget` subclass per file, named `<Topic>Example`, all state via constructor closures.
+6. **Tests** for layout, input routing and state changes go in `tests/ApexUI.Tests/`. Layout can be tested without a window.
+7. **`UPDATE.md`**: every addition, change and API break gets an entry.
 
 ---
 
 ## Build profiles
 
+Publish profiles live in `src/Gallery/Gallery.csproj`.
+
 | Profile | Command | Output |
 |---|---|---|
-| `Full` (default) | `dotnet publish` | `bin/Publish/Full/` |
-| `SingleFile` | `dotnet publish -p:BuildProfile=SingleFile` | `bin/Publish/SingleFile/` |
-| `MinSize` | `dotnet publish -p:BuildProfile=MinSize` | `bin/Publish/MinSize/` (trimmed) |
+| `Full` (default) | `dotnet publish src/Gallery` | `src/Gallery/bin/Publish/Full/` |
+| `SingleFile` | `dotnet publish src/Gallery -p:BuildProfile=SingleFile` | `src/Gallery/bin/Publish/SingleFile/` |
+| `MinSize` | `dotnet publish src/Gallery -p:BuildProfile=MinSize` | `src/Gallery/bin/Publish/MinSize/` (trimmed) |
 
-Development: `dotnet run` / `dotnet build`. Self-contained publish always true.
+Development: `dotnet build`, `dotnet test`, `dotnet run --project src/Gallery`.
 
 ---
 
 ## Core API
 
-### `Widget` · `lib/Core/Widget.cs`
+### `Widget` · `lib/ApexUI/Core/Widget.cs`
 
 ```csharp
 // Override in subclasses
@@ -90,7 +92,7 @@ enum AspectRatioMode { WidthControlsHeight, HeightControlsWidth }
 
 ---
 
-### `Bindable<T>` · `lib/Core/Bindable.cs`
+### `Bindable<T>` · `lib/ApexUI/Core/Bindable.cs`
 
 ```csharp
 Bindable<T>(T initial = default!)
@@ -100,7 +102,7 @@ event Action<T>? Changed
 
 ---
 
-### `Application` · `lib/Core/Application.cs`
+### `Application` · `lib/ApexUI/Core/Application.cs`
 
 ```csharp
 Application(string title = "ApexUI App", int width = 900, int height = 600)
@@ -116,7 +118,7 @@ Application BindDarkMode(Bindable<bool>)  // true → Dark, false → Light
 
 ---
 
-### `DrawContext` · `lib/Core/DrawContext.cs`
+### `DrawContext` · `lib/ApexUI/Core/DrawContext.cs`
 
 ```csharp
 SKCanvas Canvas   { get; }
@@ -134,7 +136,7 @@ enum PointerButton { None, Left, Right, Middle }
 
 ---
 
-### `Rect` · `lib/Core/Rect.cs`
+### `Rect` · `lib/ApexUI/Core/Rect.cs`
 
 ```csharp
 readonly record struct Rect(float X, float Y, float Width, float Height)
@@ -150,7 +152,7 @@ SKRect ToSKRect()
 
 ---
 
-### `Size` · `lib/Core/Size.cs`
+### `Size` · `lib/ApexUI/Core/Size.cs`
 
 ```csharp
 readonly record struct Size(float Width, float Height)
@@ -160,7 +162,7 @@ Size Constrain(Size constraint)
 
 ---
 
-### `Thickness` · `lib/Core/Thickness.cs`
+### `Thickness` · `lib/ApexUI/Core/Thickness.cs`
 
 ```csharp
 readonly record struct Thickness(float Left, float Top, float Right, float Bottom)
@@ -172,7 +174,7 @@ float Horizontal, Vertical
 
 ---
 
-### `Theme` · `lib/Core/Theme.cs`
+### `Theme` · `lib/ApexUI/Core/Theme.cs`
 
 ```csharp
 static Theme Theme.Light, Theme.Dark
@@ -191,7 +193,7 @@ float  SpacingXs, SpacingSm, SpacingMd, SpacingLg
 
 ---
 
-### `SKColorExtensions` · `lib/Extensions/SKColorExtensions.cs`
+### `SKColorExtensions` · `lib/ApexUI/Extensions/SKColorExtensions.cs`
 
 ```csharp
 static SKColor SKColor.FromHex(string hex)   // "#RRGGBB" or "#RRGGBBAA"
@@ -203,7 +205,7 @@ SKColor color.Darken(float ratio)
 
 ---
 
-### `DrawContext` shapes · `lib/Core/DrawContext.Shapes.cs`
+### `DrawContext` shapes · `lib/ApexUI/Core/DrawContext.Shapes.cs`
 
 ```csharp
 void FillRect(Rect r, SKColor color)
@@ -221,14 +223,14 @@ void DrawCheckmark(float cx, float cy, float size, SKColor color, float thicknes
 void DrawCross(float cx, float cy, float size, SKColor color, float thickness = 2f)
 ```
 
-### `DrawContext` text · `lib/Core/DrawContext.Text.cs`
+### `DrawContext` text · `lib/ApexUI/Core/DrawContext.Text.cs`
 
 ```csharp
 void  DrawText(string text, Rect bounds, SKColor color, float sizePx, bool bold = false, SKTextAlign align = Left)
 float MeasureText(string text, float sizePx, bool bold = false)
 ```
 
-### `DrawContext` images · `lib/Core/DrawContext.Images.cs`
+### `DrawContext` images · `lib/ApexUI/Core/DrawContext.Images.cs`
 
 ```csharp
 void DrawImage(SKImage image, Rect dest)
@@ -236,7 +238,7 @@ void DrawImage(SKImage image, SKRect src, Rect dest)
 void DrawPicture(SKPicture picture, Rect dest, float naturalW, float naturalH)
 ```
 
-### `DrawContext` clip · `lib/Core/DrawContext.Clip.cs`
+### `DrawContext` clip · `lib/ApexUI/Core/DrawContext.Clip.cs`
 
 ```csharp
 ClipScope PushClip(Rect r)              // rectangular clip
@@ -244,7 +246,7 @@ ClipScope PushClip(Rect r, float radius) // rounded-rect clip
 // ClipScope is IDisposable — use with `using` to auto-restore canvas state
 ```
 
-### `Checkbox` · `lib/Widgets/Checkbox.cs`
+### `Checkbox` · `lib/ApexUI/Widgets/Checkbox.cs`
 
 ```csharp
 Checkbox(bool isChecked = false, string label = "", Action<bool>? onChanged = null)
@@ -258,7 +260,7 @@ Checkbox OnChange(Action<bool> action)
 Checkbox Bind(Bindable<bool> source)
 ```
 
-### `Wrap` · `lib/Layout/Wrap.cs`
+### `Wrap` · `lib/ApexUI/Layout/Wrap.cs`
 
 ```csharp
 Wrap(params Widget[] children)
@@ -268,7 +270,7 @@ float VerticalSpacing   { get; set; }
 Wrap WithSpacing(float horizontal, float vertical)
 ```
 
-### `Canvas` · `lib/Layout/Canvas.cs`
+### `Canvas` · `lib/ApexUI/Layout/Canvas.cs`
 
 ```csharp
 // Children positioned at explicit X/Y coordinates (relative to Canvas origin).
@@ -280,7 +282,7 @@ Canvas RemoveChild(Widget child)               // remove from canvas
 // Canvas auto-sizes to the bounding box of all children unless Width/Height are set explicitly.
 ```
 
-### `SKCanvasExtensions` · `lib/Extensions/SKCanvasExtensions.cs`
+### `SKCanvasExtensions` · `lib/ApexUI/Extensions/SKCanvasExtensions.cs`
 
 ```csharp
 void canvas.FillRoundRect(SKRect rect, float rx, SKColor color)
@@ -290,7 +292,7 @@ void canvas.DrawTextCentered(string text, SKRect bounds, SKFont font, SKPaint pa
 
 ---
 
-### `ObservableList<T>` · `lib/Core/ObservableList.cs`
+### `ObservableList<T>` · `lib/ApexUI/Core/ObservableList.cs`
 
 ```csharp
 ObservableList<T>()
@@ -312,7 +314,7 @@ void AddRange(IEnumerable<T> items)
 void Clear()
 ```
 
-### `VirtualList<T>` · `lib/Widgets/VirtualList.cs`
+### `VirtualList<T>` · `lib/ApexUI/Widgets/VirtualList.cs`
 
 ```csharp
 // Only rows inside the visible viewport are measured and drawn.

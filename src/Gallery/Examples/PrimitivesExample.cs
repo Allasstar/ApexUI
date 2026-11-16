@@ -1,4 +1,4 @@
-namespace ApexUI.App.Examples;
+namespace ApexUI.Gallery.Examples;
 
 /// Demonstrates ProgressBar, Separator, and Overlay.
 public class PrimitivesExample : Widget

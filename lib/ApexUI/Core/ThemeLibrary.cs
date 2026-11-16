@@ -2,23 +2,13 @@ namespace ApexUI.Core;
 
 /// Ordered registry of named theme pairs (light + dark variant each).
 ///
-/// To add a custom theme without editing this file, create a partial class
-/// file anywhere in your project (must use namespace ApexUI.Core):
+/// To add a custom theme, register it before building the UI that lists themes:
 ///
-///   // src/MyThemes.cs
-///   namespace ApexUI.Core;
-///   public static partial class ThemeLibrary
-///   {
-///       public const string Neon = "Neon";
+///   ThemeLibrary.Register("Neon", new Theme { ... }, new Theme { ... });
 ///
-///       static partial void RegisterCustom()
-///           => Register(Neon, new Theme { ... }, new Theme { ... });
-///   }
+/// To hide a built-in theme call Remove(name).
 ///
-/// RegisterCustom() is called once after all built-in themes are registered.
-/// To hide a built-in theme call Remove(name) inside RegisterCustom().
-///
-public static partial class ThemeLibrary
+public static class ThemeLibrary
 {
     // ── Built-in name constants ───────────────────────────────────────────────
 
@@ -41,11 +31,7 @@ public static partial class ThemeLibrary
         Register(Forest,   ForestLight,   ForestDark);
         Register(Desert,   DesertLight,   DesertDark);
         Register(Space,    SpaceLight,    SpaceDark);
-        RegisterCustom();
     }
-
-    // Extension point — implement in a partial file to register custom themes.
-    static partial void RegisterCustom();
 
     // ── Registry API ─────────────────────────────────────────────────────────
 

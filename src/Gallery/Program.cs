@@ -1,4 +1,6 @@
-using ApexUI.App.Examples;
+using ApexUI.Gallery.Examples;
+
+SolAndLunaTheme.Register();
 
 var example = new TabsExample();
 new Application("ApexUI Demo", 900, 700)

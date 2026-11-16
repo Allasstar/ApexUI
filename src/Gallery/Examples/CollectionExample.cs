@@ -1,4 +1,4 @@
-namespace ApexUI.App.Examples;
+namespace ApexUI.Gallery.Examples;
 
 /// Demonstrates ObservableList<T>, VirtualList<T>, and live-bound Dropdown<T>.
 public class CollectionExample : Widget

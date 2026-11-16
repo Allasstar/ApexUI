@@ -1,4 +1,4 @@
-namespace ApexUI.App.Examples;
+namespace ApexUI.Gallery.Examples;
 
 public class CounterExample : Widget
 {

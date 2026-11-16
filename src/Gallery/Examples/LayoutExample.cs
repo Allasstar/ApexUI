@@ -1,4 +1,4 @@
-namespace ApexUI.App.Examples;
+namespace ApexUI.Gallery.Examples;
 
 /// Demonstrates Spacer, Grid (inventory view), and Wrap layout widgets.
 public class LayoutExample : Widget

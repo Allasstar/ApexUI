@@ -1,13 +1,14 @@
 namespace ApexUI.Core;
 
 // Shape-drawing helpers on DrawContext.
-// Add your own shapes without touching the library:
+// Add your own shapes from another assembly with C# 14 extension members:
 //
-//   // anywhere in src/ — same namespace, same assembly
-//   namespace ApexUI.Core;
-//   public sealed partial class DrawContext
+//   public static class MyDrawing
 //   {
-//       public void DrawStar(float cx, float cy, float size, SKColor color) { ... }
+//       extension(DrawContext ctx)
+//       {
+//           public void DrawStar(float cx, float cy, float size, SKColor color) { ... }
+//       }
 //   }
 
 public sealed partial class DrawContext

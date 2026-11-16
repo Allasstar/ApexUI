@@ -1,6 +1,6 @@
 using System.Globalization;
 
-namespace ApexUI.App.Examples;
+namespace ApexUI.Gallery.Examples;
 
 public class SettingsExample : Widget
 {

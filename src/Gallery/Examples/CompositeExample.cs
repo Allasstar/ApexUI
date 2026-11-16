@@ -1,4 +1,4 @@
-namespace ApexUI.App.Examples;
+namespace ApexUI.Gallery.Examples;
 
 /// Demonstrates Dropdown, Tooltip, Dialog, and ContextMenu.
 public class CompositeExample : Widget
