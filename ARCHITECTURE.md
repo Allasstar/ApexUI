@@ -140,47 +140,63 @@ Things that change over time use `UiHost.Platform.StartTimer` (caret blink, tool
 ## Adding a new widget (minimum viable)
 
 ```csharp
-public class ProgressBar : Widget
+public class Meter : Widget
 {
     public float Value { get; set => SetRenderProperty(ref field, Math.Clamp(value, 0f, 1f)); }
 
     protected override Size MeasureCore(Size available)
-        => new Size(available.Width, 8f);  // fixed 8px height, full width
+        => new(float.IsInfinity(available.Width) ? 0f : available.Width, Theme.ProgressBarHeight);
 
     protected override void DrawCore(DrawContext ctx)
     {
-        // Background track
-        ctx.Canvas.FillRoundRect(LayoutBounds.ToSKRect(), 4, ctx.Theme.Surface);
-
-        // Fill
-        var fill = LayoutBounds with { Width = LayoutBounds.Width * Value };
-        ctx.Canvas.FillRoundRect(fill.ToSKRect(), 4, ctx.Theme.Primary);
+        var t = ctx.Theme;
+        float radius = LayoutBounds.Height / 2f;
+        ctx.FillRoundRect(LayoutBounds, radius, t.Surface);
+        ctx.FillRoundRect(LayoutBounds with { Width = LayoutBounds.Width * Value }, radius, t.Primary);
     }
 }
 ```
 
-That's it. `FillRoundRect` comes from the C# 14 extension member on SKCanvas.
+- Properties use `SetLayoutProperty` (changes size or position) or `SetRenderProperty` (changes looks only).
+- Sizes and colors come from `Theme` tokens, never literals.
+- Drawing goes through `DrawContext` helpers, which allocate nothing; cache anything else you build.
+- Input: override the `On…` methods and set `e.Handled` only for what the widget acts on.
+- Add it to the Gallery, add tests (see below) and an `UPDATE.md` entry.
 
-## What to build next (in order)
+## Testing
 
-| Step | What | Why |
-|------|------|-----|
-| 1 | `ScrollViewer` | Needed for any content taller than the window |
-| 2 | `Image` widget | Load + display PNG/JPEG via SkiaSharp |
-| 3 | `Grid` panel | 2-axis layout for forms and tables |
-| 4 | `Checkbox`, `Toggle` | Standard interactive controls |
-| 5 | Hot reload | Re-parse and re-run app code on file save |
-| 6 | `Bindable<T>` | Reactive property system, two-way binding |
-| 7 | Web target | Compile to Wasm, swap Silk.NET for browser Canvas |
+`tests/ApexUI.Tests` runs the whole framework without a window. Copy the pattern of the nearest test file.
+
+| Helper | Use |
+|---|---|
+| `FixedBox(w, h)` | leaf that always asks for the same content size |
+| `CountingBox(w, h)` | counts measure, arrange and draw passes; `Resize` invalidates its layout |
+| `TestPanel` | container with public `Add` / `Remove` (default stack layout) |
+| `TransformPanel` | container whose `ChildTransform` the test sets, like a pan/zoom view |
+| `TestPlatform.Show(root)` | real `UiHost` on a fake `IPlatform`: `Click`, `Move`, `Press`, `Release`, `Key`, `Type`, `Render`, `Advance` (timers), `FramesRequested`, `Cursor`, clipboard |
+| `TestCanvas.Draw` / `MinAllocatedBytes` | off-screen drawing; bytes allocated by an action after warm-up |
+
+- **Layout** of a single widget or panel: call `Measure` and `Arrange` directly and assert `DesiredSize` and `LayoutBounds`. No host needed.
+- **Input, focus, invalidation**: `TestPlatform.Show`, then send events in surface pixels. Call `platform.Render()` (and dispose the bitmap) when a test depends on layout having run.
+- **Hot paths** (draw, layout, pointer moves): assert zero allocations with `MinAllocatedBytes`.
+- **Every bug fix** gets a regression test named after the behavior, not the bug.
+
+## What to build next
+
+| What | Why |
+|------|-----|
+| Value animator on `RequestAnimationFrame` | Smooth hover and press transitions |
+| File dialogs in `DesktopPlatform` | `OpenFileAsync` / `SaveFileAsync` are declared but not implemented |
+| Web backend | A second `IPlatform` for WebAssembly and the browser canvas |
 
 ## C# 14 features used and why
 
 | Feature | Where used | Why |
 |---------|-----------|-----|
-| `field` keyword | `Widget.cs` — every property | No separate backing field per property |
+| `field` keyword | widget properties | No separate backing field per property |
 | Extension members | `SKColorExtensions.cs` | `SKColor.FromHex()`, `color.WithAlpha()` |
-| Implicit `Span<T>` | Layout loops | Zero-alloc child iteration |
-| Records (`record struct`) | `Rect`, `Size`, `Thickness` | Value equality + `with` expressions for free |
+| Records (`record struct`) | `Rect`, `Size`, `Thickness`, `Transform2D` | Value equality and `with` expressions |
+| Struct enumerator | `ChildList` | `foreach` over children allocates nothing |
 
 ## Running
 

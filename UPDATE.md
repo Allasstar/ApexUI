@@ -4,6 +4,12 @@ Newest first. **Breaking** marks changes that need edits in apps using ApexUI.
 
 ## Unreleased
 
+### Tests and docs
+- 38 new tests (175 in total): measure and arrange of `Stack`, `Wrap`, `Canvas` with explicit size, `Grid` fixed/star rows, auto tracks, inferred rows, spans and out-of-range cells, hidden children in `Row`/`Column`, cross-axis alignment; right/bottom alignment, margins, min/max, explicit size and aspect ratio; `Handled` stopping a bubbling press, `Source` while bubbling, releasing capture mid-drag, capture without a press, disabled widgets passing clicks to their parent; Tab skipping hidden and disabled branches, focus event order, Shift+Tab from nothing; dirty flags on ancestors and not on siblings, render-only changes skipping layout, layout on detached widgets, showing and hiding a child.
+- `README.md` gains Input and focus and Testing sections, a corrected panel table (`Grid` tracks, `Canvas`, `Grow`) and the missing `Checkbox` and `VirtualList`.
+- `ARCHITECTURE.md`: the new-widget example uses `DrawContext` and theme tokens (it used removed `SKCanvas` extensions and literal sizes); new Testing section listing the test helpers; the roadmap lists what is still missing instead of widgets that exist.
+- `CLAUDE.md`: `Grid`, `Stack` and `PaddingBox` API, and a Testing section.
+
 ### Composite cleanup
 - `ContextMenu` and `Dropdown` share one popup panel (the context menu's own copy is gone). Context menu separators are inset by the theme's `SpacingXs` instead of a fixed 4 × 2.
 - `Separator` draws inside its `Padding`, so padding insets the line. It takes no length when measured unconstrained, so a separator in a panel that sizes to its content no longer makes that panel infinitely wide; with stretch alignment (the default) it still fills its slot.

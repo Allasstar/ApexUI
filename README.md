@@ -103,6 +103,29 @@ public class CounterExample : Widget
 }
 ```
 
+Give custom properties `set => SetLayoutProperty(ref field, value);` (changes size or position) or `SetRenderProperty(...)` (changes looks only). Both ignore unchanged values and schedule a frame; a window that nothing changes draws no frames at all.
+
+---
+
+## Input and focus
+
+Every widget has the same events. Subscribing adds to a widget's behavior, never replaces it:
+
+```csharp
+button.Click        += e => Save();
+canvas.PointerMoved += e => Hover(e.X, e.Y);        // X/Y in the widget's layout space
+panel.KeyDown       += e => { if (e.Ctrl && e.Key == Key.Z) { Undo(); e.Handled = true; } };
+host.UnhandledKeyDown += e => RunShortcut(e);       // keys no widget handled
+```
+
+- Pointer, wheel, key and text events **bubble** from the widget under the pointer (or the focused widget) to the root until a handler sets `e.Handled`.
+- A press **captures** the pointer for the pressed widget until release; `CapturePointer()` / `ReleasePointerCapture()` take or give it up explicitly (drags, handles).
+- **Hover** covers the whole chain: `IsHovered` is true on the widget under the pointer and its ancestors, with `PointerEntered` / `PointerExited` on each.
+- **Focus**: set `Focusable = true`. A press focuses the nearest focusable widget; Tab / Shift+Tab move through them in tree order, skipping hidden and disabled ones, and stay inside an open modal. The focus ring shows only for keyboard focus.
+- Pointer events carry `Modifiers`, `Button` and `ClickCount` (double click). `Widget.Cursor` sets the pointer shape.
+
+Subclasses override `OnClick`, `OnPointerPressed`, `OnKeyDown` and the rest instead of subscribing.
+
 ---
 
 ## Widgets
@@ -124,6 +147,7 @@ public class CounterExample : Widget
 | `Button` | Variants: `Primary`, `Secondary`, `Ghost` |
 | `TextInput` | Single-line text with placeholder, modes, validation, password masking |
 | `NumberInput` | `[−] [input] [+]` with step, min/max, and format string |
+| `Checkbox` | Checked/unchecked with optional label |
 | `Toggle` | On/off switch with optional label |
 | `Slider` | Draggable track — float or integer, optional step snapping |
 | `RadioGroup` | Mutually exclusive option set |
@@ -138,6 +162,7 @@ public class CounterExample : Widget
 | `Dialog` | Modal panel with title, content area, and configurable button row |
 | `Tooltip` | Hover-delay popup; wraps any widget: `new Tooltip(child, "hint")` |
 | `Scroll` | Scrollable viewport; direction: `Vertical`, `Horizontal`, `Both` |
+| `VirtualList<T>` | Scrolling list that builds only the rows near the viewport |
 
 ---
 
@@ -145,12 +170,15 @@ public class CounterExample : Widget
 
 | Panel | Description |
 |-------|-------------|
-| `Column` | Vertical stack with configurable spacing |
-| `Row` | Horizontal stack with configurable spacing |
+| `Column` | Vertical line of children with spacing; children with `Grow > 0` share leftover height |
+| `Row` | Horizontal line of children with spacing; children with `Grow > 0` share leftover width |
 | `Stack` | Overlapping layers — last child on top |
-| `PaddingBox` | Wraps a single child with uniform or per-side padding |
-| `Wrap` | Flows children into rows/columns, wrapping on overflow |
-| `Grid` | Fixed column grid with even column widths |
+| `PaddingBox` | Shorthand for a widget with `Padding` set (every widget applies its own `Padding`) |
+| `Wrap` | Flows children left to right, wrapping to a new line on overflow |
+| `Grid` | Columns and rows sized `Auto`, `Fixed(px)` or `Star(factor)`, with cell spans |
+| `Canvas` | Children at explicit positions, with natural or explicit size |
+
+Every widget also has `Margin`, `Padding`, `Width`/`Height`, `Min…`/`Max…`, `HAlign`/`VAlign` and `AspectRatio`. Layout is cached: a change lays out only its own branch again.
 
 ---
 
@@ -369,7 +397,7 @@ UPDATE.md               ← changelog, including API breaks
 lib/                    ← library projects only
   ApexUI/               ← the platform-neutral framework library (SkiaSharp only)
     Core/               ← Widget, UiHost, IPlatform, Theme, ThemeRegistry, Bindable, DrawContext
-    Layout/             ← Column, Row, Stack, PaddingBox, Wrap, Grid, Spacer
+    Layout/             ← Column, Row, Stack, PaddingBox, Wrap, Grid, Canvas, Spacer
     Widgets/            ← all widgets
     Extensions/         ← SKColor helpers
   ApexUI.Desktop/       ← desktop backend: DesktopPlatform (Silk.NET window, OpenGL surface, input)
@@ -377,8 +405,16 @@ src/                    ← apps and examples that use ApexUI
   Gallery/              ← demo app showing every widget
     Examples/           ← self-contained demos (one Widget subclass per file)
     res/                ← icons copied to the output folder
-tests/ApexUI.Tests/     ← xUnit tests (layout runs without a window)
+tests/ApexUI.Tests/     ← xUnit tests (no window needed)
 ```
+
+## Testing
+
+```bash
+dotnet test
+```
+
+Layout tests call `Measure` / `Arrange` on widgets directly. Input, focus and rendering tests run a real `UiHost` on a fake platform (`TestPlatform`) that sends pointer and key events, fires timers and counts frame requests. See the Testing section of `ARCHITECTURE.md` for the helpers.
 
 ---
 

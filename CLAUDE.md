@@ -28,6 +28,27 @@ Folder rule: **`lib/` holds library projects only** (one subfolder per project: 
 
 ---
 
+## Testing
+
+`tests/ApexUI.Tests/` (xUnit). Test names are sentences about behavior: `Tab_skips_hidden_and_disabled_widgets_and_their_descendants`.
+
+| Helper | Use |
+|---|---|
+| `FixedBox(w, h)` | leaf with a fixed content size |
+| `CountingBox(w, h)` | counts `Measures`, `Arranges`, `Draws`; `Resize(w, h)` invalidates layout |
+| `TestPanel` | container with public `Add`/`Remove` |
+| `TransformPanel` | container with a settable `ChildTransform` |
+| `TestPlatform.Show(root, w, h, dpi)` | `(UiHost, TestPlatform)`; `Click/Move/Press/Release/Key/Type`, `Listener.*` for raw events, `Render()` (dispose the bitmap), `Advance(time)` runs timers, `FramesRequested`, `RenderAndCountRequests()`, `Cursor` |
+| `TestCanvas.Draw(widget, w, h, theme)` | off-screen layout and draw |
+| `TestCanvas.MinAllocatedBytes(action)` | bytes allocated after warm-up; assert 0 for hot paths |
+
+- Layout: `Measure` + `Arrange` on the widget directly, assert `DesiredSize` / `LayoutBounds`.
+- Input, focus, invalidation: `TestPlatform.Show`. Positions are surface pixels; `Render()` first when the test needs layout to have run.
+- Tests see the library's internals (`InternalsVisibleTo`), e.g. `Widget.IsLayoutDirty`.
+- New block → tests for its layout, input and state changes. Bug fix → regression test.
+
+---
+
 ## Build profiles
 
 Publish profiles live in `src/Gallery/Gallery.csproj`.
@@ -436,6 +457,26 @@ Canvas Move(Widget child, float x, float y)    // reposition an existing child
 Canvas RemoveChild(Widget child)               // remove from canvas
 
 // Canvas auto-sizes to the bounding box of all children unless Width/Height are set explicitly.
+```
+
+### `Grid` · `lib/ApexUI/Layout/Grid.cs`
+
+```csharp
+readonly record struct GridLength(float Value, GridUnit Unit)   // GridLength.Auto, Fixed(px), Star(factor = 1)
+Grid DefineColumns(params GridLength[] columns)
+Grid DefineRows(params GridLength[] rows)   // without it: one Auto row per row index any cell uses
+Grid WithColumns(int count) / WithRows(int count)   // that many Star(1) tracks
+Grid WithSpacing(float columnSpacing, float rowSpacing)
+Grid Add(Widget child, int col = 0, int row = 0, int colSpan = 1, int rowSpan = 1)
+// Auto tracks fit their largest single-span cell (spans never widen them). Star tracks share what is left;
+// under an infinite constraint they size like Auto. A cell outside the defined columns gets an empty slot.
+```
+
+### `Stack`, `PaddingBox` · `lib/ApexUI/Layout/`
+
+```csharp
+Stack(params Widget[] children)          // Widget's default layout: children overlap, last on top
+PaddingBox(Widget child, Thickness padding) / PaddingBox(Widget child, float all)   // = a widget with Padding set
 ```
 
 ---
