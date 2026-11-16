@@ -29,8 +29,8 @@ public sealed class ContextMenu
         _overlay = new Overlay { DismissOnClickOutside = false };
         _overlay.OnClick = e =>
         {
-            if (e.Button == PointerButton.Right)
-                Show(e.X, e.Y);
+            if (e.Button == PointerButton.Right && _overlay.Host is { } host)
+                Show(host, e.X, e.Y);
             else
                 Close();
         };
@@ -74,8 +74,8 @@ public sealed class ContextMenu
         w.OnPointerUp = e =>
         {
             prev?.Invoke(e);
-            if (e.Button == PointerButton.Right)
-                menu.Show(e.X, e.Y);
+            if (e.Button == PointerButton.Right && w.Host is { } host)
+                menu.Show(host, e.X, e.Y);
         };
         foreach (var child in w.Children)
             AttachRecursive(child, menu);
@@ -83,7 +83,8 @@ public sealed class ContextMenu
 
     // ── Show / Close ──────────────────────────────────────────────────────────
 
-    public void Show(float x, float y)
+    /// Shows the menu at (x, y) in host's window, in logical units.
+    public void Show(UiHost host, float x, float y)
     {
         if (!_built) BuildPanel();
         _overlay.ContentHAlign = HAlign.Left;
@@ -91,7 +92,7 @@ public sealed class ContextMenu
         _overlay.PositionX     = x;
         _overlay.PositionY     = y;
         _overlay.Anchor        = null;
-        _overlay.Open();
+        _overlay.Open(host);
     }
 
     public void Close() => _overlay.Close();

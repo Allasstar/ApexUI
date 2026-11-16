@@ -7,15 +7,32 @@ ApexUI/
 ├── ApexUI.sln
 ├── Directory.Build.props          ← shared build settings
 ├── lib/                           ← library projects only
-│   └── ApexUI/                    ← framework library (ApexUI.csproj)
-│       ├── Core/                  ← Widget, Application, DrawContext, Theme, Rect/Size/Thickness, Overlay, Bindable
-│       ├── Layout/                ← Row, Column, Stack, PaddingBox, Spacer, Grid, Wrap, Canvas
-│       ├── Widgets/               ← Label, Button, TextInput, Scroll, Dropdown, Tabs, Dialog, ...
-│       └── Extensions/            ← C# 14 extension members on SKColor and SKCanvas
+│   ├── ApexUI/                    ← platform-neutral framework library (ApexUI.csproj)
+│   │   ├── Core/                  ← Widget, UiHost, IPlatform, DrawContext, Theme, Rect/Size/Thickness, Overlay, Bindable
+│   │   ├── Layout/                ← Row, Column, Stack, PaddingBox, Spacer, Grid, Wrap, Canvas
+│   │   ├── Widgets/               ← Label, Button, TextInput, Scroll, Dropdown, Tabs, Dialog, ...
+│   │   └── Extensions/            ← C# 14 extension members on SKColor
+│   └── ApexUI.Desktop/            ← desktop backend: DesktopPlatform (the only code that uses Silk.NET)
 ├── src/                           ← apps and examples that use ApexUI
 │   └── Gallery/                   ← demo app (Program.cs + Examples/)
 └── tests/ApexUI.Tests/            ← xUnit tests
 ```
+
+## Host and platform
+
+```
+IPlatform (DesktopPlatform, later a web backend)
+    window, GPU surface, frame requests, raw input, clipboard, cursor, timers, file dialogs
+        │  IPlatformListener: Resize, Render(canvas), PointerMove/Down/Up, Wheel, KeyDown/Up, TextEntered, Close
+        ▼
+UiHost (platform-neutral)
+    root widget tree, overlays, layout, drawing, hover/press/focus routing, theme, fonts
+```
+
+The platform reports events in window pixels; `UiHost` converts them to logical units and routes them.
+Keys arrive as the `Key` enum with `KeyModifiers`; typed characters arrive separately as text, so widgets
+can tell typing from shortcuts. Widgets reach their host through `Widget.Host`; there is no static application.
+Tests drive a `UiHost` through a fake platform, without a window.
 
 ## The three-pass model
 
@@ -45,7 +62,7 @@ Property changes → Invalidate() or InvalidateLayout()
     ↓
 Bubbles up to root via Parent?.Invalidate()
     ↓
-Application.OnRender() sees root.IsLayoutDirty
+UiHost.Render() sees root.IsLayoutDirty
     ↓
 Runs Measure + Arrange + Draw
 ```

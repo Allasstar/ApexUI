@@ -4,13 +4,13 @@ namespace ApexUI.Widgets;
 /// Use the static factories for common patterns, or build a custom dialog with the fluent API.
 ///
 /// Example — alert:
-///   Dialog.Alert("Error", "File not found.").Show();
+///   Dialog.Alert("Error", "File not found.").Show(host);
 ///
 /// Example — custom:
 ///   var dlg = new Dialog("Rename", new TextInput("Enter name…"))
 ///       .AddButton("Cancel", () => dlg.Close())
 ///       .AddPrimaryButton("OK", () => { Rename(); dlg.Close(); });
-///   dlg.Show();
+///   dlg.Show(host);
 public sealed class Dialog
 {
     private readonly Overlay _overlay;
@@ -54,10 +54,11 @@ public sealed class Dialog
 
     // ── Show / Close ──────────────────────────────────────────────────────────
 
-    public void Show()
+    /// Shows the dialog over host's window. Inside a widget, pass its Host.
+    public void Show(UiHost host)
     {
         if (!_built) BuildPanel();
-        _overlay.Open();
+        _overlay.Open(host);
     }
 
     public void Close()

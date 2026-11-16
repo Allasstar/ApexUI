@@ -21,6 +21,22 @@ public abstract class Widget
 
     public Widget? Parent { get; internal set; }
 
+    private UiHost? _rootHost;
+
+    /// The host showing this widget's tree, or null while the widget is not on screen.
+    public UiHost? Host
+    {
+        get
+        {
+            var w = this;
+            while (w.Parent is not null) w = w.Parent;
+            return w._rootHost;
+        }
+    }
+
+    // Set by UiHost on the root of each tree it shows (the root widget and open overlays).
+    internal void SetRootHost(UiHost? host) => _rootHost = host;
+
     private readonly List<Widget> _children = [];
     public IReadOnlyList<Widget> Children => _children;
 
@@ -133,6 +149,7 @@ public abstract class Widget
     public Action<PointerEvent>? OnClick;
     public Action<KeyEvent>?     OnKeyDown;
     public Action<KeyEvent>?     OnKeyUp;
+    public Action<TextInputEvent>? OnTextInput;
     /// deltaX, deltaY — scroll wheel deltas; bubbles to parent if not handled.
     public Action<float, float>? OnScroll;
 

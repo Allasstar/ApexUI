@@ -50,7 +50,7 @@ public class Toggle : Widget
         float w = TrackW;
         if (!string.IsNullOrEmpty(Label))
         {
-            using var font = LayoutFont.Get(14f);
+            using var font = LayoutFont.Get(Host, 14f);
             w += LabelGap + font.Font.MeasureText(Label) + 2f;
         }
         return new Size(w, TrackH);

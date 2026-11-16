@@ -21,7 +21,7 @@ public class RadioGroup<T> : Widget
 
         protected override Size MeasureCore(Size available)
         {
-            using var font = LayoutFont.Get(14f);
+            using var font = LayoutFont.Get(Host, 14f);
             float textW = string.IsNullOrEmpty(ItemLabel) ? 0f : font.Font.MeasureText(ItemLabel) + 2f;
             return new Size(CircleR * 2 + Gap + textW, MathF.Max(CircleR * 2 + 4f, 14f * 1.4f));
         }

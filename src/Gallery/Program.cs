@@ -1,10 +1,11 @@
+using ApexUI.Desktop;
 using ApexUI.Gallery.Examples;
 
 SolAndLunaTheme.Register();
 
-var example = new TabsExample();
-new Application("ApexUI Demo", 900, 700)
-    .SetIcon("res/ApexIcon.svg")
+var example  = new TabsExample();
+var platform = new DesktopPlatform("ApexUI Demo", 900, 700).WithIcon("res/ApexIcon.svg");
+new UiHost(platform)
     .BindFontFamily(example.FontFamily)
     .BindUiScale(example.Scale)
     .BindTheme(example.Preset)

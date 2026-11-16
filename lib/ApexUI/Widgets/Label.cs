@@ -46,7 +46,7 @@ public class Label : Widget
     protected override Size MeasureCore(Size available)
     {
         // Must match the size DrawCore uses, or the measured box and the drawn text disagree.
-        float fontSize = float.IsNaN(FontSize) ? (Application.Current?.Theme ?? Theme.Light).FontSizeBase : FontSize;
+        float fontSize = float.IsNaN(FontSize) ? (Host?.Theme ?? Theme.Light).FontSizeBase : FontSize;
         float lineH    = fontSize * 1.4f;
 
         if (!WordWrap || float.IsInfinity(available.Width))
@@ -76,14 +76,14 @@ public class Label : Widget
     }
 
     private TextKey CurrentKey(float fontSize)
-        => new(Text, Application.Current?.FontFamily ?? FontCache.DefaultFamily, fontSize, Bold);
+        => new(Text, Host?.FontFamily ?? FontCache.DefaultFamily, fontSize, Bold);
 
     private float SingleLineWidth(float fontSize)
     {
         var key = CurrentKey(fontSize);
         if (key == _widthKey) return _width;
 
-        using var font = LayoutFont.Get(fontSize, Bold);
+        using var font = LayoutFont.Get(Host, fontSize, Bold);
         _width    = font.Font.MeasureText(Text);
         _widthKey = key;
         return _width;
@@ -94,7 +94,7 @@ public class Label : Widget
         var key = CurrentKey(fontSize);
         if (key == _linesKey && maxWidth == _linesWidth) return _lines;
 
-        using var font = LayoutFont.Get(fontSize, Bold);
+        using var font = LayoutFont.Get(Host, fontSize, Bold);
         ComputeLines(Text, font.Font, maxWidth, _lines);
         _linesKey   = key;
         _linesWidth = maxWidth;

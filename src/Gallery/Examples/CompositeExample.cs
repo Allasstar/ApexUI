@@ -106,9 +106,9 @@ public class CompositeExample : Widget
 
                 new Label { Text = "Dialog / Modal", Bold = true, FontSize = 18f },
                 new Row(
-                    new Button("Alert").OnPress(() => alertDialog.Show()),
-                    new Button("Confirm").OnPress(() => confirmDialog.Show()),
-                    new Button("Custom").OnPress(() => customDialog.Show())
+                    new Button("Alert").OnPress(() => alertDialog.Show(Host!)),
+                    new Button("Confirm").OnPress(() => confirmDialog.Show(Host!)),
+                    new Button("Custom").OnPress(() => customDialog.Show(Host!))
                 ) { Spacing = 8f },
                 confirmResult,
                 customResult,

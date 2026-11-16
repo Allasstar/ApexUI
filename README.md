@@ -7,7 +7,7 @@ A minimal desktop UI framework for C#. No markup languages, no code generators, 
 Most C# UI frameworks require a project wizard, a designer, XAML files, or a package you can't read. ApexUI is the opposite:
 
 - **Zero setup** — clone, open, run. `dotnet run --project src/Gallery` is all you need.
-- **Open source core** — the entire framework lives in `lib/ApexUI/`. Read it, understand it, change it.
+- **Open source core** — the framework lives in `lib/ApexUI/` (platform-neutral) and `lib/ApexUI.Desktop/` (the desktop backend). Read it, understand it, change it.
 - **Pure C#** — no XAML, no markup, no DSL. Your UI is just C# code.
 - **Portable foundations** — built on Silk.NET (GLFW) + SkiaSharp (OpenGL). Windows is the tested platform today.
 
@@ -21,22 +21,28 @@ cd ApexUI
 dotnet run --project src/Gallery
 ```
 
-To use ApexUI in your own app, reference `lib/ApexUI/ApexUI.csproj`:
+To use ApexUI in a desktop app, reference the desktop backend (it brings in the core library):
 
 ```xml
-<ProjectReference Include="path/to/ApexUI/lib/ApexUI/ApexUI.csproj" />
+<ProjectReference Include="path/to/ApexUI/lib/ApexUI.Desktop/ApexUI.Desktop.csproj" />
 ```
 
 ---
 
-## Application
+## Host and platform
+
+An app is a `UiHost` (widget tree, layout, drawing, input routing, overlays, theme) running on an `IPlatform` backend (window, GPU surface, raw input, clipboard, cursor, timers). `DesktopPlatform` in `ApexUI.Desktop` is the desktop backend.
 
 ```csharp
 // Program.cs
-var example = new MyWidget();
+using ApexUI.Core;
+using ApexUI.Desktop;
 
-new Application("My App", 900, 700)
-    .SetIcon("res/icon.svg")       // .svg / .ico / raster — call before Run()
+var example  = new MyWidget();
+var platform = new DesktopPlatform("My App", 900, 700)
+    .WithIcon("res/icon.svg");     // .svg / .ico / raster — call before Run()
+
+new UiHost(platform)
     .BindUiScale(example.Scale)    // Bindable<float>  — 0.1 – 10
     .BindDarkMode(example.Dark)    // Bindable<bool>   — true = Dark
     .BindTheme(example.Preset)     // Bindable<string> — theme name from ThemeLibrary
@@ -44,7 +50,9 @@ new Application("My App", 900, 700)
     .Run(example);
 ```
 
-Each `Bind*` method wires a `Bindable<T>` to the matching application property — changing the bindable at runtime instantly updates the app. All methods return `this` for chaining.
+Each `Bind*` method wires a `Bindable<T>` to the matching host property — changing the bindable at runtime instantly updates the app. All methods return `this` for chaining.
+
+Inside a widget, `Host` is the `UiHost` showing it (null until the widget is on screen). Dialogs and overlays need it to know which window to open in: `dialog.Show(Host!)`, `overlay.Open(Host!)`. `Host.Platform` gives access to the clipboard, cursor and timers.
 
 ---
 
@@ -178,7 +186,7 @@ ApexUI ships five themes, each with a light and dark variant:
 var preset  = new Bindable<string>(ThemeLibrary.Default);
 var isDark  = new Bindable<bool>(false);
 
-new Application("App", 900, 700)
+new UiHost(new DesktopPlatform("App", 900, 700))
     .BindTheme(preset)       // pick the palette
     .BindDarkMode(isDark)    // flip light ↔ dark within that palette
     .Run(root);
@@ -230,7 +238,7 @@ A single canvas transform scales the entire widget tree — no per-widget code n
 ```csharp
 var scale = new Bindable<float>(1f);   // 0.1 – 10, default 1.0
 
-new Application("App", 900, 700)
+new UiHost(new DesktopPlatform("App", 900, 700))
     .BindUiScale(scale)
     .Run(root);
 
@@ -242,7 +250,7 @@ Font family is also live-swappable:
 ```csharp
 var font = new Bindable<string>("Segoe UI");
 
-new Application("App", 900, 700)
+new UiHost(new DesktopPlatform("App", 900, 700))
     .BindFontFamily(font)
     .Run(root);
 
@@ -340,11 +348,12 @@ ApexUI.sln
 Directory.Build.props   ← shared settings (net10.0, nullable, warnings as errors)
 UPDATE.md               ← changelog, including API breaks
 lib/                    ← library projects only
-  ApexUI/               ← the framework library
-    Core/               ← Widget, Application, Theme, ThemeLibrary, Bindable, DrawContext
+  ApexUI/               ← the platform-neutral framework library (SkiaSharp only)
+    Core/               ← Widget, UiHost, IPlatform, Theme, ThemeLibrary, Bindable, DrawContext
     Layout/             ← Column, Row, Stack, PaddingBox, Wrap, Grid, Spacer
     Widgets/            ← all widgets
-    Extensions/         ← SKColor and SKCanvas helpers
+    Extensions/         ← SKColor helpers
+  ApexUI.Desktop/       ← desktop backend: DesktopPlatform (Silk.NET window, OpenGL surface, input)
 src/                    ← apps and examples that use ApexUI
   Gallery/              ← demo app showing every widget
     Examples/           ← self-contained demos (one Widget subclass per file)

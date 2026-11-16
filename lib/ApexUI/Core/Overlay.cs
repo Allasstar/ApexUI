@@ -4,13 +4,13 @@ namespace ApexUI.Core;
 public enum OverlayAnchor { BelowAnchor, AboveAnchor, RightOfAnchor, LeftOfAnchor }
 
 /// Floating z-layer that renders above the entire widget tree.
-/// Application draws all registered overlays after the root tree,
+/// UiHost draws all open overlays after the root tree,
 /// so they bypass any clip accumulated by parent panels.
 ///
 /// Usage:
 ///   var ov = new Overlay { IsModal = true, ContentHAlign = HAlign.Center, ContentVAlign = VAlign.Center };
 ///   ov.Content = myDialogWidget;
-///   button.OnClick = _ => ov.Open();
+///   button.OnClick = _ => ov.Open(button.Host!);
 public class Overlay : Widget
 {
     private Widget? _content;
@@ -60,31 +60,37 @@ public class Overlay : Widget
         OnClick = _ => { if (DismissOnClickOutside) Close(); };
     }
 
-    /// Show this overlay and register it with the Application for top-level rendering.
-    public void Open()
+    private UiHost? _openOn;
+
+    /// Show this overlay above everything else in host's window.
+    public void Open(UiHost host)
     {
+        if (_openOn is not null && _openOn != host) _openOn.UnregisterOverlay(this);
+        _openOn   = host;
         IsVisible = true;
-        Application.Current?.RegisterOverlay(this);
+        host.RegisterOverlay(this);
     }
 
-    /// Open and anchor Content below/above/beside the given widget.
+    /// Open and anchor Content below/above/beside the given widget, in the anchor's window.
     public void Open(Widget anchor, OverlayAnchor edge = OverlayAnchor.BelowAnchor)
     {
-        Anchor    = anchor;
+        var host = anchor.Host
+            ?? throw new InvalidOperationException("The anchor widget is not shown by a UiHost.");
+        Anchor     = anchor;
         AnchorEdge = edge;
-        Open();
+        Open(host);
     }
 
-    /// Hide this overlay and unregister it from the Application.
     public void Close()
     {
         IsVisible = false;
-        Application.Current?.UnregisterOverlay(this);
+        _openOn?.UnregisterOverlay(this);
+        _openOn = null;
         OnDismiss?.Invoke();
     }
 
     // ── Layout ────────────────────────────────────────────────────────────────
-    // Application calls Measure/Arrange with the full logical screen rect,
+    // UiHost calls Measure/Arrange with the full logical screen rect,
     // so LayoutBounds = entire screen (needed for backdrop hit-testing).
 
     protected override Size MeasureCore(Size available)

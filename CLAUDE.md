@@ -2,7 +2,7 @@
 
 ## Projects and namespaces
 
-Folder rule: **`lib/` holds library projects only** (one subfolder per project, e.g. `lib/ApexUI/`, later `lib/ApexUI.Desktop/`). **`src/` holds only code that uses ApexUI**: examples and apps. Tests live in `tests/`.
+Folder rule: **`lib/` holds library projects only** (one subfolder per project: `lib/ApexUI/` platform-neutral core, `lib/ApexUI.Desktop/` desktop backend). **`src/` holds only code that uses ApexUI**: examples and apps. Tests live in `tests/`.
 
 | Folder | Project | Namespace |
 |--------|---------|-----------|
@@ -10,6 +10,7 @@ Folder rule: **`lib/` holds library projects only** (one subfolder per project, 
 | `lib/ApexUI/Layout/` | `ApexUI` | `ApexUI.Layout` |
 | `lib/ApexUI/Widgets/` | `ApexUI` | `ApexUI.Widgets` |
 | `lib/ApexUI/Extensions/` | `ApexUI` | `ApexUI.Extensions` |
+| `lib/ApexUI.Desktop/` | `ApexUI.Desktop` (Silk.NET backend) | `ApexUI.Desktop` |
 | `tests/ApexUI.Tests/` | `ApexUI.Tests` (xUnit) | `ApexUI.Tests` |
 | `src/Gallery/Examples/` | `Gallery` (exe) | `ApexUI.Gallery.Examples` |
 
@@ -85,6 +86,8 @@ Rect LayoutBounds;
 // Events
 Action<PointerEvent>? OnClick, OnPointerDown, OnPointerUp, OnPointerMove, OnPointerEnter, OnPointerExit;
 Action<KeyEvent>?     OnKeyDown, OnKeyUp;
+Action<TextInputEvent>? OnTextInput;   // typed text, separate from keys
+UiHost? Host;   // host showing this widget's tree; null while not on screen
 Action<float, float>? OnScroll;   // (deltaX, deltaY)
 
 enum HAlign          { Left, Center, Right, Stretch }
@@ -104,18 +107,47 @@ event Action<T>? Changed
 
 ---
 
-### `Application` · `lib/ApexUI/Core/Application.cs`
+### `UiHost` · `lib/ApexUI/Core/UiHost.cs`
+
+Platform-neutral app host: tree, layout, drawing, input routing, overlays, focus, theme. Implements `IPlatformListener`.
 
 ```csharp
-Application(string title = "ApexUI App", int width = 900, int height = 600)
-void Run(Widget root)
-Theme Theme    { get; set; }
-float DpiScale { get; }
-float UiScale  { get; set; }   // clamped 0.1–10; scales entire tree uniformly
+UiHost(IPlatform platform)
+void Run(Widget root)          // sets Root, then platform.Run(this)
+IPlatform Platform   { get; }
+Widget?   Root       { get; set; }
+Theme     Theme      { get; set; }
+string    FontFamily { get; set; }
+float     DpiScale   { get; }
+float     UiScale    { get; set; }   // clamped 0.1–10; scales entire tree uniformly
 
-Application SetIcon(string path)          // .svg / .ico / raster; call before Run()
-Application BindUiScale(Bindable<float>)
-Application BindDarkMode(Bindable<bool>)  // true → Dark, false → Light
+UiHost BindUiScale(Bindable<float>)
+UiHost BindTheme(Bindable<string>)
+UiHost BindDarkMode(Bindable<bool>)  // true → Dark, false → Light
+UiHost BindFontFamily(Bindable<string>)
+```
+
+### `IPlatform` · `lib/ApexUI/Core/IPlatform.cs`
+
+The only seam to the OS. Nothing outside `lib/ApexUI.Desktop/` may reference Silk.NET.
+
+```csharp
+void Run(IPlatformListener listener)   // call listener.Resize before the first Render
+void RequestFrame()
+string? GetClipboardText(); void SetClipboardText(string)
+void SetCursor(CursorShape)
+IDisposable StartTimer(TimeSpan interval, Action tick)   // UI thread; dispose to stop
+Task<string?> OpenFileAsync(FileDialogOptions) / SaveFileAsync(FileDialogOptions)   // not implemented on desktop yet
+
+// IPlatformListener: Resize, Render(SKCanvas, dt), PointerMove/Down/Up, Wheel, KeyDown/KeyUp(Key, KeyModifiers), TextEntered(string), Close
+// Coordinates and sizes are window pixels; UiHost converts to logical units.
+```
+
+### `DesktopPlatform` · `lib/ApexUI.Desktop/DesktopPlatform.cs`
+
+```csharp
+DesktopPlatform(string title = "ApexUI App", int width = 900, int height = 600)
+DesktopPlatform WithIcon(string path)   // .svg / .ico / raster; call before Run()
 ```
 
 ---
@@ -138,8 +170,13 @@ SKPaint MakeTextPaint(SKColor color)                       // new object, caller
 SKFont Get(string family, float sizePx, bool bold = false) // cached; never dispose the result
 
 record struct PointerEvent(float X, float Y, PointerButton Button, bool IsDown)
-record struct KeyEvent(string Key, bool IsDown, bool Ctrl, bool Shift, bool Alt)
 enum PointerButton { None, Left, Right, Middle }
+
+// InputEvents · lib/ApexUI/Core/InputEvents.cs
+record struct KeyEvent(Key Key, KeyModifiers Modifiers, bool IsDown)   // + Ctrl, Shift, Alt, Super
+record struct TextInputEvent(string Text)
+enum Key { A..Z, D0..D9, F1..F12, Enter, Escape, Left, Right, ... }   // physical keys
+[Flags] enum KeyModifiers { None, Shift, Control, Alt, Super }
 ```
 
 ---
@@ -343,5 +380,5 @@ Dropdown<T> WithItems(ObservableList<T> source)   // uses ToString()
 
 ## TODO
 
-- **Tab focus navigation** — focus only moves on click; implement `Tab`/`Shift+Tab` traversal in `Application` across focusable widgets (`TextInput` etc.)
+- **Tab focus navigation** — focus only moves on click; implement `Tab`/`Shift+Tab` traversal in `UiHost` across focusable widgets (`TextInput` etc.)
 - **Animation primitives** — add a simple `Lerp`-based value animator driven by the tick loop for smooth hover/press transitions

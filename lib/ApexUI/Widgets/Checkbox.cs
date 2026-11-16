@@ -48,7 +48,7 @@ public class Checkbox : Widget
         float w = BoxSize;
         if (!string.IsNullOrEmpty(Label))
         {
-            using var font = LayoutFont.Get(14f);
+            using var font = LayoutFont.Get(Host, 14f);
             w += Gap + font.Font.MeasureText(Label) + 2f;
         }
         return new Size(w, BoxSize);

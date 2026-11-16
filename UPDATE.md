@@ -4,6 +4,31 @@ Newest first. **Breaking** marks changes that need edits in apps using ApexUI.
 
 ## Unreleased
 
+### Platform layer
+- **Breaking:** `Application` is gone. An app is now a platform-neutral `UiHost` (tree, layout, drawing, input routing, overlays, focus, theme) running on an `IPlatform` backend. The desktop backend, `DesktopPlatform`, lives in the new `ApexUI.Desktop` project, the only code that uses Silk.NET. Migrate:
+  ```csharp
+  // before
+  new Application("App", 900, 700).SetIcon("icon.svg").BindTheme(preset).Run(root);
+  // after
+  new UiHost(new DesktopPlatform("App", 900, 700).WithIcon("icon.svg")).BindTheme(preset).Run(root);
+  ```
+- **Breaking:** desktop apps reference `lib/ApexUI.Desktop/ApexUI.Desktop.csproj` (it brings in `ApexUI`) and add `using ApexUI.Desktop;`. `lib/ApexUI` now depends only on SkiaSharp and Svg.Skia.
+- `IPlatform` covers the window and GPU surface (`Run`), frame requests, clipboard, cursor shape (`CursorShape`), UI-thread timers (`StartTimer`) and file dialogs (`OpenFileAsync`/`SaveFileAsync`, declared but not implemented on desktop yet). The backend reports events through `IPlatformListener`, which `UiHost` implements; tests can drive a `UiHost` with a fake platform and no window.
+- `Widget.Host` is the `UiHost` showing the widget's tree, or null while it is not on screen. `UiHost.Platform` reaches clipboard, cursor and timers.
+- **Breaking:** the static `Application.Current` is removed, so overlays need to know which window to open in:
+  - `Overlay.Open()` → `Overlay.Open(UiHost host)`. `Overlay.Open(Widget anchor, edge)` uses the anchor's host and throws if the anchor is not on screen.
+  - `Dialog.Show()` → `Dialog.Show(UiHost host)`; inside a widget pass `Host!`.
+  - `ContextMenu.Show(x, y)` → `ContextMenu.Show(UiHost host, x, y)`. `ContextMenu.Attach` is unchanged.
+- SkiaSharp native assets for Windows, macOS and Linux ship with `ApexUI.Desktop` (before: Windows only).
+
+### Input
+- **Breaking:** `KeyEvent` is now `KeyEvent(Key Key, KeyModifiers Modifiers, bool IsDown)` with a `Key` enum (physical keys: `A`–`Z`, `D0`–`D9`, `F1`–`F12`, `Left`, `Enter`, `KeypadEnter`, ...) and `KeyModifiers` flags (`Shift`, `Control`, `Alt`, `Super`). `Ctrl`, `Shift`, `Alt` and `Super` remain as read-only properties. Before, keys were strings such as `"ArrowLeft"` or Silk.NET enum names.
+- **Breaking:** typed characters no longer arrive as one-character `KeyDown` events. They arrive in the new `Widget.OnTextInput` (`TextInputEvent(string Text)`), already translated by the keyboard layout; `KeyDown` is sent for every key, including letters.
+- Key-up events now carry the modifiers held at the time; before they always reported none.
+
+### Fixes
+- `TextInput`: Backspace at the end of the text moved the caret two places back, so the next character was inserted one place too early.
+
 ### Performance
 - Drawing no longer creates Skia objects per call. `DrawContext` reuses its fill, stroke, text, shadow and layer paints, one path, one rounded rect and cached blur filters; text uses a `FontCache`. In the Gallery, bytes allocated per frame dropped from 8–52 KB to 2.5–16 KB, and per layout pass from 17–210 KB to 0.7–40 KB. What remains in drawing is SkiaSharp's own `DrawText` (about 160 B per call).
 - The application keeps one `DrawContext` and one `FontCache` for its lifetime instead of creating a context every frame.

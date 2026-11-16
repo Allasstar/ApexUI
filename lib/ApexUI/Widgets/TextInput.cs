@@ -64,6 +64,7 @@ public class TextInput : Widget, ITickable
         CornerRadius = 6f;
         MinWidth     = 120f;
         OnKeyDown    = HandleKey;
+        OnTextInput  = HandleText;
         OnPointerDown = HandlePointerDown;
         OnPointerMove = HandlePointerMove;
         OnPointerUp   = _ => _isDragging = false;
@@ -233,15 +234,16 @@ public class TextInput : Widget, ITickable
     private float CaretX(int index)
     {
         string display  = DisplayText;
-        float  fontSize = (Application.Current?.Theme ?? Theme.Light).FontSizeBase;
-        string family   = Application.Current?.FontFamily ?? FontCache.DefaultFamily;
+        var    host     = Host;
+        float  fontSize = (host?.Theme ?? Theme.Light).FontSizeBase;
+        string family   = host?.FontFamily ?? FontCache.DefaultFamily;
 
         if (!ReferenceEquals(_caretXsText, display) || _caretXsFamily != family || _caretXsFontSize != fontSize)
         {
             if (_caretXs.Length < display.Length + 1)
                 _caretXs = new float[display.Length + 1];
 
-            using var font = LayoutFont.Get(fontSize);
+            using var font = LayoutFont.Get(host, fontSize);
             _caretXs[0] = 0f;
             for (int i = 1; i <= display.Length; i++)
                 _caretXs[i] = font.Font.MeasureText(display.AsSpan(0, i));
@@ -260,15 +262,21 @@ public class TextInput : Widget, ITickable
         if (!e.IsDown) return;
         switch (e.Key)
         {
-            case "Backspace":
+            case Key.Backspace:
                 if (HasSelection) DeleteSelection();
-                else if (_cursorPos > 0) { Value = Value.Remove(_cursorPos - 1, 1); _cursorPos--; _selAnchor = _cursorPos; }
+                else if (_cursorPos > 0)
+                {
+                    // The Value setter clamps the caret, so compute the new position first.
+                    int at = _cursorPos - 1;
+                    Value = Value.Remove(at, 1);
+                    _cursorPos = _selAnchor = at;
+                }
                 break;
-            case "Delete":
+            case Key.Delete:
                 if (HasSelection) DeleteSelection();
                 else if (_cursorPos < Value.Length) Value = Value.Remove(_cursorPos, 1);
                 break;
-            case "ArrowLeft":
+            case Key.Left:
                 if (e.Shift)
                     _cursorPos = Math.Max(0, _cursorPos - 1);
                 else if (HasSelection)
@@ -276,7 +284,7 @@ public class TextInput : Widget, ITickable
                 else
                     _cursorPos = _selAnchor = Math.Max(0, _cursorPos - 1);
                 Invalidate(); break;
-            case "ArrowRight":
+            case Key.Right:
                 if (e.Shift)
                     _cursorPos = Math.Min(Value.Length, _cursorPos + 1);
                 else if (HasSelection)
@@ -284,31 +292,30 @@ public class TextInput : Widget, ITickable
                 else
                     _cursorPos = _selAnchor = Math.Min(Value.Length, _cursorPos + 1);
                 Invalidate(); break;
-            case "Home":
+            case Key.Home:
                 if (e.Shift) _cursorPos = 0;
                 else _cursorPos = _selAnchor = 0;
                 Invalidate(); break;
-            case "End":
+            case Key.End:
                 if (e.Shift) _cursorPos = Value.Length;
                 else _cursorPos = _selAnchor = Value.Length;
                 Invalidate(); break;
-            case "Enter": OnSubmit?.Invoke(Value); break;
-            default:
-                if (e.Ctrl)
-                {
-                    if (string.Equals(e.Key, "a", StringComparison.OrdinalIgnoreCase))
-                    { _selAnchor = 0; _cursorPos = Value.Length; Invalidate(); }
-                    break;
-                }
-                if (e.Key.Length == 1 && IsCharAllowed(e.Key[0]))
-                {
-                    if (HasSelection) DeleteSelection();
-                    Value = Value.Insert(_cursorPos, e.Key);
-                    _cursorPos++;
-                    _selAnchor = _cursorPos;
-                }
-                break;
+            case Key.Enter or Key.KeypadEnter: OnSubmit?.Invoke(Value); break;
+            case Key.A when e.Ctrl:
+                _selAnchor = 0; _cursorPos = Value.Length; Invalidate(); break;
         }
+        ResetBlink();
+    }
+
+    private void HandleText(TextInputEvent e)
+    {
+        foreach (char c in e.Text)
+            if (!IsCharAllowed(c)) return;
+
+        if (HasSelection) DeleteSelection();
+        Value      = Value.Insert(_cursorPos, e.Text);
+        _cursorPos += e.Text.Length;
+        _selAnchor = _cursorPos;
         ResetBlink();
     }
 

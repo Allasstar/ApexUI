@@ -137,22 +137,3 @@ public sealed partial class DrawContext : IDisposable
         if (_ownsFonts) _fonts.Dispose();
     }
 }
-
-// ── Input events ──────────────────────────────────────────────────────────────
-
-public record struct PointerEvent(
-    float  X,
-    float  Y,
-    PointerButton Button,
-    bool   IsDown
-);
-
-public record struct KeyEvent(
-    string Key,
-    bool   IsDown,
-    bool   Ctrl,
-    bool   Shift,
-    bool   Alt
-);
-
-public enum PointerButton { None, Left, Right, Middle }

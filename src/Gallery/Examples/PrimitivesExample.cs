@@ -89,7 +89,7 @@ public class PrimitivesExample : Widget
                 new Label { Text = "Overlay", Bold = true, FontSize = 18f },
 
                 new Row(
-                    new Button("Open Modal Dialog").OnPress(() => dialog.Open()),
+                    new Button("Open Modal Dialog").OnPress(() => dialog.Open(Host!)),
                     popupAnchor
                 ).WithSpacing(12f)
 

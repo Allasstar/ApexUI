@@ -142,7 +142,7 @@ public class TextCacheTests
     private static void Type(TextInput input, string text)
     {
         foreach (var c in text)
-            input.OnKeyDown!(new KeyEvent(c.ToString(), true, false, false, false));
+            input.OnTextInput!(new TextInputEvent(c.ToString()));
     }
 }
 

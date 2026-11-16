@@ -65,7 +65,7 @@
   -->
 
   <ItemGroup>
-    <ProjectReference Include="..\..\lib\ApexUI\ApexUI.csproj" />
+    <ProjectReference Include="..\..\lib\ApexUI.Desktop\ApexUI.Desktop.csproj" />
   </ItemGroup>
 
   <!-- Everything in res/ is copied to the output folder, preserving subfolder structure. -->
