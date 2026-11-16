@@ -8,6 +8,8 @@ using SilkKey = Silk.NET.Input.Key;
 namespace ApexUI.Desktop;
 
 /// Desktop backend: a GLFW window (via Silk.NET) with an OpenGL-backed Skia surface.
+/// The window size is given in logical units; on a scaled display the window grows to match,
+/// and it is resized again when it moves to a display with another scale.
 ///
 ///   new UiHost(new DesktopPlatform("My App", 900, 700).WithIcon("res/icon.svg")).Run(root);
 public sealed class DesktopPlatform : IPlatform
@@ -24,6 +26,15 @@ public sealed class DesktopPlatform : IPlatform
     private GRContext?         _grContext;
     private GRBackendRenderTarget? _renderTarget;
     private SKSurface?         _surface;
+    private ContentScale?      _contentScale;
+
+    // Framebuffer pixels per window coordinate: 1 on Windows and X11, 2 on Retina macOS.
+    private float _pixelRatio = 1f;
+    // Framebuffer pixels per logical unit, as last reported to the listener.
+    private float _dpiScale = 1f;
+    // Window coordinates per logical unit that the current window size was chosen for.
+    private float _windowUnitsPerLogical = 1f;
+    private Vector2D<int> _surfaceSize;
 
     private string?     _iconPath;
     private CursorShape _cursor = CursorShape.Arrow;
@@ -37,13 +48,16 @@ public sealed class DesktopPlatform : IPlatform
             PreferredDepthBufferBits   = 0,
             PreferredStencilBufferBits = 8,  // Skia needs stencil
             Samples                    = 4,  // 4x MSAA — driver clamps if unsupported
+            IsVisible                  = false, // shown once sized for the display's scale
         };
         _window = Window.Create(options);
 
         _window.Load    += OnLoad;
         _window.Update  += _ => RunDueTimers();
         _window.Render  += OnRender;
-        _window.Resize  += OnResize;
+        _window.Resize            += _ => SyncSize();
+        _window.FramebufferResize += _ => SyncSize();
+        _window.Move              += _ => SyncSize();
         _window.Closing += OnClosing;
     }
 
@@ -99,7 +113,7 @@ public sealed class DesktopPlatform : IPlatform
     {
         _gl        = _window.CreateOpenGL();
         _grContext = GRContext.CreateGl(GRGlInterface.Create());
-        SetupSurface(_window.Size.X, _window.Size.Y);
+        _contentScale = ContentScale.For(_window);
 
         if (_iconPath is not null)
             WindowIcon.Apply(_window, _iconPath);
@@ -122,7 +136,37 @@ public sealed class DesktopPlatform : IPlatform
         _keyboard = _input.Keyboards.Count > 0 ? _input.Keyboards[0] : null;
         ApplyCursor();
 
-        _listener!.Resize(_window.Size.X, _window.Size.Y);
+        SyncSize();
+        _window.IsVisible = true;
+    }
+
+    // Brings the window size, the surface and the listener in line with the display's scale.
+    // Called on every size, framebuffer, position and frame change, because a scale change
+    // (moving to another display, changing display settings) has no event of its own here.
+    private void SyncSize()
+    {
+        if (_gl is null) return; // events can arrive before Load
+        var size = _window.Size;
+        var fb   = _window.FramebufferSize;
+        if (size.X <= 0 || size.Y <= 0 || fb.X <= 0 || fb.Y <= 0) return; // minimized
+
+        _pixelRatio = fb.X / (float)size.X;
+        float dpiScale = _contentScale?.Read() ?? _pixelRatio;
+
+        float units = dpiScale / _pixelRatio;
+        if (MathF.Abs(units - _windowUnitsPerLogical) > 0.01f)
+        {
+            float k = units / _windowUnitsPerLogical;
+            _windowUnitsPerLogical = units;
+            _window.Size = new Vector2D<int>((int)MathF.Round(size.X * k), (int)MathF.Round(size.Y * k));
+            return; // the resize comes back here with the new size
+        }
+
+        if (fb == _surfaceSize && dpiScale == _dpiScale) return;
+        _surfaceSize = fb;
+        _dpiScale    = dpiScale;
+        SetupSurface(fb.X, fb.Y);
+        _listener!.Resize(fb.X, fb.Y, dpiScale);
     }
 
     private void SetupSurface(int w, int h)
@@ -138,14 +182,9 @@ public sealed class DesktopPlatform : IPlatform
         _surface = SKSurface.Create(_grContext!, _renderTarget, GRSurfaceOrigin.BottomLeft, SKColorType.Rgba8888);
     }
 
-    private void OnResize(Vector2D<int> size)
-    {
-        SetupSurface(size.X, size.Y);
-        _listener!.Resize(size.X, size.Y);
-    }
-
     private void OnRender(double delta)
     {
+        SyncSize();
         if (_surface is null) return;
         var canvas = _surface.Canvas;
         _listener!.Render(canvas, (float)delta);
@@ -200,13 +239,13 @@ public sealed class DesktopPlatform : IPlatform
     // ── Input ─────────────────────────────────────────────────────────────────
 
     private void OnMouseMove(IMouse mouse, System.Numerics.Vector2 pos)
-        => _listener!.PointerMove(pos.X, pos.Y);
+        => _listener!.PointerMove(pos.X * _pixelRatio, pos.Y * _pixelRatio);
 
     private void OnMouseDown(IMouse mouse, MouseButton button)
-        => _listener!.PointerDown(mouse.Position.X, mouse.Position.Y, MapButton(button));
+        => _listener!.PointerDown(mouse.Position.X * _pixelRatio, mouse.Position.Y * _pixelRatio, MapButton(button));
 
     private void OnMouseUp(IMouse mouse, MouseButton button)
-        => _listener!.PointerUp(mouse.Position.X, mouse.Position.Y, MapButton(button));
+        => _listener!.PointerUp(mouse.Position.X * _pixelRatio, mouse.Position.Y * _pixelRatio, MapButton(button));
 
     private void OnScroll(IMouse mouse, ScrollWheel wheel)
         => _listener!.Wheel(wheel.X, wheel.Y);

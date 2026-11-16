@@ -6,7 +6,7 @@ namespace ApexUI.Core;
 public interface IPlatform
 {
     /// Opens the window and runs the event loop until it closes, reporting events to listener.
-    /// Call Resize on the listener before the first Render.
+    /// Call Resize on the listener before the first Render, and again whenever the size or scale changes.
     void Run(IPlatformListener listener);
 
     /// Asks for a Render call as soon as possible.
@@ -27,10 +27,12 @@ public interface IPlatform
     Task<string?> SaveFileAsync(FileDialogOptions options);
 }
 
-/// Receives events from an IPlatform. Coordinates and sizes are in window pixels.
+/// Receives events from an IPlatform. Sizes and pointer positions are in surface pixels:
+/// the pixels of the canvas passed to Render.
 public interface IPlatformListener
 {
-    void Resize(float width, float height);
+    /// dpiScale: surface pixels per logical unit at UiScale 1 (1.5 on a 150% Windows display, 2 on Retina).
+    void Resize(float pixelWidth, float pixelHeight, float dpiScale);
     void Render(SKCanvas canvas, float deltaSeconds);
     void PointerMove(float x, float y);
     void PointerDown(float x, float y, PointerButton button);

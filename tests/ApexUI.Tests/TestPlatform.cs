@@ -1,7 +1,8 @@
 namespace ApexUI.Tests;
 
 /// Headless IPlatform: Run returns at once, and tests send events through Listener.
-internal sealed class TestPlatform(int width = 800, int height = 600) : IPlatform
+/// Sizes and pointer positions are surface pixels, as from a real backend.
+internal sealed class TestPlatform(int pixelWidth = 800, int pixelHeight = 600, float dpiScale = 1f) : IPlatform
 {
     private string? _clipboard;
 
@@ -9,9 +10,10 @@ internal sealed class TestPlatform(int width = 800, int height = 600) : IPlatfor
     public CursorShape Cursor { get; private set; }
     public int FramesRequested { get; private set; }
 
-    public static (UiHost Host, TestPlatform Platform) Show(Widget root, int width = 800, int height = 600)
+    public static (UiHost Host, TestPlatform Platform) Show(
+        Widget root, int pixelWidth = 800, int pixelHeight = 600, float dpiScale = 1f)
     {
-        var platform = new TestPlatform(width, height);
+        var platform = new TestPlatform(pixelWidth, pixelHeight, dpiScale);
         var host     = new UiHost(platform);
         host.Run(root);
         return (host, platform);
@@ -20,7 +22,7 @@ internal sealed class TestPlatform(int width = 800, int height = 600) : IPlatfor
     public void Run(IPlatformListener listener)
     {
         Listener = listener;
-        listener.Resize(width, height);
+        listener.Resize(pixelWidth, pixelHeight, dpiScale);
     }
 
     public void Click(float x, float y, PointerButton button = PointerButton.Left)
@@ -30,10 +32,13 @@ internal sealed class TestPlatform(int width = 800, int height = 600) : IPlatfor
         Listener.PointerUp(x, y, button);
     }
 
-    public void Render()
+    /// Renders one frame into a raster bitmap of the surface size. The caller disposes it.
+    public SKBitmap Render()
     {
-        using var surface = SKSurface.Create(new SKImageInfo(width, height));
-        Listener.Render(surface.Canvas, 1f / 60f);
+        var bitmap = new SKBitmap(pixelWidth, pixelHeight);
+        using var canvas = new SKCanvas(bitmap);
+        Listener.Render(canvas, 1f / 60f);
+        return bitmap;
     }
 
     public void RequestFrame() => FramesRequested++;

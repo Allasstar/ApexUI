@@ -15,8 +15,8 @@ public sealed class UiHost : IPlatformListener
     private Widget? _focusedWidget;
     private Widget? _pressedWidget;
 
-    private float _windowWidth;
-    private float _windowHeight;
+    private float _pixelWidth;
+    private float _pixelHeight;
 
     private string _preset = ThemeLibrary.DefaultName;
     private bool   _isDark;
@@ -29,6 +29,8 @@ public sealed class UiHost : IPlatformListener
     public IPlatform Platform { get; }
 
     public Theme Theme { get; set; } = Theme.Light;
+
+    /// Surface pixels per logical unit reported by the platform (display scaling).
     public float DpiScale { get; private set; } = 1f;
 
     public string FontFamily
@@ -61,8 +63,9 @@ public sealed class UiHost : IPlatformListener
     // Shared by layout-time text measurement and every frame's DrawContext.
     internal FontCache Fonts { get; } = new();
 
-    // Combined scale applied to layout coordinates and pointer positions.
-    private float TotalScale => DpiScale * UiScale;
+    /// Surface pixels per logical unit: DpiScale × UiScale. Applied once, as the canvas transform;
+    /// layout, drawing and input all work in logical units.
+    public float PixelScale => DpiScale * UiScale;
 
     /// Shows root and runs the platform's event loop until the window closes.
     public void Run(Widget root)
@@ -134,10 +137,11 @@ public sealed class UiHost : IPlatformListener
 
     // ── Layout and drawing ────────────────────────────────────────────────────
 
-    void IPlatformListener.Resize(float width, float height)
+    void IPlatformListener.Resize(float pixelWidth, float pixelHeight, float dpiScale)
     {
-        _windowWidth  = width;
-        _windowHeight = height;
+        _pixelWidth  = pixelWidth;
+        _pixelHeight = pixelHeight;
+        DpiScale     = dpiScale;
         LayoutRoot();
     }
 
@@ -153,10 +157,10 @@ public sealed class UiHost : IPlatformListener
 
         canvas.Clear(Theme.Background);
         canvas.Save();
-        canvas.Scale(UiScale, UiScale);
+        canvas.Scale(PixelScale, PixelScale);
 
-        _drawContext ??= new DrawContext(canvas, Theme, DpiScale, FontFamily, Fonts);
-        _drawContext.BeginFrame(canvas, Theme, DpiScale, FontFamily);
+        _drawContext ??= new DrawContext(canvas, Theme, PixelScale, FontFamily, Fonts);
+        _drawContext.BeginFrame(canvas, Theme, PixelScale, FontFamily);
         var ctx = _drawContext;
         _root.Draw(ctx);
 
@@ -180,7 +184,7 @@ public sealed class UiHost : IPlatformListener
         Fonts.Dispose();
     }
 
-    private Size LogicalWindowSize => new(_windowWidth / TotalScale, _windowHeight / TotalScale);
+    private Size LogicalWindowSize => new(_pixelWidth / PixelScale, _pixelHeight / PixelScale);
 
     private void LayoutRoot()
     {
@@ -200,7 +204,7 @@ public sealed class UiHost : IPlatformListener
 
     void IPlatformListener.PointerMove(float px, float py)
     {
-        float x = px / TotalScale, y = py / TotalScale;
+        float x = px / PixelScale, y = py / PixelScale;
         var hit = HitTestAll(x, y);
 
         if (hit != _hoveredWidget)
@@ -225,7 +229,7 @@ public sealed class UiHost : IPlatformListener
 
     void IPlatformListener.PointerDown(float px, float py, PointerButton button)
     {
-        float x = px / TotalScale, y = py / TotalScale;
+        float x = px / PixelScale, y = py / PixelScale;
         var hit = HitTestAll(x, y);
 
         if (hit != _focusedWidget)
@@ -247,7 +251,7 @@ public sealed class UiHost : IPlatformListener
 
     void IPlatformListener.PointerUp(float px, float py, PointerButton button)
     {
-        float x = px / TotalScale, y = py / TotalScale;
+        float x = px / PixelScale, y = py / PixelScale;
         var hit = HitTestAll(x, y);
 
         if (_pressedWidget is not null)

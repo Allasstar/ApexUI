@@ -29,7 +29,9 @@ UiHost (platform-neutral)
     root widget tree, overlays, layout, drawing, hover/press/focus routing, theme, fonts
 ```
 
-The platform reports events in window pixels; `UiHost` converts them to logical units and routes them.
+The platform reports sizes and pointer positions in surface pixels, plus the display scale (`DpiScale`).
+`UiHost` applies `DpiScale × UiScale` once, as the canvas transform, and divides pointer positions by the
+same factor; layout, drawing, fonts and input everywhere else are in logical units.
 Keys arrive as the `Key` enum with `KeyModifiers`; typed characters arrive separately as text, so widgets
 can tell typing from shortcuts. Widgets reach their host through `Widget.Host`; there is no static application.
 Tests drive a `UiHost` through a fake platform, without a window.

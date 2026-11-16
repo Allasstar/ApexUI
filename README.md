@@ -233,7 +233,9 @@ The new theme appears in `ThemeLibrary.Names`, so it shows up in any theme picke
 
 ## UI scaling
 
-A single canvas transform scales the entire widget tree — no per-widget code needed:
+Layout, drawing and input are in logical units. A single canvas transform of display scale × UI scale maps them to pixels, so the app is sharp on scaled displays (150% Windows, Retina) with no per-widget code. `DesktopPlatform` sizes the window in logical units and follows it between displays with different scales.
+
+On top of that, a UI scale zooms the entire widget tree:
 
 ```csharp
 var scale = new Bindable<float>(1f);   // 0.1 – 10, default 1.0

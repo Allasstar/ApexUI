@@ -71,7 +71,7 @@ public class UiHostTests
         var (host, platform) = TestPlatform.Show(root);
 
         overlay.Open(host);
-        platform.Render();
+        platform.Render().Dispose();
         platform.Click(400, 300);
 
         Assert.Same(host, content.Host);
@@ -97,7 +97,7 @@ public class UiHostTests
     {
         var (_, platform) = TestPlatform.Show(new Gallery.Examples.TabsExample(), 900, 700);
 
-        platform.Render();
+        platform.Render().Dispose();
         platform.Listener.Close();
     }
 }

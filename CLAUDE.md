@@ -118,7 +118,8 @@ IPlatform Platform   { get; }
 Widget?   Root       { get; set; }
 Theme     Theme      { get; set; }
 string    FontFamily { get; set; }
-float     DpiScale   { get; }
+float     DpiScale   { get; }       // display scaling reported by the platform
+float     PixelScale { get; }       // DpiScale × UiScale, applied once as the canvas transform
 float     UiScale    { get; set; }   // clamped 0.1–10; scales entire tree uniformly
 
 UiHost BindUiScale(Bindable<float>)
@@ -140,7 +141,8 @@ IDisposable StartTimer(TimeSpan interval, Action tick)   // UI thread; dispose t
 Task<string?> OpenFileAsync(FileDialogOptions) / SaveFileAsync(FileDialogOptions)   // not implemented on desktop yet
 
 // IPlatformListener: Resize, Render(SKCanvas, dt), PointerMove/Down/Up, Wheel, KeyDown/KeyUp(Key, KeyModifiers), TextEntered(string), Close
-// Coordinates and sizes are window pixels; UiHost converts to logical units.
+// Resize(pixelWidth, pixelHeight, dpiScale). Sizes and pointer positions are surface pixels; UiHost converts to logical units.
+// Everything above the platform (layout, drawing, fonts, input) is in logical units.
 ```
 
 ### `DesktopPlatform` · `lib/ApexUI.Desktop/DesktopPlatform.cs`
@@ -155,11 +157,11 @@ DesktopPlatform WithIcon(string path)   // .svg / .ico / raster; call before Run
 ### `DrawContext` · `lib/ApexUI/Core/DrawContext.cs`
 
 ```csharp
-DrawContext(SKCanvas canvas, Theme theme, float dpiScale, string fontFamily = FontCache.DefaultFamily, FontCache? fonts = null)
+DrawContext(SKCanvas canvas, Theme theme, float pixelScale, string fontFamily = FontCache.DefaultFamily, FontCache? fonts = null)
 // IDisposable: owns reusable paints, a path, blur filters, and the font cache unless one is passed in.
 SKCanvas Canvas   { get; }
 Theme    Theme    { get; }
-float    DpiScale { get; }
+float    PixelScale { get; }   // canvas pixels per logical unit; drawing is already scaled, use only for pixel snapping
 
 SKFont  GetFont(float sizePx, bool bold = false)   // cached; owned by the context, never dispose
 SKPaint MakePaint(SKColor color, bool antialias = true)   // new object, caller disposes

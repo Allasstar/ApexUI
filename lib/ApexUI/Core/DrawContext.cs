@@ -21,13 +21,14 @@ public sealed partial class DrawContext : IDisposable
     private readonly SKRoundRect _roundRect = new();
     private readonly Dictionary<float, SKMaskFilter> _blurs = new();
 
+    /// pixelScale: canvas pixels per logical unit, already applied to the canvas transform.
     /// fonts: shared cache to use; when null the context creates and disposes its own.
-    public DrawContext(SKCanvas canvas, Theme theme, float dpiScale,
+    public DrawContext(SKCanvas canvas, Theme theme, float pixelScale,
         string fontFamily = FontCache.DefaultFamily, FontCache? fonts = null)
     {
         Canvas     = canvas;
         Theme      = theme;
-        DpiScale   = dpiScale;
+        PixelScale = pixelScale;
         FontFamily = fontFamily;
         _fonts     = fonts ?? new FontCache();
         _ownsFonts = fonts is null;
@@ -35,21 +36,23 @@ public sealed partial class DrawContext : IDisposable
 
     public SKCanvas Canvas     { get; private set; }
     public Theme    Theme      { get; private set; }
-    public float    DpiScale   { get; private set; }
+    /// Canvas pixels per logical unit (display scaling × UI scale). Drawing is already scaled;
+    /// use it only to snap to device pixels, e.g. for crisp hairlines.
+    public float    PixelScale { get; private set; }
     public string   FontFamily { get; private set; }
 
     // Lets the application reuse one context (and its paints) for every frame.
-    internal void BeginFrame(SKCanvas canvas, Theme theme, float dpiScale, string fontFamily)
+    internal void BeginFrame(SKCanvas canvas, Theme theme, float pixelScale, string fontFamily)
     {
         Canvas     = canvas;
         Theme      = theme;
-        DpiScale   = dpiScale;
+        PixelScale = pixelScale;
         FontFamily = fontFamily;
     }
 
-    /// Cached font in the current family, scaled by DpiScale. Owned by the context: do not dispose.
+    /// Cached font in the current family, sized in logical units. Owned by the context: do not dispose.
     public SKFont GetFont(float sizePx, bool bold = false)
-        => _fonts.Get(FontFamily, sizePx * DpiScale, bold);
+        => _fonts.Get(FontFamily, sizePx, bold);
 
     /// New paint for custom drawing. The caller owns and disposes it.
     public SKPaint MakePaint(SKColor color, bool antialias = true) => new()
@@ -63,7 +66,7 @@ public sealed partial class DrawContext : IDisposable
     {
         // The font keeps its own reference to the typeface, so the wrapper can go now.
         using var typeface = SKTypeface.FromFamilyName(FontFamily, bold ? SKFontStyle.Bold : SKFontStyle.Normal);
-        return new SKFont(typeface, sizePx * DpiScale);
+        return new SKFont(typeface, sizePx);
     }
 
     /// New text paint for custom drawing. The caller owns and disposes it.

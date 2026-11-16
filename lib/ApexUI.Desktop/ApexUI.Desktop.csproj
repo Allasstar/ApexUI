@@ -2,6 +2,7 @@
 
   <PropertyGroup>
     <RootNamespace>ApexUI.Desktop</RootNamespace>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
 
   <ItemGroup>

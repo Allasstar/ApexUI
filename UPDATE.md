@@ -4,6 +4,13 @@ Newest first. **Breaking** marks changes that need edits in apps using ApexUI.
 
 ## Unreleased
 
+### Display scaling
+- Apps are sharp on scaled displays. The platform reports the surface size in pixels and the display scale; `UiHost` applies `DpiScale × UiScale` once as the canvas transform and converts pointer positions with the same factor. Layout, drawing, fonts and input are in logical units everywhere else.
+- `DesktopPlatform` reads the display scale from GLFW, draws to a surface the size of the framebuffer (before: the window size, wrong on Retina), and treats its width and height as logical units: on a 150% display `new DesktopPlatform("App", 900, 700)` opens a 1350×1050 pixel window. It also resizes the window when it moves to a display with a different scale.
+- **Breaking:** `IPlatformListener.Resize(width, height)` → `Resize(pixelWidth, pixelHeight, dpiScale)`. Sizes and pointer positions are surface pixels.
+- **Breaking:** `DrawContext`'s `dpiScale` parameter and `DpiScale` property are now `pixelScale` / `PixelScale` (canvas pixels per logical unit, display scale × UI scale). Fonts from `GetFont` and `MakeTextFont` are no longer multiplied by it: the canvas is already scaled, so text was going to be scaled twice.
+- New `UiHost.PixelScale` (`DpiScale × UiScale`). `UiHost.DpiScale` now holds the real display scale instead of always 1.
+
 ### Platform layer
 - **Breaking:** `Application` is gone. An app is now a platform-neutral `UiHost` (tree, layout, drawing, input routing, overlays, focus, theme) running on an `IPlatform` backend. The desktop backend, `DesktopPlatform`, lives in the new `ApexUI.Desktop` project, the only code that uses Silk.NET. Migrate:
   ```csharp
