@@ -48,20 +48,8 @@ public class Dropdown<T> : Widget
         _overlay = new Overlay { DismissOnClickOutside = true, MatchAnchorWidth = true };
         _overlay.Content = _menuList;
 
-        _trigger = new DropdownTrigger { Text = _placeholder, IsPlaceholder = true };
+        _trigger = new DropdownTrigger(ToggleOpen) { Text = _placeholder, IsPlaceholder = true };
         _overlay.OnDismiss = () => _trigger.IsOpen = false;
-
-        _trigger.OnClick = e =>
-        {
-            if (e.Button != PointerButton.Left) return;
-            if (_overlay.IsVisible)
-                _overlay.Close();
-            else
-            {
-                _overlay.Open(_trigger);
-                _trigger.IsOpen = true;
-            }
-        };
 
         AddChild(_trigger);
     }
@@ -136,6 +124,17 @@ public class Dropdown<T> : Widget
 
     protected override void OnDetached() => _overlay.Detach();
 
+    private void ToggleOpen()
+    {
+        if (_overlay.IsVisible)
+            _overlay.Close();
+        else
+        {
+            _overlay.Open(_trigger);
+            _trigger.IsOpen = true;
+        }
+    }
+
     // ── Internal ──────────────────────────────────────────────────────────────
 
     private void SyncText()
@@ -157,17 +156,14 @@ public class Dropdown<T> : Widget
         foreach (var (value, label) in _items)
         {
             var itemValue = value;
-            MenuItemWidget? item;
-            item = new MenuItemWidget(
+            var item = new MenuItemWidget(
                 label,
-                enabled: true,
+                onActivate: () =>
+                {
+                    SelectedValue = itemValue;
+                    _overlay.Close();
+                },
                 isChecked: () => EqualityComparer<T>.Default.Equals(_selected, itemValue));
-            item.OnClick = e =>
-            {
-                if (e.Button != PointerButton.Left) return;
-                SelectedValue = itemValue;
-                _overlay.Close();
-            };
             _menuList.Add(item);
         }
     }
@@ -177,15 +173,18 @@ public class Dropdown<T> : Widget
     private sealed class DropdownTrigger : Widget
     {
         private readonly Label _label;
+        private readonly Action _onToggle;
         private bool _isOpen;
 
         private const float PadH       = 10f;
         private const float ChevronW   = 28f;
         private const float MinW       = 120f;
 
-        public DropdownTrigger()
+        public DropdownTrigger(Action onToggle)
         {
+            _onToggle    = onToggle;
             CornerRadius = 6f;
+            Focusable    = true;
             _label = new Label
             {
                 IsHitTestVisible = false,
@@ -199,6 +198,19 @@ public class Dropdown<T> : Widget
         public bool IsOpen { set => SetRenderProperty(ref _isOpen, value); }
 
         public bool IsPlaceholder { get; set => SetRenderProperty(ref field, value); }
+
+        protected override void OnClick(PointerEventArgs e)
+        {
+            e.Handled = true;
+            _onToggle();
+        }
+
+        protected override void OnKeyDown(KeyEventArgs e)
+        {
+            if (!Activation.IsActivationKey(e) && !(e.Key == Key.Down && !_isOpen)) return;
+            e.Handled = true;
+            _onToggle();
+        }
 
         // ── Layout ───────────────────────────────────────────────────────────
 

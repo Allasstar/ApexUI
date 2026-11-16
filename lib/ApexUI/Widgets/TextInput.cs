@@ -4,6 +4,10 @@ namespace ApexUI.Widgets;
 
 public enum InputMode { Any, Integer, Float }
 
+/// Single-line text field.
+/// Keys: arrows, Home/End (with Shift to select, Ctrl to jump by word), Backspace/Delete (Ctrl: a word),
+/// Ctrl+A/C/X/V, Enter submits, Escape restores the text it had when focused and leaves the field.
+/// Mouse: click places the caret, Shift+click and drag select, double click selects a word, triple click all.
 public class TextInput : Widget
 {
     public string Value
@@ -16,6 +20,7 @@ public class TextInput : Widget
             // Text can shrink under the caret when set from code (e.g. re-formatting on submit).
             _cursorPos = Math.Min(_cursorPos, value.Length);
             _selAnchor = Math.Min(_selAnchor, value.Length);
+            ScrollToCaret();
             Invalidate();
             OnChanged?.Invoke(value);
         }
@@ -30,7 +35,7 @@ public class TextInput : Widget
     /// Restricts which characters can be typed. Does not re-validate existing Value.
     public InputMode InputMode  { get; set => SetRenderProperty(ref field, value); } = InputMode.Any;
 
-    /// Replaces visible characters with '•'. Value still holds the real text.
+    /// Replaces visible characters with '•'. Value still holds the real text. Copy and cut are disabled.
     public bool IsPassword      { get; set => SetRenderProperty(ref field, value); } = false;
 
     /// When set, only characters present in this string are accepted. Applied after InputMode.
@@ -44,22 +49,13 @@ public class TextInput : Widget
 
     public bool IsValid => Validate is null || Validate(Value);
 
-    public bool IsFocused
-    {
-        get;
-        internal set
-        {
-            if (field == value) return;
-            field = value;
-            if (value) ResetBlink();
-            else StopBlink();
-        }
-    }
     public Action<string>? OnChanged;
     public Action<string>? OnSubmit;   // fired on Enter
 
     private int   _cursorPos;
     private int   _selAnchor;          // selection anchor; differs from _cursorPos when text is selected
+    private float _scrollX;            // how far the text is shifted left to keep the caret in view
+    private string _valueOnFocus = "";
     private static readonly TimeSpan BlinkInterval = TimeSpan.FromSeconds(0.53);
     private readonly Action _toggleCaret;
     private IDisposable? _blinkTimer;
@@ -76,12 +72,9 @@ public class TextInput : Widget
         Padding      = new Thickness(10f, 6f);
         CornerRadius = 6f;
         MinWidth     = 120f;
-        OnKeyDown    = HandleKey;
-        OnTextInput  = HandleText;
-        OnPointerDown = HandlePointerDown;
-        OnPointerMove = HandlePointerMove;
-        OnPointerUp   = _ => _isDragging = false;
-        _toggleCaret  = ToggleCaret;
+        Focusable    = true;
+        Cursor       = CursorShape.Text;
+        _toggleCaret = ToggleCaret;
     }
 
     // ── Fluent ───────────────────────────────────────────────────────────────
@@ -126,6 +119,8 @@ public class TextInput : Widget
         return new Size(w, h);
     }
 
+    protected override void ArrangeCore(Rect finalRect) => ScrollToCaret();
+
     // ── Drawing ──────────────────────────────────────────────────────────────
 
     protected override void DrawCore(DrawContext ctx)
@@ -139,6 +134,7 @@ public class TextInput : Widget
         ctx.StrokeRoundRect(LayoutBounds, CornerRadius, borderColor, IsFocused ? 2f : 1f);
 
         var    inner   = LayoutBounds.Deflate(Padding);
+        float  textX   = inner.X - _scrollX;
         string display = DisplayText;
         float  sz      = ctx.Theme.FontSizeBase;
 
@@ -146,27 +142,43 @@ public class TextInput : Widget
         {
             if (IsFocused && HasSelection)
             {
-                float selX0 = inner.X + CaretX(SelectionStart);
-                float selX1 = inner.X + CaretX(SelectionEnd);
+                float selX0 = textX + CaretX(SelectionStart);
+                float selX1 = textX + CaretX(SelectionEnd);
                 ctx.FillRect(new Rect(selX0, inner.Y, selX1 - selX0, inner.Height),
                              ctx.Theme.Primary.WithAlpha(0.3f));
             }
 
             if (!string.IsNullOrEmpty(display))
-                ctx.DrawText(display, inner, ctx.Theme.OnSurface, sz);
+                ctx.DrawText(display, new Rect(textX, inner.Y, inner.Width + _scrollX, inner.Height), ctx.Theme.OnSurface, sz);
             else if (!string.IsNullOrEmpty(Placeholder) && !IsFocused)
                 ctx.DrawText(Placeholder, inner, ctx.Theme.OnSurfaceMuted, sz);
 
             if (IsFocused && _cursorVisible)
             {
-                float cx = inner.X + CaretX(_cursorPos);
+                float cx = textX + CaretX(_cursorPos);
                 ctx.DrawLine(cx, inner.Y + 2, cx, inner.Bottom - 2, ctx.Theme.OnSurface, cap: SKStrokeCap.Butt);
             }
         }
     }
 
-    // ── Caret blink ───────────────────────────────────────────────────────────
+    // The focused border already shows focus.
+    protected override void DrawFocusRing(DrawContext ctx) { }
+
+    // ── Focus and caret blink ─────────────────────────────────────────────────
     // A timer instead of per-frame polling, so a focused field costs two frames a second.
+
+    protected override void OnGotFocus()
+    {
+        _valueOnFocus = Value;
+        if (Host is { IsFocusVisible: true }) SelectAll();
+        ResetBlink();
+    }
+
+    protected override void OnLostFocus()
+    {
+        _isDragging = false;
+        StopBlink();
+    }
 
     private void ToggleCaret()
     {
@@ -189,33 +201,48 @@ public class TextInput : Widget
         Invalidate();
     }
 
-    protected override void OnDetached() => IsFocused = false;
-
     // ── Pointer handling ──────────────────────────────────────────────────────
 
-    private void HandlePointerDown(PointerEvent e)
+    protected override void OnPointerPressed(PointerEventArgs e)
     {
         if (e.Button != PointerButton.Left) return;
+        e.Handled = true;
         int idx = HitTestCharIndex(e.X);
-        _cursorPos = _selAnchor = idx;
+        switch (e.ClickCount)
+        {
+            case 1:
+                _cursorPos = idx;
+                if (!e.Shift) _selAnchor = idx;
+                break;
+            case 2:
+                _selAnchor = WordStart(idx);
+                _cursorPos = WordEnd(idx);
+                break;
+            default:
+                SelectAll();
+                break;
+        }
         _isDragging = true;
-        ResetBlink();
+        CaretMoved();
     }
 
-    private void HandlePointerMove(PointerEvent e)
+    protected override void OnPointerMoved(PointerEventArgs e)
     {
         if (!_isDragging) return;
+        e.Handled = true;
         int idx = HitTestCharIndex(e.X);
         if (idx == _cursorPos) return;
         _cursorPos = idx;
-        ResetBlink();
+        CaretMoved();
     }
 
-    // Maps a screen X coordinate to the nearest character index in Value.
-    private int HitTestCharIndex(float screenX)
+    protected override void OnPointerCaptureLost() => _isDragging = false;
+
+    // Maps a window X coordinate to the nearest character index in Value.
+    private int HitTestCharIndex(float windowX)
     {
         var inner = LayoutBounds.Deflate(Padding);
-        float relX = screenX - inner.X;
+        float relX = windowX - inner.X + _scrollX;
         if (relX <= 0) return 0;
 
         int length = DisplayText.Length;
@@ -281,78 +308,193 @@ public class TextInput : Widget
         return _caretXs[Math.Clamp(index, 0, display.Length)];
     }
 
+    // Shifts the text so the caret stays inside the field, and pulls it back when text is removed.
+    private void ScrollToCaret()
+    {
+        float width = LayoutBounds.Width - Padding.Horizontal;
+        if (width <= 0f) { _scrollX = 0f; return; }
+
+        float caret = CaretX(_cursorPos);
+        if (caret - _scrollX > width) _scrollX = caret - width;
+        if (caret < _scrollX)         _scrollX = caret;
+        _scrollX = Math.Clamp(_scrollX, 0f, Math.Max(0f, CaretX(DisplayText.Length) - width));
+    }
+
+    private void CaretMoved()
+    {
+        ScrollToCaret();
+        ResetBlink();
+    }
+
     // ── Key handling ──────────────────────────────────────────────────────────
 
-    private void HandleKey(KeyEvent e)
+    protected override void OnKeyDown(KeyEventArgs e)
     {
-        if (!e.IsDown) return;
+        bool word = e.Ctrl;
         switch (e.Key)
         {
             case Key.Backspace:
                 if (HasSelection) DeleteSelection();
-                else if (_cursorPos > 0)
-                {
-                    // The Value setter clamps the caret, so compute the new position first.
-                    int at = _cursorPos - 1;
-                    Value = Value.Remove(at, 1);
-                    _cursorPos = _selAnchor = at;
-                }
+                else if (_cursorPos > 0) DeleteRange(word ? PreviousWordStop(_cursorPos) : _cursorPos - 1, _cursorPos);
                 break;
             case Key.Delete:
                 if (HasSelection) DeleteSelection();
-                else if (_cursorPos < Value.Length) Value = Value.Remove(_cursorPos, 1);
+                else if (_cursorPos < Value.Length) DeleteRange(_cursorPos, word ? NextWordStop(_cursorPos) : _cursorPos + 1);
                 break;
             case Key.Left:
-                if (e.Shift)
-                    _cursorPos = Math.Max(0, _cursorPos - 1);
-                else if (HasSelection)
-                    _cursorPos = _selAnchor = SelectionStart;
-                else
-                    _cursorPos = _selAnchor = Math.Max(0, _cursorPos - 1);
-                Invalidate(); break;
+                if (!e.Shift && HasSelection && !word) MoveCaret(SelectionStart, false);
+                else MoveCaret(word ? PreviousWordStop(_cursorPos) : Math.Max(0, _cursorPos - 1), e.Shift);
+                break;
             case Key.Right:
-                if (e.Shift)
-                    _cursorPos = Math.Min(Value.Length, _cursorPos + 1);
-                else if (HasSelection)
-                    _cursorPos = _selAnchor = SelectionEnd;
-                else
-                    _cursorPos = _selAnchor = Math.Min(Value.Length, _cursorPos + 1);
-                Invalidate(); break;
+                if (!e.Shift && HasSelection && !word) MoveCaret(SelectionEnd, false);
+                else MoveCaret(word ? NextWordStop(_cursorPos) : Math.Min(Value.Length, _cursorPos + 1), e.Shift);
+                break;
             case Key.Home:
-                if (e.Shift) _cursorPos = 0;
-                else _cursorPos = _selAnchor = 0;
-                Invalidate(); break;
+                MoveCaret(0, e.Shift);
+                break;
             case Key.End:
-                if (e.Shift) _cursorPos = Value.Length;
-                else _cursorPos = _selAnchor = Value.Length;
-                Invalidate(); break;
-            case Key.Enter or Key.KeypadEnter: OnSubmit?.Invoke(Value); break;
+                MoveCaret(Value.Length, e.Shift);
+                break;
+            case Key.Enter or Key.KeypadEnter:
+                OnSubmit?.Invoke(Value);
+                break;
+            case Key.Escape:
+                Value = _valueOnFocus;
+                _cursorPos = _selAnchor = Value.Length;
+                Host?.ClearFocus();
+                e.Handled = true;
+                return;
             case Key.A when e.Ctrl:
-                _selAnchor = 0; _cursorPos = Value.Length; Invalidate(); break;
+                SelectAll();
+                break;
+            case Key.C when e.Ctrl:
+                Copy();
+                break;
+            case Key.X when e.Ctrl:
+                if (Copy()) DeleteSelection();
+                break;
+            case Key.V when e.Ctrl:
+                Paste();
+                break;
+            default:
+                return;
         }
-        ResetBlink();
+        e.Handled = true;
+        CaretMoved();
     }
 
-    private void HandleText(TextInputEvent e)
+    protected override void OnTextEntered(TextInputEventArgs e)
     {
-        foreach (char c in e.Text)
-            if (!IsCharAllowed(c)) return;
+        e.Handled = true;
+        if (InsertText(e.Text)) CaretMoved();
+    }
 
+    // ── Editing ───────────────────────────────────────────────────────────────
+
+    private bool InsertText(string text)
+    {
+        foreach (char c in text)
+            if (!IsCharAllowed(c)) return false;
         if (HasSelection) DeleteSelection();
-        Value      = Value.Insert(_cursorPos, e.Text);
-        _cursorPos += e.Text.Length;
-        _selAnchor = _cursorPos;
-        ResetBlink();
+
+        int at = _cursorPos;
+        Value      = Value.Insert(at, text);
+        _cursorPos = _selAnchor = at + text.Length;
+        return true;
     }
 
-    // ── Helpers ───────────────────────────────────────────────────────────────
-
-    private void DeleteSelection()
+    private void MoveCaret(int index, bool extendSelection)
     {
-        int start = SelectionStart;
-        Value      = Value.Remove(start, SelectionEnd - start);
+        _cursorPos = index;
+        if (!extendSelection) _selAnchor = index;
+        Invalidate();
+    }
+
+    private void SelectAll()
+    {
+        _selAnchor = 0;
+        _cursorPos = Value.Length;
+        Invalidate();
+    }
+
+    private void DeleteSelection() => DeleteRange(SelectionStart, SelectionEnd);
+
+    // The Value setter clamps the caret, so the new position is set after it.
+    private void DeleteRange(int start, int end)
+    {
+        Value      = Value.Remove(start, end - start);
         _cursorPos = _selAnchor = start;
     }
+
+    private bool Copy()
+    {
+        if (!HasSelection || IsPassword || Host is null) return false;
+        Host.Platform.SetClipboardText(Value[SelectionStart..SelectionEnd]);
+        return true;
+    }
+
+    private void Paste()
+    {
+        var text = Host?.Platform.GetClipboardText();
+        if (string.IsNullOrEmpty(text)) return;
+        // Single line: line breaks become spaces, other control characters are dropped.
+        text = text.Replace("\r\n", " ").Replace('\n', ' ').Replace('\r', ' ');
+        if (text.Any(char.IsControl)) text = new string(text.Where(c => !char.IsControl(c)).ToArray());
+        InsertText(text);
+    }
+
+    // ── Word boundaries ───────────────────────────────────────────────────────
+    // A word is a run of letters and digits, or a run of other symbols; spaces separate them.
+    // A password field is one word, so word jumps do not reveal its structure.
+
+    private int PreviousWordStop(int from)
+    {
+        if (IsPassword) return 0;
+        string s = Value;
+        int i = from;
+        while (i > 0 && char.IsWhiteSpace(s[i - 1])) i--;
+        if (i == 0) return 0;
+        int kind = CharKind(s[i - 1]);
+        while (i > 0 && CharKind(s[i - 1]) == kind) i--;
+        return i;
+    }
+
+    private int NextWordStop(int from)
+    {
+        if (IsPassword) return Value.Length;
+        string s = Value;
+        int i = from;
+        if (i < s.Length && !char.IsWhiteSpace(s[i]))
+        {
+            int kind = CharKind(s[i]);
+            while (i < s.Length && CharKind(s[i]) == kind) i++;
+        }
+        while (i < s.Length && char.IsWhiteSpace(s[i])) i++;
+        return i;
+    }
+
+    private int WordStart(int index)
+    {
+        if (IsPassword || Value.Length == 0) return 0;
+        string s = Value;
+        int kind = CharKind(s[Math.Min(index, s.Length - 1)]);
+        int i = Math.Min(index, s.Length - 1);
+        while (i > 0 && CharKind(s[i - 1]) == kind) i--;
+        return i;
+    }
+
+    private int WordEnd(int index)
+    {
+        if (IsPassword || Value.Length == 0) return Value.Length;
+        string s = Value;
+        int i = Math.Min(index, s.Length - 1);
+        int kind = CharKind(s[i]);
+        while (i < s.Length && CharKind(s[i]) == kind) i++;
+        return i;
+    }
+
+    private static int CharKind(char c)
+        => char.IsWhiteSpace(c) ? 0 : char.IsLetterOrDigit(c) || c == '_' ? 1 : 2;
 
     // ── Character filtering ───────────────────────────────────────────────────
 

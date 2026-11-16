@@ -59,14 +59,16 @@ internal sealed class MenuItemWidget : Widget
 {
     private readonly Label _label;
     private readonly Func<bool>? _isChecked;
+    private readonly Action _onActivate;
 
     private const float PadV    =  6f;
     private const float PadH    = 12f;
     private const float CheckW  = 20f;
 
-    public MenuItemWidget(string text, bool enabled = true, Func<bool>? isChecked = null)
+    public MenuItemWidget(string text, Action onActivate, bool enabled = true, Func<bool>? isChecked = null)
     {
-        _isChecked = isChecked;
+        _isChecked  = isChecked;
+        _onActivate = onActivate;
         _label     = new Label
         {
             Text             = text,
@@ -80,6 +82,12 @@ internal sealed class MenuItemWidget : Widget
         CornerRadius = 6f;
         IsEnabled    = enabled;
         AddChild(_label);
+    }
+
+    protected override void OnClick(PointerEventArgs e)
+    {
+        e.Handled = true;
+        _onActivate();
     }
 
     protected override Size MeasureCore(Size available)

@@ -90,15 +90,30 @@ float CornerRadius;
 float Opacity;   // 0..1
 bool  IsVisible;
 
-bool IsEnabled, IsHovered, IsPressed, IsHitTestVisible;
+bool IsEnabled, IsHitTestVisible;
+bool IsHovered;   // pointer over this widget or a descendant
+bool IsPressed;   // pressed here, until all buttons are released
+bool IsFocused;
+bool Focusable;   // takes focus by click, Tab/Shift+Tab, Focus()
+CursorShape? Cursor;   // null = parent's cursor
+bool HasPointerCapture;
+bool Focus();
+bool CapturePointer(); void ReleasePointerCapture();
 Size DesiredSize;
 Rect LayoutBounds;
 
-// Events
-Action<PointerEvent>? OnClick, OnPointerDown, OnPointerUp, OnPointerMove, OnPointerEnter, OnPointerExit;
-Action<KeyEvent>?     OnKeyDown, OnKeyUp;
-Action<TextInputEvent>? OnTextInput;   // typed text, separate from keys
-Action<float, float>? OnScroll;   // (deltaX, deltaY)
+// Input (Widget.Input.cs). Each event: protected virtual On…(args) first (widget behavior), then the public event.
+// Routed (bubble from Source to the root until e.Handled):
+event Action<PointerEventArgs>?   PointerPressed, PointerReleased, PointerMoved, Click;  // Click = left press+release on the same widget
+event Action<WheelEventArgs>?     Wheel;
+event Action<KeyEventArgs>?       KeyDown, KeyUp;      // from the focused widget
+event Action<TextInputEventArgs>? TextEntered;         // typed text, separate from keys
+// Not routed:
+event Action<PointerEventArgs>? PointerEntered, PointerExited;   // per widget in the hover chain
+event Action? GotFocus, LostFocus, PointerCaptureLost;
+protected virtual void DrawFocusRing(DrawContext ctx);   // drawn when focused from the keyboard; override to change or hide
+// Built-in widgets override the On… methods; set e.Handled only for what the widget acts on.
+// Event args objects are reused by the host: read them during the call, never store them.
 
 enum HAlign          { Left, Center, Right, Stretch }
 enum VAlign          { Top, Center, Bottom, Stretch }
@@ -139,6 +154,13 @@ UiHost BindFontFamily(Bindable<string>)
 
 void RequestAnimationFrame(Action<TimeSpan> callback)   // once, before the next frame; re-request to animate. Cache the delegate.
 // Frames are drawn only when something invalidates; an idle window renders nothing.
+
+Widget? FocusedWidget { get; }
+Widget? PointerCapture { get; }
+bool    IsFocusVisible { get; }    // focus came from the keyboard → focus rings are drawn
+bool    MoveFocus(bool forward);   // Tab order; stays inside the topmost modal overlay
+void    ClearFocus();
+event Action<KeyEventArgs>? UnhandledKeyDown;   // keys no widget handled (app shortcuts); runs before Tab navigation
 ```
 
 ### `IPlatform` · `lib/ApexUI/Core/IPlatform.cs`
@@ -148,12 +170,14 @@ The only seam to the OS. Nothing outside `lib/ApexUI.Desktop/` may reference Sil
 ```csharp
 void Run(IPlatformListener listener)   // call listener.Resize before the first Render
 void RequestFrame()            // render once, soon; render only when asked (and after Resize)
+TimeSpan Now { get; }          // monotonic clock (same as Render's frameTime); used for double-click timing
 string? GetClipboardText(); void SetClipboardText(string)
 void SetCursor(CursorShape)
 IDisposable StartTimer(TimeSpan interval, Action tick)   // UI thread; dispose to stop
 Task<string?> OpenFileAsync(FileDialogOptions) / SaveFileAsync(FileDialogOptions)   // not implemented on desktop yet
 
-// IPlatformListener: Resize, Render(SKCanvas, TimeSpan frameTime), PointerMove/Down/Up, Wheel, KeyDown/KeyUp(Key, KeyModifiers), TextEntered(string), Close
+// IPlatformListener: Resize, Render(SKCanvas, TimeSpan frameTime), PointerMove/Down/Up(…, KeyModifiers), Wheel(dx, dy, KeyModifiers),
+//                    KeyDown/KeyUp(Key, KeyModifiers) (repeat KeyDown while held), TextEntered(string), Close
 // Resize(pixelWidth, pixelHeight, dpiScale). Sizes and pointer positions are surface pixels; UiHost converts to logical units.
 // Everything above the platform (layout, drawing, fonts, input) is in logical units.
 ```
@@ -184,12 +208,13 @@ SKPaint MakeTextPaint(SKColor color)                       // new object, caller
 // FontCache · lib/ApexUI/Core/FontCache.cs
 SKFont Get(string family, float sizePx, bool bold = false) // cached; never dispose the result
 
-record struct PointerEvent(float X, float Y, PointerButton Button, bool IsDown)
-enum PointerButton { None, Left, Right, Middle }
-
 // InputEvents · lib/ApexUI/Core/InputEvents.cs
-record struct KeyEvent(Key Key, KeyModifiers Modifiers, bool IsDown)   // + Ctrl, Shift, Alt, Super
-record struct TextInputEvent(string Text)
+abstract class InputEventArgs { Widget Source; bool Handled; KeyModifiers Modifiers; bool Ctrl, Shift, Alt, Super; }
+sealed class PointerEventArgs   { float X, Y; PointerButton Button; int ClickCount; }   // window logical coords
+sealed class WheelEventArgs     { float X, Y, DeltaX, DeltaY; }                         // notches; +DeltaY = up
+sealed class KeyEventArgs       { Key Key; bool IsRepeat; }
+sealed class TextInputEventArgs { string Text; }
+enum PointerButton { None, Left, Right, Middle }
 enum Key { A..Z, D0..D9, F1..F12, Enter, Escape, Left, Right, ... }   // physical keys
 [Flags] enum KeyModifiers { None, Shift, Control, Alt, Super }
 ```
@@ -244,6 +269,7 @@ Background, Surface, SurfaceHover, SurfacePressed
 OnSurface, OnSurfaceMuted
 Primary, PrimaryHover, OnPrimary
 Success, Warning, Danger, Border
+FocusRing   // defaults to Primary
 
 string FontFamily   // "Segoe UI"
 float  FontSizeBase, FontSizeSmall, FontSizeLarge, FontSizeTitle
@@ -396,5 +422,4 @@ Dropdown<T> WithItems(ObservableList<T> source)   // uses ToString()
 
 ## TODO
 
-- **Tab focus navigation** — focus only moves on click; implement `Tab`/`Shift+Tab` traversal in `UiHost` across focusable widgets (`TextInput` etc.)
 - **Animation primitives** — add a simple `Lerp`-based value animator driven by `UiHost.RequestAnimationFrame` for smooth hover/press transitions

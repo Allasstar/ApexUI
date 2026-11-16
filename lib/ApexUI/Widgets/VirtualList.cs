@@ -28,20 +28,20 @@ public class VirtualList<T> : Widget
     private const float SbWidth = 7f;  // scrollbar track width
     private const int   EvictBuf = 15; // rows kept beyond visible range
 
-    public VirtualList()
+    // Handled only when it actually scrolled, so an outer Scroll gets the wheel at the ends.
+    protected override void OnWheel(WheelEventArgs e)
     {
-        OnScroll = (_, dy) =>
-        {
-            float max  = MaxScrollOffset();
-            float next = Math.Clamp(_scrollOff - dy * RowHeight * 3f, 0f, max);
-            if (next != _scrollOff) { _scrollOff = next; InvalidateLayout(); }
-        };
-        OnPointerDown = HandlePointerDown;
-        OnPointerMove = HandlePointerMove;
-        OnPointerUp   = _ => _sbDragging = false;
+        float max  = MaxScrollOffset();
+        float next = Math.Clamp(_scrollOff - e.DeltaY * RowHeight * 3f, 0f, max);
+        if (next == _scrollOff) return;
+        _scrollOff = next;
+        InvalidateLayout();
+        e.Handled = true;
     }
 
-    private void HandlePointerDown(PointerEvent e)
+    protected override void OnPointerCaptureLost() => _sbDragging = false;
+
+    protected override void OnPointerPressed(PointerEventArgs e)
     {
         if (e.Button != PointerButton.Left) return;
         var b = LayoutBounds;
@@ -56,11 +56,13 @@ public class VirtualList<T> : Widget
         float tH     = Math.Max(16f, b.Height * b.Height / totalH);
         float tY     = b.Y + (_scrollOff / maxOff) * (b.Height - tH);
 
+        e.Handled = true;
         if (e.Y >= tY && e.Y <= tY + tH)
         {
             _sbDragging    = true;
             _sbDragStartY  = e.Y;
             _sbDragStartOff = _scrollOff;
+            CapturePointer();
         }
         else
         {
@@ -70,9 +72,10 @@ public class VirtualList<T> : Widget
         }
     }
 
-    private void HandlePointerMove(PointerEvent e)
+    protected override void OnPointerMoved(PointerEventArgs e)
     {
         if (!_sbDragging) return;
+        e.Handled = true;
         var b = LayoutBounds;
         int count = _source?.Count ?? 0;
         float totalH = count * RowHeight;

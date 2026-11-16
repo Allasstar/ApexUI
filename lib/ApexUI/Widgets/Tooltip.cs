@@ -8,7 +8,6 @@ public sealed class Tooltip : Widget
 {
     private readonly Widget _child;
     private readonly Overlay _overlay;
-    private readonly Action _onHoverChanged;
     private readonly Action _show;
     private IDisposable? _delay;
     private bool _tooltipVisible;
@@ -25,9 +24,7 @@ public sealed class Tooltip : Widget
         _overlay = new Overlay
         {
             DismissOnClickOutside = false,
-            // Non-hit-testable so the tooltip never intercepts pointer events.
-            // Without this, the overlay captures hover → target widget loses IsHovered → tooltip
-            // immediately closes itself in the next Tick.
+            // Never under the pointer, so showing the tooltip does not end the hover that opened it.
             IsHitTestVisible = false,
         };
         _overlay.Content = new PaddingBox(label, new Thickness(8f, 4f))
@@ -36,35 +33,30 @@ public sealed class Tooltip : Widget
             CornerRadius = 4f,
         };
 
-        _onHoverChanged = OnHoverChanged;
-        _show           = Show;
+        _show = Show;
     }
-
-    protected override void OnAttached(UiHost host) => host.HoveredWidgetChanged += _onHoverChanged;
 
     protected override void OnDetached()
     {
-        Host!.HoveredWidgetChanged -= _onHoverChanged;
         Hide();
         _overlay.Detach();
     }
 
     // ── Hover ─────────────────────────────────────────────────────────────────
+    // The child is this widget's only child, so the pointer is over the child exactly when it is over this.
 
-    private void OnHoverChanged()
+    protected override void OnPointerEntered(PointerEventArgs e)
     {
-        if (!IsWithinChild(Host!.HoveredWidget))
-        {
-            Hide();
-            return;
-        }
         if (_tooltipVisible || _delay is not null) return;
-
         if (ShowDelay > 0f)
-            _delay = Host.Platform.StartTimer(TimeSpan.FromSeconds(ShowDelay), _show);
+            _delay = Host!.Platform.StartTimer(TimeSpan.FromSeconds(ShowDelay), _show);
         else
             Show();
     }
+
+    protected override void OnPointerExited(PointerEventArgs e) => Hide();
+
+    protected override void OnPointerPressed(PointerEventArgs e) => Hide();
 
     private void Show()
     {
@@ -100,21 +92,4 @@ public sealed class Tooltip : Widget
 
     protected override void ArrangeCore(Rect r)
         => _child.Arrange(r);
-
-    // Pass hit-testing directly to the child so this wrapper is invisible to input.
-    public override Widget? HitTest(float x, float y)
-    {
-        if (!IsVisible || !IsEnabled || !IsHitTestVisible) return null;
-        if (!LayoutBounds.Contains(x, y)) return null;
-        return _child.HitTest(x, y);
-    }
-
-    // ── Helpers ───────────────────────────────────────────────────────────────
-
-    private bool IsWithinChild(Widget? hovered)
-    {
-        for (var w = hovered; w is not null; w = w.Parent)
-            if (w == _child) return true;
-        return false;
-    }
 }

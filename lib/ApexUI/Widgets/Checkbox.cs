@@ -24,7 +24,20 @@ public class Checkbox : Widget
         IsChecked = isChecked;
         Label     = label;
         OnChanged = onChanged;
-        OnClick   = _ => Toggle();
+        Focusable = true;
+    }
+
+    protected override void OnClick(PointerEventArgs e)
+    {
+        e.Handled = true;
+        Toggle();
+    }
+
+    protected override void OnKeyDown(KeyEventArgs e)
+    {
+        if (!Activation.IsActivationKey(e)) return;
+        e.Handled = true;
+        Toggle();
     }
 
     // ── Fluent ───────────────────────────────────────────────────────────────

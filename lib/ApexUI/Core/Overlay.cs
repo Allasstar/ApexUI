@@ -10,7 +10,7 @@ public enum OverlayAnchor { BelowAnchor, AboveAnchor, RightOfAnchor, LeftOfAncho
 /// Usage:
 ///   var ov = new Overlay { IsModal = true, ContentHAlign = HAlign.Center, ContentVAlign = VAlign.Center };
 ///   ov.Content = myDialogWidget;
-///   button.OnClick = _ => ov.Open(button.Host!);
+///   button.Click += _ => ov.Open(button.Host!);
 public class Overlay : Widget
 {
     private Widget? _content;
@@ -45,7 +45,7 @@ public class Overlay : Widget
     /// Draws a semi-transparent backdrop behind Content.
     public bool IsModal { get; set => SetRenderProperty(ref field, value); }
 
-    /// Clicking outside Content closes the overlay (default true).
+    /// Pressing any pointer button outside Content closes the overlay (default true).
     public bool DismissOnClickOutside { get; set; } = true;
 
     /// When Anchor is set, stretches Content to match the anchor's width (e.g. for dropdowns).
@@ -56,8 +56,14 @@ public class Overlay : Widget
     public Overlay()
     {
         IsVisible = false;
-        // Click on the backdrop (i.e. the overlay itself, not a child) → dismiss.
-        OnClick = _ => { if (DismissOnClickOutside) Close(); };
+    }
+
+    // Events from Content bubble here too; only a press on the backdrop itself dismisses.
+    protected override void OnPointerPressed(PointerEventArgs e)
+    {
+        if (e.Source != this || !DismissOnClickOutside) return;
+        e.Handled = true;
+        Close();
     }
 
     /// Show this overlay above everything else in host's window.

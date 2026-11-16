@@ -59,6 +59,13 @@ public class Theme
     /// Borders
     public SKColor Border         { get; init; } = new(204, 204, 204);
 
+    /// Keyboard focus outline; Primary unless set.
+    public SKColor FocusRing
+    {
+        get => field == SKColor.Empty ? Primary : field;
+        init;
+    }
+
     // ── Typography ────────────────────────────────────────────────────────
 
     public string FontFamily      { get; init; } = "Segoe UI";

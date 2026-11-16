@@ -13,6 +13,9 @@ public interface IPlatform
     /// (and after Resize), so an idle window costs nothing; several requests before the frame make one frame.
     void RequestFrame();
 
+    /// Monotonic clock, the same one Render's frameTime comes from.
+    TimeSpan Now { get; }
+
     string? GetClipboardText();
     void SetClipboardText(string text);
 
@@ -37,10 +40,12 @@ public interface IPlatformListener
     void Resize(float pixelWidth, float pixelHeight, float dpiScale);
     /// frameTime: a monotonic clock reading for this frame, used to time animations.
     void Render(SKCanvas canvas, TimeSpan frameTime);
-    void PointerMove(float x, float y);
-    void PointerDown(float x, float y, PointerButton button);
-    void PointerUp(float x, float y, PointerButton button);
-    void Wheel(float deltaX, float deltaY);
+    void PointerMove(float x, float y, KeyModifiers modifiers);
+    void PointerDown(float x, float y, PointerButton button, KeyModifiers modifiers);
+    void PointerUp(float x, float y, PointerButton button, KeyModifiers modifiers);
+    /// Deltas in wheel notches; positive deltaY scrolls up. Applies at the last PointerMove position.
+    void Wheel(float deltaX, float deltaY, KeyModifiers modifiers);
+    /// Send it again for each auto-repeat while a key is held; UiHost marks those as repeats.
     void KeyDown(Key key, KeyModifiers modifiers);
     void KeyUp(Key key, KeyModifiers modifiers);
     /// Text typed by the user, already translated by the keyboard layout. Never contains control characters.

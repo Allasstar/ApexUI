@@ -4,7 +4,7 @@ public enum ScrollDirection { Vertical, Horizontal, Both }
 
 /// Scrollable single-child container.
 /// Content is clipped to viewport; optional scrollbar thumb drawn on the edge.
-/// Mouse-wheel scrolling bubbles up from any child to this widget.
+/// Wheel events bubble up from any child to this widget.
 public class Scroll : Widget
 {
     private const float BarSize  = 8f;
@@ -35,19 +35,38 @@ public class Scroll : Widget
     {
         _content = content;
         AddChild(content);
+    }
 
-        OnScroll = (dx, dy) =>
+    // Handled only when it actually scrolled, so a nested Scroll at its end passes the wheel outward.
+    protected override void OnWheel(WheelEventArgs e)
+    {
+        bool moved = Direction switch
         {
-            if (Direction == ScrollDirection.Horizontal)
-                MoveX((-dx - dy) * WheelSpd);     // use both axes for horizontal-only
-            else if (Direction == ScrollDirection.Vertical)
-                MoveY(-dy * WheelSpd);
-            else { MoveX(-dx * WheelSpd); MoveY(-dy * WheelSpd); }
+            ScrollDirection.Horizontal => MoveX((-e.DeltaX - e.DeltaY) * WheelSpd), // both axes for horizontal-only
+            ScrollDirection.Vertical   => MoveY(-e.DeltaY * WheelSpd),
+            _                          => MoveX(-e.DeltaX * WheelSpd) | MoveY(-e.DeltaY * WheelSpd),
         };
+        if (moved) e.Handled = true;
+    }
 
-        OnPointerDown = e => BeginDrag(e.X, e.Y);
-        OnPointerMove = e => UpdateDrag(e.X, e.Y);
-        OnPointerUp   = _ => { _draggingV = false; _draggingH = false; };
+    protected override void OnPointerPressed(PointerEventArgs e)
+    {
+        if (e.Button == PointerButton.Left && BeginDrag(e.X, e.Y))
+            e.Handled = true;
+    }
+
+    protected override void OnPointerMoved(PointerEventArgs e)
+    {
+        if (!_draggingV && !_draggingH) return;
+        e.Handled = true;
+        UpdateDrag(e.X, e.Y);
+    }
+
+    protected override void OnPointerCaptureLost()
+    {
+        if (!_draggingV && !_draggingH) return;
+        _draggingV = _draggingH = false;
+        Invalidate();
     }
 
     public Scroll WithDirection(ScrollDirection dir) { Direction = dir; return this; }
@@ -138,9 +157,11 @@ public class Scroll : Widget
 
     // ── Scrollbar dragging ────────────────────────────────────────────────────
 
-    private void BeginDrag(float x, float y)
+    // Returns whether the press landed on a scrollbar. A thumb drag captures the pointer,
+    // because the press may have landed on content that would otherwise keep the moves.
+    private bool BeginDrag(float x, float y)
     {
-        if (!ShowScrollbar) return;
+        if (!ShowScrollbar) return false;
         var lb = LayoutBounds;
         bool hasV = Direction is ScrollDirection.Vertical   or ScrollDirection.Both;
         bool hasH = Direction is ScrollDirection.Horizontal or ScrollDirection.Both;
@@ -160,12 +181,16 @@ public class Scroll : Widget
             if (thumb.Contains(x, y))
             {
                 _draggingV = true; _dragStart = y; _dragScrollStart = _scrollY;
+                CapturePointer();
+                Invalidate();
+                return true;
             }
-            else if (track.Contains(x, y))
+            if (track.Contains(x, y))
             {
                 float ratio = Math.Clamp((y - track.Y - th * 0.5f) / Math.Max(1f, range), 0f, 1f);
                 _scrollY = ratio * maxSY;
                 InvalidateLayout();
+                return true;
             }
         }
 
@@ -179,14 +204,19 @@ public class Scroll : Widget
             if (thumb.Contains(x, y))
             {
                 _draggingH = true; _dragStart = x; _dragScrollStart = _scrollX;
+                CapturePointer();
+                Invalidate();
+                return true;
             }
-            else if (track.Contains(x, y))
+            if (track.Contains(x, y))
             {
                 float ratio = Math.Clamp((x - track.X - tw * 0.5f) / Math.Max(1f, range), 0f, 1f);
                 _scrollX = ratio * maxSX;
                 InvalidateLayout();
+                return true;
             }
         }
+        return false;
     }
 
     private void UpdateDrag(float x, float y)
@@ -225,21 +255,27 @@ public class Scroll : Widget
         }
     }
 
-    private void MoveX(float delta)
+    private bool MoveX(float delta)
     {
         bool hasV = Direction is ScrollDirection.Vertical   or ScrollDirection.Both;
         float vpW = hasV && ShowScrollbar ? LayoutBounds.Width - BarSize : LayoutBounds.Width;
         float maxSX = Math.Max(0f, _content.DesiredSize.Width - vpW);
-        _scrollX = Math.Clamp(_scrollX + delta, 0f, maxSX);
+        float next  = Math.Clamp(_scrollX + delta, 0f, maxSX);
+        if (next == _scrollX) return false;
+        _scrollX = next;
         InvalidateLayout();
+        return true;
     }
 
-    private void MoveY(float delta)
+    private bool MoveY(float delta)
     {
         bool hasH = Direction is ScrollDirection.Horizontal or ScrollDirection.Both;
         float vpH = hasH && ShowScrollbar ? LayoutBounds.Height - BarSize : LayoutBounds.Height;
         float maxSY = Math.Max(0f, _content.DesiredSize.Height - vpH);
-        _scrollY = Math.Clamp(_scrollY + delta, 0f, maxSY);
+        float next  = Math.Clamp(_scrollY + delta, 0f, maxSY);
+        if (next == _scrollY) return false;
+        _scrollY = next;
         InvalidateLayout();
+        return true;
     }
 }

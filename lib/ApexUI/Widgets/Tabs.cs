@@ -74,11 +74,15 @@ public class Tabs : Widget
                 ColorSource      = t => IsActive ? t.Primary : IsHovered ? t.OnSurface : t.OnSurfaceMuted,
             };
             AddChild(_label);
-            OnClick = e =>
-            {
-                if (e.Button != PointerButton.Left) return;
-                onSelect();
-            };
+            _onSelect = onSelect;
+        }
+
+        private readonly Action _onSelect;
+
+        protected override void OnClick(PointerEventArgs e)
+        {
+            e.Handled = true;
+            _onSelect();
         }
 
         protected override Size MeasureCore(Size available)

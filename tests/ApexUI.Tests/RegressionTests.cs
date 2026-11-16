@@ -18,36 +18,44 @@ public class TextInputTests
     [Fact]
     public void Setting_shorter_value_while_caret_is_at_end_still_draws()
     {
-        var input = new TextInput { IsFocused = true };
-        input.OnTextInput!(new TextInputEvent("0.123"));
+        var (input, platform) = FocusedInput();
+        platform.Type("0.123");
 
         input.Value = "0.12";
 
-        TestCanvas.Draw(input, 200, 40);
+        platform.Render().Dispose();
     }
 
     [Fact]
     public void Setting_shorter_value_with_selection_still_draws()
     {
-        var input = new TextInput { IsFocused = true };
-        input.OnTextInput!(new TextInputEvent("hello"));
-        input.OnKeyDown!(new KeyEvent(Key.A, KeyModifiers.Control, IsDown: true));
+        var (input, platform) = FocusedInput();
+        platform.Type("hello");
+        platform.Key(Key.A, KeyModifiers.Control);
 
         input.Value = "hi";
 
-        TestCanvas.Draw(input, 200, 40);
+        platform.Render().Dispose();
     }
 
     [Fact]
     public void Backspace_at_the_end_leaves_the_caret_at_the_new_end()
     {
-        var input = new TextInput { IsFocused = true };
-        input.OnTextInput!(new TextInputEvent("ab"));
+        var (input, platform) = FocusedInput();
+        platform.Type("ab");
 
-        input.OnKeyDown!(new KeyEvent(Key.Backspace, KeyModifiers.None, IsDown: true));
-        input.OnTextInput!(new TextInputEvent("c"));
+        platform.Key(Key.Backspace);
+        platform.Type("c");
 
         Assert.Equal("ac", input.Value);
+    }
+
+    private static (TextInput, TestPlatform) FocusedInput()
+    {
+        var input = new TextInput { Width = 200, HAlign = HAlign.Left, VAlign = VAlign.Top };
+        var (_, platform) = TestPlatform.Show(input);
+        platform.Click(10, 10);
+        return (input, platform);
     }
 }
 

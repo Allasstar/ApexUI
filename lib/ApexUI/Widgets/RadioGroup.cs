@@ -14,10 +14,31 @@ public class RadioGroup<T> : Widget
         private const float DotR    = 5f;
         private const float Gap     = 10f;
 
+        private readonly Action _onSelect;
+
         public string ItemLabel { get; }
         public bool IsSelected  { get; set => SetRenderProperty(ref field, value); }
 
-        public RadioItem(string label) => ItemLabel = label;
+        public RadioItem(string label, Action onSelect)
+        {
+            ItemLabel    = label;
+            _onSelect    = onSelect;
+            Focusable    = true;
+            CornerRadius = 4f;
+        }
+
+        protected override void OnClick(PointerEventArgs e)
+        {
+            e.Handled = true;
+            _onSelect();
+        }
+
+        protected override void OnKeyDown(KeyEventArgs e)
+        {
+            if (!Activation.IsActivationKey(e)) return;
+            e.Handled = true;
+            _onSelect();
+        }
 
         protected override Size MeasureCore(Size available)
         {
@@ -86,12 +107,7 @@ public class RadioGroup<T> : Widget
 
     public RadioGroup<T> AddOption(T value, string label)
     {
-        var item = new RadioItem(label);
-        item.OnClick = _ =>
-        {
-            if (!item.IsEnabled) return;
-            SelectedValue = value;
-        };
+        var item = new RadioItem(label, () => SelectedValue = value);
         _options.Add((value, item));
         AddChild(item);
         return this;

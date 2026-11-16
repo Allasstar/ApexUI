@@ -83,6 +83,9 @@ public class NumberInput : Widget
 
         _minus.OnPressed = () => Value = _value - Step;
         _plus.OnPressed  = () => Value = _value + Step;
+        // Tab goes straight to the next field; Up/Down in the field step the value instead.
+        _minus.Focusable = false;
+        _plus.Focusable  = false;
 
         AddChild(_minus);
         AddChild(_input);
@@ -119,6 +122,18 @@ public class NumberInput : Widget
         OnChanged += v => source.Value = (int)MathF.Round(v);
         Observe(source, v => Value = v);
         return this;
+    }
+
+    // The text field leaves Up/Down unhandled, so they bubble here.
+    protected override void OnKeyDown(KeyEventArgs e)
+    {
+        switch (e.Key)
+        {
+            case Key.Up:   Value = _value + Step; break;
+            case Key.Down: Value = _value - Step; break;
+            default: return;
+        }
+        e.Handled = true;
     }
 
     // ── Layout ────────────────────────────────────────────────────────────────

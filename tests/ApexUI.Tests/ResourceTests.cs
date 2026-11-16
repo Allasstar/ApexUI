@@ -129,49 +129,35 @@ public class TextCacheTests
     [Fact]
     public void Clicking_places_the_caret_using_the_current_text()
     {
-        var input = new TextInput();
-        input.Measure(new Size(400, 40));
-        input.Arrange(new Rect(0, 0, 400, 40));
+        var input = new TextInput { Width = 400, HAlign = HAlign.Left, VAlign = VAlign.Top };
+        var (_, platform) = TestPlatform.Show(input);
 
         input.Value = "abc";
-        Click(input, 399);
-        Type(input, "d");
+        platform.Click(399, 10);
+        platform.Type("d");
         Assert.Equal("abcd", input.Value);
 
-        Click(input, 0);
-        Type(input, "x");
+        platform.Click(0, 10);
+        platform.Type("x");
         Assert.Equal("xabcd", input.Value);
 
         input.Value = "hello world";
-        Click(input, 399);
-        Type(input, "!");
+        platform.Click(399, 10);
+        platform.Type("!");
         Assert.Equal("hello world!", input.Value);
     }
 
     [Fact]
     public void Password_input_caret_follows_masked_text()
     {
-        var input = new TextInput().AsPassword();
-        input.Measure(new Size(400, 40));
-        input.Arrange(new Rect(0, 0, 400, 40));
+        var input = new TextInput { Width = 400, HAlign = HAlign.Left, VAlign = VAlign.Top }.AsPassword();
+        var (_, platform) = TestPlatform.Show(input);
 
         input.Value = "secret";
-        Click(input, 399);
-        Type(input, "!");
+        platform.Click(399, 10);
+        platform.Type("!");
 
         Assert.Equal("secret!", input.Value);
-    }
-
-    private static void Click(TextInput input, float x)
-    {
-        input.OnPointerDown!(new PointerEvent(x, 20, PointerButton.Left, true));
-        input.OnPointerUp!(new PointerEvent(x, 20, PointerButton.Left, false));
-    }
-
-    private static void Type(TextInput input, string text)
-    {
-        foreach (var c in text)
-            input.OnTextInput!(new TextInputEvent(c.ToString()));
     }
 }
 

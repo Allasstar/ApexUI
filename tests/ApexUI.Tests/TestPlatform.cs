@@ -29,11 +29,26 @@ internal sealed class TestPlatform(int pixelWidth = 800, int pixelHeight = 600, 
         listener.Resize(pixelWidth, pixelHeight, dpiScale);
     }
 
-    public void Click(float x, float y, PointerButton button = PointerButton.Left)
+    public void Click(float x, float y, PointerButton button = PointerButton.Left, KeyModifiers modifiers = KeyModifiers.None)
     {
-        Listener.PointerMove(x, y);
-        Listener.PointerDown(x, y, button);
-        Listener.PointerUp(x, y, button);
+        Listener.PointerMove(x, y, modifiers);
+        Listener.PointerDown(x, y, button, modifiers);
+        Listener.PointerUp(x, y, button, modifiers);
+    }
+
+    public void Move(float x, float y)    => Listener.PointerMove(x, y, KeyModifiers.None);
+    public void Press(float x, float y)   => Listener.PointerDown(x, y, PointerButton.Left, KeyModifiers.None);
+    public void Release(float x, float y) => Listener.PointerUp(x, y, PointerButton.Left, KeyModifiers.None);
+
+    public void Key(Key key, KeyModifiers modifiers = KeyModifiers.None)
+    {
+        Listener.KeyDown(key, modifiers);
+        Listener.KeyUp(key, modifiers);
+    }
+
+    public void Type(string text)
+    {
+        foreach (var c in text) Listener.TextEntered(c.ToString());
     }
 
     /// Renders one frame into a raster bitmap of the surface size. The caller disposes it.

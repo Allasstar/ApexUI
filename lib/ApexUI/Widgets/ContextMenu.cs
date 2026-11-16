@@ -6,8 +6,8 @@ namespace ApexUI.Widgets;
 /// Standard behavior:
 ///   • Right mouse UP on target → menu appears at cursor
 ///   • Left-click item → action fires, menu closes
-///   • Left-click outside → menu closes
-///   • Right-click outside while open → menu moves to new cursor position
+///   • Left press outside → menu closes
+///   • Right press outside while open → menu moves to new cursor position
 ///
 /// Example:
 ///   var darkMode = new Bindable<bool>(false);
@@ -27,8 +27,10 @@ public sealed class ContextMenu
     {
         // DismissOnClickOutside is handled manually so we get right-click reposition.
         _overlay = new Overlay { DismissOnClickOutside = false };
-        _overlay.OnClick = e =>
+        _overlay.PointerPressed += e =>
         {
+            if (e.Source != _overlay) return;
+            e.Handled = true;
             if (e.Button == PointerButton.Right && _overlay.Host is { } host)
                 Show(host, e.X, e.Y);
             else
@@ -65,20 +67,16 @@ public sealed class ContextMenu
 
     // ── Attachment ────────────────────────────────────────────────────────────
 
+    /// Shows menu on a right-button release over target or any of its descendants,
+    /// including ones added later (the release bubbles up to target).
     public static void Attach(Widget target, ContextMenu menu)
-        => AttachRecursive(target, menu);
-
-    private static void AttachRecursive(Widget w, ContextMenu menu)
     {
-        var prev = w.OnPointerUp;
-        w.OnPointerUp = e =>
+        target.PointerReleased += e =>
         {
-            prev?.Invoke(e);
-            if (e.Button == PointerButton.Right && w.Host is { } host)
-                menu.Show(host, e.X, e.Y);
+            if (e.Button != PointerButton.Right || target.Host is not { } host) return;
+            e.Handled = true;
+            menu.Show(host, e.X, e.Y);
         };
-        foreach (var child in w.Children)
-            AttachRecursive(child, menu);
     }
 
     // ── Show / Close ──────────────────────────────────────────────────────────
@@ -121,27 +119,23 @@ public sealed class ContextMenu
                 var binding      = entry.Binding;
                 var closeOnClick = entry.CloseOnClick;
                 MenuItemWidget? item = null;
-                item = new MenuItemWidget(entry.Label, isChecked: () => binding.Value);
-                item.OnClick = e =>
+                item = new MenuItemWidget(entry.Label, isChecked: () => binding.Value, onActivate: () =>
                 {
-                    if (e.Button != PointerButton.Left) return;
                     binding.Value = !binding.Value;
                     item!.Invalidate();
                     if (closeOnClick) Close();
-                };
+                });
                 panel.Add(item);
             }
             else
             {
                 var action  = entry.Action;
                 var enabled = entry.Enabled;
-                var item    = new MenuItemWidget(entry.Label, enabled);
-                item.OnClick = e =>
+                var item    = new MenuItemWidget(entry.Label, enabled: enabled, onActivate: () =>
                 {
-                    if (e.Button != PointerButton.Left) return;
                     Close();
                     if (enabled) action();
-                };
+                });
                 panel.Add(item);
             }
         }

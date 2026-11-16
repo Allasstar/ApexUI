@@ -139,20 +139,6 @@ public abstract partial class Widget
 
     public bool IsEnabled        { get; set => SetRenderProperty(ref field, value); } = true;
     public bool IsHitTestVisible { get; set; } = true;
-    public bool IsHovered        { get; internal set; }
-    public bool IsPressed        { get; internal set; }
-
-    public Action<PointerEvent>? OnPointerDown;
-    public Action<PointerEvent>? OnPointerUp;
-    public Action<PointerEvent>? OnPointerMove;
-    public Action<PointerEvent>? OnPointerEnter;
-    public Action<PointerEvent>? OnPointerExit;
-    public Action<PointerEvent>? OnClick;
-    public Action<KeyEvent>?     OnKeyDown;
-    public Action<KeyEvent>?     OnKeyUp;
-    public Action<TextInputEvent>? OnTextInput;
-    /// deltaX, deltaY — scroll wheel deltas; bubbles to parent if not handled.
-    public Action<float, float>? OnScroll;
 
     // ── Layout state (set by parent during Arrange) ───────────────────────
 
@@ -322,6 +308,9 @@ public abstract partial class Widget
         // Draw children on top
         foreach (var child in _children)
             child.Draw(ctx);
+
+        if (IsFocused && Host is { IsFocusVisible: true })
+            DrawFocusRing(ctx);
 
         if (Opacity < 1f) ctx.Canvas.Restore();
         ctx.Canvas.Restore();

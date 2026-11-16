@@ -20,14 +20,14 @@ public class UiHostTests
     public void Click_is_routed_in_logical_units()
     {
         var box = new FixedBox(100, 100);
-        PointerEvent? clicked = null;
-        box.OnClick = e => clicked = e;
+        (float X, float Y)? clicked = null;
+        box.Click += e => clicked = (e.X, e.Y);
         var (host, platform) = TestPlatform.Show(box);
         host.UiScale = 2f;
 
         platform.Click(150, 50);
 
-        Assert.Equal(new PointerEvent(75, 25, PointerButton.Left, false), clicked);
+        Assert.Equal((75f, 25f), clicked);
     }
 
     [Fact]
@@ -47,16 +47,15 @@ public class UiHostTests
     [Fact]
     public void Key_up_keeps_its_modifiers()
     {
-        var box = new FixedBox(100, 100);
-        KeyEvent? released = null;
-        box.OnKeyUp = e => released = e;
+        var box = new FixedBox(100, 100) { Focusable = true };
+        (Key, KeyModifiers, bool Ctrl, bool Shift, bool Alt)? released = null;
+        box.KeyUp += e => released = (e.Key, e.Modifiers, e.Ctrl, e.Shift, e.Alt);
         var (_, platform) = TestPlatform.Show(box);
 
         platform.Click(10, 10);
         platform.Listener.KeyUp(Key.S, KeyModifiers.Control | KeyModifiers.Shift);
 
-        Assert.Equal(new KeyEvent(Key.S, KeyModifiers.Control | KeyModifiers.Shift, IsDown: false), released);
-        Assert.True(released!.Value.Ctrl && released.Value.Shift && !released.Value.Alt);
+        Assert.Equal((Key.S, KeyModifiers.Control | KeyModifiers.Shift, true, true, false), released);
     }
 
     [Fact]
@@ -66,8 +65,8 @@ public class UiHostTests
         var content = new FixedBox(100, 100);
         var overlay = new Overlay { Content = content, ContentHAlign = HAlign.Center, ContentVAlign = VAlign.Center };
         int rootClicks = 0, contentClicks = 0;
-        root.OnClick    = _ => rootClicks++;
-        content.OnClick = _ => contentClicks++;
+        root.Click    += _ => rootClicks++;
+        content.Click += _ => contentClicks++;
         var (host, platform) = TestPlatform.Show(root);
 
         overlay.Open(host);

@@ -34,14 +34,25 @@ public class Button : Widget
         OnPressed = onPressed;
         Padding = new Thickness(16f, 8f);
         CornerRadius = 8f;
-
-        // Wire up click
-        OnClick = _ => OnPressed?.Invoke();
+        Focusable = true;
     }
 
     public Button WithText(string text)    { Text = text; return this; }
     public Button WithVariant(ButtonVariant v) { Variant = v; return this; }
     public Button OnPress(Action action)   { OnPressed = action; return this; }
+
+    protected override void OnClick(PointerEventArgs e)
+    {
+        e.Handled = true;
+        OnPressed?.Invoke();
+    }
+
+    protected override void OnKeyDown(KeyEventArgs e)
+    {
+        if (!Activation.IsActivationKey(e)) return;
+        e.Handled = true;
+        OnPressed?.Invoke();
+    }
 
     protected override Size MeasureCore(Size available)
     {

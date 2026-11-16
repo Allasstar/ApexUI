@@ -143,14 +143,14 @@ public class LifecycleTests
     {
         var child = new FixedBox(100, 100);
         int moves = 0;
-        child.OnPointerMove = _ => moves++;
+        child.PointerMoved += _ => moves++;
         var root = new Probe(child);
         var (_, platform) = TestPlatform.Show(root);
-        platform.Listener.PointerMove(10, 10);
-        platform.Listener.PointerDown(10, 10, PointerButton.Left);
+        platform.Move(10, 10);
+        platform.Press(10, 10);
 
         root.Remove(child);
-        platform.Listener.PointerMove(20, 20);
+        platform.Move(20, 20);
 
         Assert.Equal(1, moves);
     }
@@ -195,7 +195,12 @@ public class VirtualListTests
         var clicked = -1;
         var list = new VirtualList<int>()
             .WithItems(new ObservableList<int>(Enumerable.Range(0, 100)))
-            .WithTemplate(i => new FixedBox(10, 20) { OnClick = _ => clicked = i })
+            .WithTemplate(i =>
+            {
+                var row = new FixedBox(10, 20);
+                row.Click += _ => clicked = i;
+                return row;
+            })
             .WithRowHeight(20);
         var (_, platform) = TestPlatform.Show(list, 300, 200);
         platform.Render().Dispose();

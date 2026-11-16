@@ -21,15 +21,15 @@ public class DpiTests
     public void Pointer_pixels_are_divided_by_dpi_and_ui_scale()
     {
         var box = new FixedBox(100, 100);
-        PointerEvent? clicked = null;
-        box.OnClick = e => clicked = e;
+        (float X, float Y)? clicked = null;
+        box.Click += e => clicked = (e.X, e.Y);
         var (host, platform) = TestPlatform.Show(box, 800, 600, dpiScale: 2f);
         host.UiScale = 1.5f;
         platform.Render().Dispose();
 
         platform.Click(300, 150);
 
-        Assert.Equal(new PointerEvent(100, 50, PointerButton.Left, false), clicked);
+        Assert.Equal((100f, 50f), clicked);
     }
 
     [Fact]

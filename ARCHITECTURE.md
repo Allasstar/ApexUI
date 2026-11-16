@@ -26,7 +26,7 @@ IPlatform (DesktopPlatform, later a web backend)
         │  IPlatformListener: Resize, Render(canvas), PointerMove/Down/Up, Wheel, KeyDown/Up, TextEntered, Close
         ▼
 UiHost (platform-neutral)
-    root widget tree, overlays, layout, drawing, hover/press/focus routing, theme, fonts
+    root widget tree, overlays, layout, drawing, input routing (hover, capture, focus, keys), theme, fonts
 ```
 
 The platform reports sizes and pointer positions in surface pixels, plus the display scale (`DpiScale`).
@@ -43,6 +43,37 @@ propagated by `AddChild`/`RemoveChild`. Attaching runs `OnAttached` top-down; de
 bottom-up and clears hover, press and focus references to the widget. Subscriptions made with `Observe`
 are dropped on detach and restored, with a re-sync, on attach. `VirtualList` rows are ordinary children,
 created and removed during arrange.
+
+## Input routing
+
+Every widget handles input the same way. `UiHost` finds the event's source and walks up the parents:
+
+| Event | Source | Bubbles |
+|---|---|---|
+| `PointerPressed`, `PointerMoved`, `PointerReleased` | the captured widget, else the widget under the pointer | yes |
+| `Click` (left press and release over the same widget) | the pressed widget | yes |
+| `Wheel` | the widget under the pointer | yes |
+| `KeyDown`, `KeyUp`, `TextEntered` | the focused widget | yes |
+| `PointerEntered`, `PointerExited` | each widget the pointer entered or left | no |
+| `GotFocus`, `LostFocus`, `PointerCaptureLost` | the widget concerned | no |
+
+On each widget the protected virtual `On…` method runs first (the widget's own behavior), then the public
+event (user handlers), so subscribing never replaces built-in behavior. Setting `Handled` stops the event at
+that widget. Built-in widgets set it only for what they act on: a `Button` handles `Click`, a `Scroll`
+handles `Wheel` only when it actually scrolled, a `TextInput` leaves Tab, Up/Down and unknown shortcuts alone.
+
+- **Hover** is a chain: the widget under the pointer and all its ancestors have `IsHovered`.
+- **Capture**: a press captures the pressed widget, so it keeps receiving moves and the release outside its
+  bounds. `CapturePointer()` moves capture elsewhere (an ancestor, or a drag without a press); capture ends
+  when all buttons are up, and `OnPointerCaptureLost` is the place to reset drag state.
+- **Focus**: a press focuses the nearest `Focusable` widget under the pointer, or clears focus. Tab / Shift+Tab
+  move through focusable widgets in tree order (inside the topmost modal overlay, if one is open). A focus ring
+  is drawn only when focus came from the keyboard (`UiHost.IsFocusVisible`).
+- Key presses no widget handled reach `UiHost.UnhandledKeyDown` (app-wide shortcuts), then Tab navigation.
+- Pointer events carry modifiers and a `ClickCount` (2 for a double press). `Widget.Cursor` sets the pointer
+  shape; the captured widget's cursor wins, then the hovered chain's, deepest first.
+- One event-argument object per kind is reused for every event, so routing allocates nothing. Handlers must
+  not keep it.
 
 ## The three-pass model
 
@@ -132,7 +163,6 @@ That's it. `FillRoundRect` comes from the C# 14 extension member on SKCanvas.
 | `field` keyword | `Widget.cs` — every property | No separate backing field per property |
 | Extension members | `SKColorExtensions.cs` | `SKColor.FromHex()`, `color.WithAlpha()` |
 | Implicit `Span<T>` | Layout loops | Zero-alloc child iteration |
-| `?.=` null-conditional | Event callbacks | `widget.OnClick ??= default` |
 | Records (`record struct`) | `Rect`, `Size`, `Thickness` | Value equality + `with` expressions for free |
 
 ## Running

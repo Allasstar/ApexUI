@@ -5,7 +5,7 @@ namespace ApexUI.Core;
 /// supplies the window, the canvas and the raw input events.
 ///
 ///   new UiHost(new DesktopPlatform("My App", 900, 700)).Run(root);
-public sealed class UiHost : IPlatformListener
+public sealed partial class UiHost : IPlatformListener
 {
     private readonly List<Overlay> _overlays = [];
     private DrawContext? _drawContext;
@@ -19,9 +19,6 @@ public sealed class UiHost : IPlatformListener
     private bool _overlaysNeedLayout;
 
     private Widget? _root;
-    private Widget? _hoveredWidget;
-    private Widget? _focusedWidget;
-    private Widget? _pressedWidget;
 
     private float _pixelWidth;
     private float _pixelHeight;
@@ -182,22 +179,6 @@ public sealed class UiHost : IPlatformListener
 
     internal int OpenOverlayCount => _overlays.Count;
 
-    // Temporary seam for Tooltip until widgets get their own hover enter/leave events.
-    internal Widget? HoveredWidget => _hoveredWidget;
-    internal event Action? HoveredWidgetChanged;
-
-    // A detached widget must not keep receiving pointer or key events.
-    internal void Forget(Widget widget)
-    {
-        if (_hoveredWidget == widget)
-        {
-            _hoveredWidget = null;
-            HoveredWidgetChanged?.Invoke();
-        }
-        if (_pressedWidget == widget) _pressedWidget = null;
-        if (_focusedWidget == widget) _focusedWidget = null;
-    }
-
     private Widget? HitTestAll(float x, float y)
     {
         for (int i = _overlays.Count - 1; i >= 0; i--)
@@ -287,94 +268,4 @@ public sealed class UiHost : IPlatformListener
         }
         _overlaysNeedLayout = false;
     }
-
-    // ── Input ─────────────────────────────────────────────────────────────────
-
-    void IPlatformListener.PointerMove(float px, float py)
-    {
-        EnsureLayout();
-        float x = px / PixelScale, y = py / PixelScale;
-        var hit = HitTestAll(x, y);
-
-        if (hit != _hoveredWidget)
-        {
-            if (_hoveredWidget is not null)
-            {
-                _hoveredWidget.IsHovered = false;
-                _hoveredWidget.OnPointerExit?.Invoke(new PointerEvent(x, y, PointerButton.None, false));
-                _hoveredWidget.Invalidate();
-            }
-            _hoveredWidget = hit;
-            if (_hoveredWidget is not null)
-            {
-                _hoveredWidget.IsHovered = true;
-                _hoveredWidget.OnPointerEnter?.Invoke(new PointerEvent(x, y, PointerButton.None, false));
-                _hoveredWidget.Invalidate();
-            }
-            HoveredWidgetChanged?.Invoke();
-        }
-        // Route move to the pressed (captured) widget so drags work outside bounds
-        (_pressedWidget ?? hit)?.OnPointerMove?.Invoke(new PointerEvent(x, y, PointerButton.None, false));
-    }
-
-    void IPlatformListener.PointerDown(float px, float py, PointerButton button)
-    {
-        EnsureLayout();
-        float x = px / PixelScale, y = py / PixelScale;
-        var hit = HitTestAll(x, y);
-
-        if (hit != _focusedWidget)
-        {
-            if (_focusedWidget is Widgets.TextInput ti) ti.IsFocused = false;
-            _focusedWidget = hit;
-            if (_focusedWidget is Widgets.TextInput ti2) ti2.IsFocused = true;
-            _focusedWidget?.Invalidate();
-        }
-
-        _pressedWidget = hit;
-        if (hit is not null)
-        {
-            hit.IsPressed = true;
-            hit.OnPointerDown?.Invoke(new PointerEvent(x, y, button, true));
-            hit.Invalidate();
-        }
-    }
-
-    void IPlatformListener.PointerUp(float px, float py, PointerButton button)
-    {
-        EnsureLayout();
-        float x = px / PixelScale, y = py / PixelScale;
-        var hit = HitTestAll(x, y);
-
-        if (_pressedWidget is not null)
-        {
-            _pressedWidget.IsPressed = false;
-            _pressedWidget.OnPointerUp?.Invoke(new PointerEvent(x, y, button, false));
-            // Click = press + release on same widget
-            if (_pressedWidget == hit)
-                _pressedWidget.OnClick?.Invoke(new PointerEvent(x, y, button, false));
-            _pressedWidget.Invalidate();
-            _pressedWidget = null;
-        }
-    }
-
-    void IPlatformListener.Wheel(float deltaX, float deltaY)
-    {
-        // Walk up from the hovered widget to find the nearest scroll handler.
-        var w = _hoveredWidget;
-        while (w is not null)
-        {
-            if (w.OnScroll is not null) { w.OnScroll(deltaX, deltaY); return; }
-            w = w.Parent;
-        }
-    }
-
-    void IPlatformListener.KeyDown(Key key, KeyModifiers modifiers)
-        => _focusedWidget?.OnKeyDown?.Invoke(new KeyEvent(key, modifiers, true));
-
-    void IPlatformListener.KeyUp(Key key, KeyModifiers modifiers)
-        => _focusedWidget?.OnKeyUp?.Invoke(new KeyEvent(key, modifiers, false));
-
-    void IPlatformListener.TextEntered(string text)
-        => _focusedWidget?.OnTextInput?.Invoke(new TextInputEvent(text));
 }

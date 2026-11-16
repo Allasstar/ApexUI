@@ -1,4 +1,4 @@
-using System.Diagnostics;
+﻿using System.Diagnostics;
 using Silk.NET.Input;
 using Silk.NET.Maths;
 using Silk.NET.OpenGL;
@@ -109,6 +109,8 @@ public sealed class DesktopPlatform : IPlatform
         _frameRequested = true;
         if (_window.IsInitialized) _window.ContinueEvents();
     }
+
+    public TimeSpan Now => _clock.Elapsed;
 
     public string? GetClipboardText() => _keyboard?.ClipboardText;
 
@@ -292,22 +294,22 @@ public sealed class DesktopPlatform : IPlatform
     // ── Input ─────────────────────────────────────────────────────────────────
 
     private void OnMouseMove(IMouse mouse, System.Numerics.Vector2 pos)
-        => _listener!.PointerMove(pos.X * _pixelRatio, pos.Y * _pixelRatio);
+        => _listener!.PointerMove(pos.X * _pixelRatio, pos.Y * _pixelRatio, Modifiers());
 
     private void OnMouseDown(IMouse mouse, MouseButton button)
-        => _listener!.PointerDown(mouse.Position.X * _pixelRatio, mouse.Position.Y * _pixelRatio, MapButton(button));
+        => _listener!.PointerDown(mouse.Position.X * _pixelRatio, mouse.Position.Y * _pixelRatio, MapButton(button), Modifiers());
 
     private void OnMouseUp(IMouse mouse, MouseButton button)
-        => _listener!.PointerUp(mouse.Position.X * _pixelRatio, mouse.Position.Y * _pixelRatio, MapButton(button));
+        => _listener!.PointerUp(mouse.Position.X * _pixelRatio, mouse.Position.Y * _pixelRatio, MapButton(button), Modifiers());
 
     private void OnScroll(IMouse mouse, ScrollWheel wheel)
-        => _listener!.Wheel(wheel.X, wheel.Y);
+        => _listener!.Wheel(wheel.X, wheel.Y, Modifiers());
 
     private void OnKeyDown(IKeyboard keyboard, SilkKey key, int scancode)
-        => _listener!.KeyDown(KeyMap.From(key), Modifiers(keyboard));
+        => _listener!.KeyDown(KeyMap.From(key), Modifiers());
 
     private void OnKeyUp(IKeyboard keyboard, SilkKey key, int scancode)
-        => _listener!.KeyUp(KeyMap.From(key), Modifiers(keyboard));
+        => _listener!.KeyUp(KeyMap.From(key), Modifiers());
 
     private void OnKeyChar(IKeyboard keyboard, char c)
     {
@@ -315,8 +317,10 @@ public sealed class DesktopPlatform : IPlatform
             _listener!.TextEntered(c.ToString());
     }
 
-    private static KeyModifiers Modifiers(IKeyboard kb)
+    private KeyModifiers Modifiers()
     {
+        var kb = _keyboard;
+        if (kb is null) return KeyModifiers.None;
         var m = KeyModifiers.None;
         if (kb.IsKeyPressed(SilkKey.ShiftLeft)   || kb.IsKeyPressed(SilkKey.ShiftRight))   m |= KeyModifiers.Shift;
         if (kb.IsKeyPressed(SilkKey.ControlLeft) || kb.IsKeyPressed(SilkKey.ControlRight)) m |= KeyModifiers.Control;

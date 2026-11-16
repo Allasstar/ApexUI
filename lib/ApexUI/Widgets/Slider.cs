@@ -30,10 +30,43 @@ public class Slider : Widget
 
     public Slider()
     {
-        MinWidth = 80f;
-        OnPointerDown = e => { _dragging = true;  UpdateFromX(e.X); };
-        OnPointerMove = e => { if (_dragging) UpdateFromX(e.X); };
-        OnPointerUp   = _ => _dragging = false;
+        MinWidth  = 80f;
+        Focusable = true;
+        CornerRadius = ThumbR;
+    }
+
+    protected override void OnPointerPressed(PointerEventArgs e)
+    {
+        if (e.Button != PointerButton.Left) return;
+        e.Handled = true;
+        _dragging = true;
+        UpdateFromX(e.X);
+    }
+
+    protected override void OnPointerMoved(PointerEventArgs e)
+    {
+        if (!_dragging) return;
+        e.Handled = true;
+        UpdateFromX(e.X);
+    }
+
+    protected override void OnPointerCaptureLost() => _dragging = false;
+
+    // Arrows move by Step (or 1% of the range when continuous), Page keys by ten steps, Home/End to the ends.
+    protected override void OnKeyDown(KeyEventArgs e)
+    {
+        float step = Step > 0f ? Step : (Max - Min) / 100f;
+        switch (e.Key)
+        {
+            case Key.Left or Key.Down: Value -= step;       break;
+            case Key.Right or Key.Up:  Value += step;       break;
+            case Key.PageDown:         Value -= step * 10f; break;
+            case Key.PageUp:           Value += step * 10f; break;
+            case Key.Home:             Value  = Min;        break;
+            case Key.End:              Value  = Max;        break;
+            default: return;
+        }
+        e.Handled = true;
     }
 
     // ── Fluent ───────────────────────────────────────────────────────────────

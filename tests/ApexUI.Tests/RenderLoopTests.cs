@@ -27,7 +27,7 @@ public class RenderLoopTests
 
         for (int y = 5; y < 700; y += 37)
         {
-            platform.Listener.PointerMove(y, y);
+            platform.Move(y, y);
             platform.Render().Dispose();
 
             Assert.Equal(0, platform.RenderAndCountRequests());
@@ -122,7 +122,7 @@ public class RenderLoopTests
         var (host, platform) = TestPlatform.Show(root);
         platform.Render().Dispose();
 
-        platform.Listener.PointerMove(10, 10);
+        platform.Move(10, 10);
         platform.Render().Dispose();
         int before = platform.FramesRequested;
         platform.Advance(TimeSpan.FromSeconds(0.4));
@@ -133,7 +133,7 @@ public class RenderLoopTests
         platform.Render().Dispose();
         Assert.Equal(1, host.OpenOverlayCount);
 
-        platform.Listener.PointerMove(10, 80);
+        platform.Move(10, 80);
         Assert.Equal(0, host.OpenOverlayCount);
         Assert.Equal(0, platform.ActiveTimers);
     }

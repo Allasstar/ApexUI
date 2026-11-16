@@ -4,6 +4,33 @@ Newest first. **Breaking** marks changes that need edits in apps using ApexUI.
 
 ## Unreleased
 
+### Routed input
+- **Breaking:** widget input is now events plus overridable methods instead of public delegate fields, so your handlers add to a widget's behavior instead of replacing it (before, setting `OnClick` on a `Toggle` stopped it toggling). Migrate:
+  | Before | After (user code) | After (inside a widget subclass) |
+  |---|---|---|
+  | `w.OnClick = e => …` | `w.Click += e => …` | `protected override void OnClick(PointerEventArgs e)` |
+  | `OnPointerDown` / `OnPointerUp` / `OnPointerMove` | `PointerPressed` / `PointerReleased` / `PointerMoved` | `OnPointerPressed` / `OnPointerReleased` / `OnPointerMoved` |
+  | `OnPointerEnter` / `OnPointerExit` | `PointerEntered` / `PointerExited` | `OnPointerEntered` / `OnPointerExited` |
+  | `OnScroll = (dx, dy) => …` | `Wheel += e => …` (`e.DeltaX`, `e.DeltaY`) | `OnWheel(WheelEventArgs e)` |
+  | `OnKeyDown` / `OnKeyUp` | `KeyDown` / `KeyUp` | `OnKeyDown` / `OnKeyUp` |
+  | `OnTextInput` | `TextEntered` | `OnTextEntered(TextInputEventArgs e)` |
+- **Breaking:** the `PointerEvent`, `KeyEvent` and `TextInputEvent` structs are replaced by `PointerEventArgs`, `WheelEventArgs`, `KeyEventArgs` and `TextInputEventArgs` (base `InputEventArgs`: `Source`, `Handled`, `Modifiers`, `Ctrl`/`Shift`/`Alt`/`Super`). The host reuses one object per kind so input allocates nothing: read it during the call, do not store it. `PointerEvent.IsDown` is gone (the event says it); `KeyEvent.IsDown` likewise.
+- Pointer, wheel, key and text events **bubble** from their source to the root until a handler sets `e.Handled`. On each widget its own handling runs first, then subscribers; `Handled` only stops the next ancestor. Built-in widgets handle only what they act on (a `Scroll` handles the wheel only when it actually scrolled, so nested scrolls pass it on at their ends).
+- **Breaking:** `Click` is sent for the left button only, when the press and release happen over the same widget (or its descendants). Use `PointerReleased` and check `e.Button` for other buttons.
+- **Pointer capture:** a press captures the pressed widget until every button is released, as before. New `CapturePointer()`, `ReleasePointerCapture()`, `HasPointerCapture`, `UiHost.PointerCapture` and `OnPointerCaptureLost()` / `PointerCaptureLost`, so an ancestor can take over a drag and widgets reset drag state in one place.
+- **Hover chain:** `IsHovered` is true on the widget under the pointer and all its ancestors (before: only the deepest widget), with `PointerEntered` / `PointerExited` sent to each.
+- **Double click:** `PointerEventArgs.ClickCount` counts presses of the same button within 500 ms and 4 units.
+- **Modifiers** on every pointer and wheel event. `KeyEventArgs.IsRepeat` marks auto-repeated key presses.
+- **Focus:** new `Widget.Focusable`, `IsFocused` (now on every widget; before only `TextInput`), `Focus()`, `OnGotFocus` / `OnLostFocus` and `GotFocus` / `LostFocus`. A press focuses the nearest focusable widget under the pointer and clears focus otherwise. Tab / Shift+Tab move focus in tree order, wrapping, and stay inside an open modal overlay. A themed focus ring (new `Theme.FocusRing`, default `Primary`) is drawn only when focus came from the keyboard (`UiHost.IsFocusVisible`); override `DrawFocusRing` to change it. `UiHost.FocusedWidget`, `MoveFocus(bool forward)`, `ClearFocus()`.
+- Focusable built-ins: `Button`, `Checkbox`, `Toggle`, `RadioGroup` options and the `Dropdown` button react to Space and Enter (the dropdown also opens with Down); `Slider` moves with the arrows, Page Up/Down, Home and End; `TextInput`. `NumberInput`'s −/+ buttons are skipped by Tab, and Up/Down in its field step the value.
+- New `UiHost.UnhandledKeyDown`: key presses no focused widget handled, for app-wide shortcuts.
+- New `Widget.Cursor` (`CursorShape?`, null inherits): the pointer shape over the widget. `TextInput` shows a text cursor.
+- `TextInput`: copy, cut and paste (Ctrl+C/X/V; line breaks paste as spaces; password fields do not copy), Ctrl+Left/Right and Ctrl+Backspace/Delete by word, Shift+click extends the selection, double click selects a word and triple click everything, Escape restores the text from when it was focused and leaves the field, Tab focus selects all, and long text scrolls to keep the caret visible.
+- `ContextMenu.Attach` subscribes once on the target and catches right-clicks from descendants added later (before: only those present at the call).
+- **Breaking:** an `Overlay` with `DismissOnClickOutside` closes when any button is pressed on the backdrop (before: on a left click), and clicks inside its content no longer reach the backdrop handler. A context menu moves on a right press outside it.
+- `Tooltip` reacts to its own hover enter and exit, hides on press, and is hit-testable itself, so it also works around widgets that are not.
+- **Breaking:** `IPlatform` gains `TimeSpan Now` (monotonic clock). `IPlatformListener.PointerMove/Down/Up` and `Wheel` take a `KeyModifiers` argument.
+
 ### Event-driven rendering
 - A window draws only when something changed. An untouched app renders no frames and uses no CPU; before, it redrew the whole tree every vsync. `Invalidate()` and `InvalidateLayout()` ask the host for a frame, and every change made before that frame is drawn in it.
 - `DesktopPlatform` sleeps until input, a due timer or a frame request instead of polling every frame, and redraws when the window is restored, moved, resized or focused.

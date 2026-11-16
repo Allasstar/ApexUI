@@ -26,7 +26,21 @@ public class Toggle : Widget
         IsChecked = isChecked;
         Label     = label;
         OnChanged = onChanged;
-        OnClick   = _ => Flip();
+        Focusable = true;
+        CornerRadius = TrackH * 0.5f;
+    }
+
+    protected override void OnClick(PointerEventArgs e)
+    {
+        e.Handled = true;
+        Flip();
+    }
+
+    protected override void OnKeyDown(KeyEventArgs e)
+    {
+        if (!Activation.IsActivationKey(e)) return;
+        e.Handled = true;
+        Flip();
     }
 
     // ── Fluent ───────────────────────────────────────────────────────────────
