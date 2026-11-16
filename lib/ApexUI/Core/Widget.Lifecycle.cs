@@ -43,6 +43,8 @@ public abstract partial class Widget
         if (Host is not null) DetachFromHost();
 
         Host = host;
+        // Measurements taken without this host used its default font and theme.
+        _measureDirty = _arrangeDirty = true;
         if (_subscriptions is not null)
             foreach (var s in _subscriptions) s.Connect(resync: true);
         OnAttached(host);

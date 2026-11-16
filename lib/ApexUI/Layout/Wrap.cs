@@ -20,78 +20,62 @@ public class Wrap : Widget
 
     protected override Size MeasureCore(Size available)
     {
-        float avW = float.IsPositiveInfinity(available.Width) ? float.MaxValue : available.Width;
-        var lines = BuildLines(avW);
-        if (lines.Count == 0) return Size.Zero;
-
-        float maxW = 0f;
-        foreach (var (items, _) in lines)
+        float maxWidth = float.IsPositiveInfinity(available.Width) ? float.MaxValue : available.Width;
+        float width = 0f, height = 0f;
+        int next = 0;
+        bool first = true;
+        while (NextLine(ref next, maxWidth, out _, out float lineWidth, out float lineHeight))
         {
-            float lw = 0f;
-            foreach (var c in items) lw += c.DesiredSize.Width;
-            lw += Math.Max(0, items.Count - 1) * HorizontalSpacing;
-            maxW = Math.Max(maxW, lw);
+            if (!first) height += VerticalSpacing;
+            first  = false;
+            width  = Math.Max(width, lineWidth);
+            height += lineHeight;
         }
-
-        float totalH = 0f;
-        for (int i = 0; i < lines.Count; i++)
-        {
-            if (i > 0) totalH += VerticalSpacing;
-            totalH += lines[i].lineHeight;
-        }
-
-        return new Size(maxW, totalH);
+        return new Size(width, height);
     }
 
     protected override void ArrangeCore(Rect finalRect)
     {
-        var lines = BuildLines(finalRect.Width);
         float y = finalRect.Y;
-
-        foreach (var (items, lineH) in lines)
+        int next = 0;
+        while (NextLine(ref next, finalRect.Width, out int start, out _, out float lineHeight))
         {
             float x = finalRect.X;
-            foreach (var child in items)
+            for (int i = start; i < next; i++)
             {
-                child.Arrange(new Rect(x, y, child.DesiredSize.Width, lineH));
+                var child = Children[i];
+                if (!child.IsVisible) continue;
+                child.Arrange(new Rect(x, y, child.DesiredSize.Width, lineHeight));
                 x += child.DesiredSize.Width + HorizontalSpacing;
             }
-            y += lineH + VerticalSpacing;
+            y += lineHeight + VerticalSpacing;
         }
     }
 
-    // Groups visible children into lines based on available width.
-    // Each call to child.Measure produces the DesiredSize referenced in MeasureCore/ArrangeCore.
-    private List<(List<Widget> items, float lineHeight)> BuildLines(float availableW)
+    // Measures the children of the line that starts at index and moves index past them.
+    // Returns false when no visible child is left.
+    private bool NextLine(ref int index, float maxWidth, out int start, out float lineWidth, out float lineHeight)
     {
-        var lines   = new List<(List<Widget>, float)>();
-        var curLine = new List<Widget>();
-        float lineX = 0f, lineH = 0f;
+        var children = Children;
+        while (index < children.Count && !children[index].IsVisible) index++;
+        start      = index;
+        lineWidth  = 0f;
+        lineHeight = 0f;
+        if (index >= children.Count) return false;
 
-        foreach (var child in Children)
+        bool first = true;
+        for (; index < children.Count; index++)
         {
+            var child = children[index];
             if (!child.IsVisible) continue;
-            child.Measure(new Size(availableW, float.PositiveInfinity));
-            float cw = child.DesiredSize.Width;
-            float ch = child.DesiredSize.Height;
-
-            if (curLine.Count > 0 && lineX + HorizontalSpacing + cw > availableW)
-            {
-                lines.Add((curLine, lineH));
-                curLine = new List<Widget>();
-                lineX   = 0f;
-                lineH   = 0f;
-            }
-
-            if (curLine.Count > 0) lineX += HorizontalSpacing;
-            lineX += cw;
-            lineH  = Math.Max(lineH, ch);
-            curLine.Add(child);
+            child.Measure(new Size(maxWidth, float.PositiveInfinity));
+            float w = child.DesiredSize.Width;
+            if (!first && lineWidth + HorizontalSpacing + w > maxWidth) break;
+            if (!first) lineWidth += HorizontalSpacing;
+            first      = false;
+            lineWidth += w;
+            lineHeight = Math.Max(lineHeight, child.DesiredSize.Height);
         }
-
-        if (curLine.Count > 0)
-            lines.Add((curLine, lineH));
-
-        return lines;
+        return true;
     }
 }

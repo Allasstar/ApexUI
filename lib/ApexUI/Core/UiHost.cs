@@ -40,7 +40,7 @@ public sealed partial class UiHost : IPlatformListener
         {
             if (field == value) return;
             field = value;
-            InvalidateAllLayout();
+            InvalidateAllMeasurements();
         }
     } = Theme.Light;
 
@@ -54,7 +54,7 @@ public sealed partial class UiHost : IPlatformListener
         {
             if (field == value) return;
             field = value;
-            InvalidateAllLayout();
+            InvalidateAllMeasurements();
         }
     } = FontCache.DefaultFamily;
 
@@ -87,7 +87,11 @@ public sealed partial class UiHost : IPlatformListener
     // Shared by layout-time text measurement and every frame's DrawContext.
     internal FontCache Fonts { get; } = new();
 
-    /// Surface pixels per logical unit: DpiScale × UiScale. Applied once, as the canvas transform;
+    // Bumped when every widget's measurement may change (theme, font); widgets compare it with
+    // the generation they were measured at instead of the host walking the tree.
+    internal int LayoutGeneration { get; private set; } = 1;
+
+    /// Surface pixels per logical unit: DpiScale Ã— UiScale. Applied once, as the canvas transform;
     /// layout, drawing and input all work in logical units.
     public float PixelScale => DpiScale * UiScale;
 
@@ -130,7 +134,7 @@ public sealed partial class UiHost : IPlatformListener
 
     private void ApplyTheme() => Theme = ThemeLibrary.Get(_preset, _isDark);
 
-    // ── Frames ────────────────────────────────────────────────────────────────
+    // â”€â”€ Frames â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     /// Calls callback once, just before the next frame is laid out and drawn, with that frame's time.
     /// Request again from inside the callback to animate; frames stop once nothing is requested.
@@ -149,6 +153,12 @@ public sealed partial class UiHost : IPlatformListener
         if (!_rendering) Platform.RequestFrame();
     }
 
+    private void InvalidateAllMeasurements()
+    {
+        LayoutGeneration++;
+        InvalidateAllLayout();
+    }
+
     private void InvalidateAllLayout()
     {
         _root?.InvalidateLayout();
@@ -164,7 +174,7 @@ public sealed partial class UiHost : IPlatformListener
         _runningFrameCallbacks.Clear();
     }
 
-    // ── Overlays ──────────────────────────────────────────────────────────────
+    // â”€â”€ Overlays â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     internal void ShowOverlay(Overlay overlay)
     {
@@ -189,7 +199,7 @@ public sealed partial class UiHost : IPlatformListener
         return _root?.HitTest(x, y);
     }
 
-    // ── Layout and drawing ────────────────────────────────────────────────────
+    // â”€â”€ Layout and drawing â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     void IPlatformListener.Resize(float pixelWidth, float pixelHeight, float dpiScale)
     {
@@ -256,13 +266,15 @@ public sealed partial class UiHost : IPlatformListener
     }
 
     // Overlays fill the window (their backdrop is hit-testable) and are laid out only when
-    // they, the window or the root tree changed.
+    // they, the window or the root tree changed. Anchored ones are re-arranged every time,
+    // because scrolling moves an anchor without any layout; that costs a few cached calls.
     private void LayoutOverlays()
     {
         var size = LogicalWindowSize;
         foreach (var o in _overlays)
         {
-            if (!_overlaysNeedLayout && !o.IsLayoutDirty) continue;
+            if (!_overlaysNeedLayout && !o.IsLayoutDirty && o.Anchor is null) continue;
+            o.InvalidateArrange();
             o.Measure(size);
             o.Arrange(new Rect(0, 0, size.Width, size.Height));
         }

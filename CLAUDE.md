@@ -47,14 +47,26 @@ Development: `dotnet build`, `dotnet test`, `dotnet run --project src/Gallery`.
 ### `Widget` · `lib/ApexUI/Core/Widget.cs`
 
 ```csharp
-// Override in subclasses
+// Override in subclasses (Widget.Layout.cs). Both work inside Padding: MeasureCore gets the space inside
+// Margin and Padding and returns the content size; ArrangeCore gets ContentBounds and must arrange every
+// visible child (a skipped one keeps its previous slot). Default: children overlap (Stack).
 protected virtual Size MeasureCore(Size available);
 protected virtual void ArrangeCore(Rect finalRect);
 protected virtual void DrawCore(DrawContext ctx);
+// Measure/Arrange are cached: same constraint / rect and not invalidated → return at once.
 
-Widget? HitTest(float x, float y);
+Widget? HitTest(float x, float y);   // (x, y) in this widget's layout space
 void Invalidate();        // redraw on the next frame (asks the host for one)
-void InvalidateLayout();  // re-layout and redraw on the next frame
+void InvalidateLayout();  // re-layout and redraw on the next frame; stops at an ancestor already marked
+
+// Per-child data for custom panels (cleared when the child leaves its parent)
+protected static object? GetParentData(Widget child);
+protected static void SetParentData(Widget child, object? data);
+
+// Coordinates: LayoutBounds are absolute in the widget's layout space.
+Transform2D ChildTransform { get; protected set; }   // maps children's space into this one (draw, hit-test, pointer X/Y); render-only
+Rect WindowBounds;                                    // LayoutBounds through all ancestors' ChildTransform
+(float X, float Y) PointFromWindow(float x, float y);
 // Setters: `set => SetLayoutProperty(ref field, value);` or `SetRenderProperty(...)`; both skip unchanged values.
 // Never change widget state inside MeasureCore/ArrangeCore/DrawCore: an invalidation there schedules another frame.
 
@@ -75,11 +87,13 @@ protected IDisposable Observe<T>(ObservableList<T> source, Action onChanged);
 // Observe subscribes now, unsubscribes on detach, re-subscribes and re-syncs on attach. Never write `source.Changed +=` in a widget.
 
 // Layout
-float Width, Height;           // NaN = auto
+float Width, Height;           // NaN = auto; include Padding
 float MinWidth, MaxWidth, MinHeight, MaxHeight;
 float AspectRatio;             // NaN = no constraint
 AspectRatioMode AspectRatioMode;
-Thickness Margin, Padding;
+Thickness Margin;              // outside LayoutBounds
+Thickness Padding;             // inside LayoutBounds, applied by Widget for every subclass
+float Grow;                    // share of a LinearPanel's leftover length (0 = none)
 HAlign HAlign;  // Left | Center | Right | Stretch
 VAlign VAlign;  // Top | Center | Bottom | Stretch
 
@@ -101,6 +115,7 @@ bool Focus();
 bool CapturePointer(); void ReleasePointerCapture();
 Size DesiredSize;
 Rect LayoutBounds;
+Rect ContentBounds;   // LayoutBounds minus Padding
 
 // Input (Widget.Input.cs). Each event: protected virtual On…(args) first (widget behavior), then the public event.
 // Routed (bubble from Source to the root until e.Handled):
@@ -210,13 +225,42 @@ SKFont Get(string family, float sizePx, bool bold = false) // cached; never disp
 
 // InputEvents · lib/ApexUI/Core/InputEvents.cs
 abstract class InputEventArgs { Widget Source; bool Handled; KeyModifiers Modifiers; bool Ctrl, Shift, Alt, Super; }
-sealed class PointerEventArgs   { float X, Y; PointerButton Button; int ClickCount; }   // window logical coords
-sealed class WheelEventArgs     { float X, Y, DeltaX, DeltaY; }                         // notches; +DeltaY = up
+abstract class PositionedEventArgs : InputEventArgs { float X, Y; float WindowX, WindowY; }
+// X, Y: in the receiving widget's layout space (re-mapped while bubbling past a ChildTransform).
+// WindowX, WindowY: logical window coordinates (open overlays with these).
+sealed class PointerEventArgs : PositionedEventArgs { PointerButton Button; int ClickCount; }
+sealed class WheelEventArgs   : PositionedEventArgs { float DeltaX, DeltaY; }   // notches; +DeltaY = up
 sealed class KeyEventArgs       { Key Key; bool IsRepeat; }
 sealed class TextInputEventArgs { string Text; }
 enum PointerButton { None, Left, Right, Middle }
 enum Key { A..Z, D0..D9, F1..F12, Enter, Escape, Left, Right, ... }   // physical keys
 [Flags] enum KeyModifiers { None, Shift, Control, Alt, Super }
+```
+
+---
+
+### `Transform2D` · `lib/ApexUI/Core/Transform2D.cs`
+
+```csharp
+readonly record struct Transform2D(float OffsetX, float OffsetY, float Scale)   // p → p × Scale + Offset; Scale > 0
+static Transform2D Identity
+static Transform2D Translation(float x, float y)
+bool IsIdentity
+(float X, float Y) Apply(float x, float y);  (float X, float Y) Invert(float x, float y);  Rect Apply(Rect r)
+```
+
+---
+
+### `LinearPanel`, `Row`, `Column`, `Spacer` · `lib/ApexUI/Layout/`
+
+```csharp
+enum Orientation { Horizontal, Vertical }
+abstract class LinearPanel : Widget { Orientation Orientation { get; }  float Spacing; }
+// Children get their desired length along the line and the full thickness across it; leftover length goes
+// to children with Grow > 0 in proportion. Subclasses: Row, Column, RadioGroup<T>, Tabs' bar.
+Row(params Widget[] children)    Row Add(Widget)    Row WithSpacing(float)
+Column(params Widget[] children) Column Add(Widget) Column WithSpacing(float)
+Spacer(float grow = 1f)          // empty, not hit-testable, Grow = grow
 ```
 
 ---
@@ -397,7 +441,8 @@ void Clear()
 ### `VirtualList<T>` · `lib/ApexUI/Widgets/VirtualList.cs`
 
 ```csharp
-// Only rows inside the visible viewport are measured and drawn.
+// Only rows near the visible viewport are built and laid out; scrolling moves them with ChildTransform
+// and runs layout only when it reaches rows that are not built yet.
 // Row height must be uniform. Set Height (or constrain via parent) to make the list scrollable;
 // if Height=NaN and available height is ∞, sizes to full content height.
 

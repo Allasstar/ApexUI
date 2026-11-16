@@ -8,53 +8,15 @@ public class Tabs : Widget
 {
     // ── Inner types ───────────────────────────────────────────────────────────
 
-    // Horizontal or vertical flow of tab buttons (supports dynamic Add).
-    private sealed class TabBar : Widget
+    // Line of tab buttons inside a Scroll along the bar.
+    private sealed class TabBar(Orientation orientation) : LinearPanel(orientation)
     {
-        private readonly bool _horizontal;
-
-        public TabBar(bool horizontal) => _horizontal = horizontal;
         public void Add(TabButton btn) => AddChild(btn);
-
-        protected override Size MeasureCore(Size available)
-        {
-            float total = 0f, cross = 0f;
-            foreach (var child in Children)
-            {
-                if (!child.IsVisible) continue;
-                child.Measure(_horizontal
-                    ? new Size(float.PositiveInfinity, available.Height)
-                    : new Size(available.Width, float.PositiveInfinity));
-                if (_horizontal) { total += child.DesiredSize.Width;  cross = Math.Max(cross, child.DesiredSize.Height); }
-                else             { total += child.DesiredSize.Height; cross = Math.Max(cross, child.DesiredSize.Width);  }
-            }
-            return _horizontal ? new Size(total, cross) : new Size(cross, total);
-        }
-
-        protected override void ArrangeCore(Rect r)
-        {
-            float pos = _horizontal ? r.X : r.Y;
-            foreach (var child in Children)
-            {
-                if (!child.IsVisible) continue;
-                child.Measure(_horizontal
-                    ? new Size(float.PositiveInfinity, r.Height)
-                    : new Size(r.Width, float.PositiveInfinity));
-                var b = _horizontal
-                    ? new Rect(pos, r.Y, child.DesiredSize.Width, r.Height)
-                    : new Rect(r.X, pos, r.Width, child.DesiredSize.Height);
-                child.Arrange(b);
-                pos += _horizontal ? child.DesiredSize.Width : child.DesiredSize.Height;
-            }
-        }
     }
 
     private sealed class TabButton : Widget
     {
-        private const float PadH = 16f;
-        private const float PadV = 10f;
-
-        private readonly Label _label;
+        private readonly Action _onSelect;
 
         public bool IsActive
         {
@@ -66,39 +28,21 @@ public class Tabs : Widget
 
         public TabButton(string title, TabPosition position, Action onSelect)
         {
-            Position = position;
-            _label   = new Label
+            Position  = position;
+            _onSelect = onSelect;
+            Padding   = new Thickness(16f, 10f);
+            AddChild(new Label
             {
                 Text             = title,
                 IsHitTestVisible = false,
                 ColorSource      = t => IsActive ? t.Primary : IsHovered ? t.OnSurface : t.OnSurfaceMuted,
-            };
-            AddChild(_label);
-            _onSelect = onSelect;
+            });
         }
-
-        private readonly Action _onSelect;
 
         protected override void OnClick(PointerEventArgs e)
         {
             e.Handled = true;
             _onSelect();
-        }
-
-        protected override Size MeasureCore(Size available)
-        {
-            _label.Measure(new Size(
-                Math.Max(0f, available.Width  - PadH * 2),
-                Math.Max(0f, available.Height - PadV * 2)));
-            return new Size(
-                _label.DesiredSize.Width  + PadH * 2,
-                _label.DesiredSize.Height + PadV * 2);
-        }
-
-        protected override void ArrangeCore(Rect r)
-        {
-            _label.Measure(new Size(r.Width - PadH * 2, r.Height - PadV * 2));
-            _label.Arrange(new Rect(r.X + PadH, r.Y + PadV, r.Width - PadH * 2, r.Height - PadV * 2));
         }
 
         protected override void DrawCore(DrawContext ctx)
@@ -158,7 +102,7 @@ public class Tabs : Widget
         Position = position;
         bool horiz = position is TabPosition.Top or TabPosition.Bottom;
 
-        _bar = new TabBar(horiz);
+        _bar = new TabBar(horiz ? Orientation.Horizontal : Orientation.Vertical);
         _barScroll = new Scroll(_bar)
         {
             Direction     = horiz ? ScrollDirection.Horizontal : ScrollDirection.Vertical,

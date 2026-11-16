@@ -9,7 +9,7 @@ ApexUI/
 ├── lib/                           ← library projects only
 │   ├── ApexUI/                    ← platform-neutral framework library (ApexUI.csproj)
 │   │   ├── Core/                  ← Widget, UiHost, IPlatform, DrawContext, Theme, Rect/Size/Thickness, Overlay, Bindable
-│   │   ├── Layout/                ← Row, Column, Stack, PaddingBox, Spacer, Grid, Wrap, Canvas
+│   │   ├── Layout/                ← LinearPanel (Row, Column), Stack, PaddingBox, Spacer, Grid, Wrap, Canvas
 │   │   ├── Widgets/               ← Label, Button, TextInput, Scroll, Dropdown, Tabs, Dialog, ...
 │   │   └── Extensions/            ← C# 14 extension members on SKColor
 │   └── ApexUI.Desktop/            ← desktop backend: DesktopPlatform (the only code that uses Silk.NET)
@@ -81,20 +81,35 @@ A frame runs three passes in order (Measure and Arrange only when layout is dirt
 
 ```
 1. Measure(availableSize)
-      ↓ widget reports DesiredSize
+      ↓ widget reports DesiredSize (MeasureCore sees the space inside Margin and Padding)
 
 2. Arrange(finalRect)
-      ↓ parent tells widget its actual bounds
-      ↓ widget positions its children
+      ↓ parent tells widget its actual bounds (LayoutBounds, including Padding)
+      ↓ widget positions its children inside ContentBounds (ArrangeCore)
 
 3. Draw(ctx)
       ↓ widget draws background
       ↓ widget draws content (DrawCore)
-      ↓ widget draws children
+      ↓ widget draws children, through its ChildTransform
 ```
 
 This is the same model used by WPF, Avalonia, Flutter, and HTML/CSS.
 Learning it once means understanding all of them.
+
+- **Caching.** `Measure` with the same constraint and `Arrange` with the same rect return at once when the
+  widget was not invalidated, so only the branch that changed is laid out again. `ArrangeCore` must arrange
+  every visible child; a skipped one keeps its previous slot.
+- **Padding** belongs to the widget: every panel and control honors it, `PaddingBox` is only shorthand.
+- **Linear layout** is one panel, `LinearPanel` (`Row`, `Column`, `RadioGroup` and the tab bar use it).
+  Any child with `Grow > 0` takes a share of the leftover length; `Spacer` is an empty growing widget.
+- **Per-child panel data** (grid cell, canvas position) lives on the child through `GetParentData` /
+  `SetParentData`, so it disappears with the child.
+- **Coordinates.** `LayoutBounds` are absolute in a widget's layout space. A parent's `ChildTransform`
+  (offset and uniform scale) maps its children's space into its own; drawing, hit-testing and pointer event
+  positions go through it, layout does not. `Scroll` and `VirtualList` scroll this way, so scrolling only
+  redraws, and a pan/zoom view gets the same mechanism. `WindowBounds` and `PointFromWindow` convert to and
+  from window coordinates; pointer events carry both (`X/Y` for the receiver, `WindowX/WindowY`).
+- **Culling.** A widget outside the current clip is not drawn at all.
 
 ## Invalidation — when frames are drawn
 
@@ -103,14 +118,16 @@ Nothing is drawn unless something changed. An untouched window renders no frames
 ```
 Property changes → SetLayoutProperty / SetRenderProperty (no-op if the value is the same)
     ↓
-InvalidateLayout() marks the widget and its ancestors layout-dirty; Invalidate() marks nothing
+InvalidateLayout() marks the widget and its ancestors layout-dirty (stopping at one already marked); Invalidate() marks nothing
     ↓
 Host.RequestFrame() → IPlatform.RequestFrame()   (once per frame, however many changes)
     ↓
 UiHost.Render(): animation-frame callbacks → layout if root.IsLayoutDirty → overlays if needed → draw everything
 ```
 
-Layout of a dirty tree re-runs from the root; drawing always redraws the whole window.
+Layout starts at the root but returns at once from every clean branch; drawing redraws the whole window,
+skipping widgets outside the clip. Theme and font changes bump a host generation that makes every widget
+measure again, without walking the tree.
 Pointer input lays out a pending change first, so hit-testing matches what the next frame will show.
 
 Widgets never change their own or other widgets' state inside `MeasureCore`, `ArrangeCore` or `DrawCore`:

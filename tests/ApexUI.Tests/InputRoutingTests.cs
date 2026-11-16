@@ -136,13 +136,12 @@ public class InputRoutingTests
         var (_, platform) = TestPlatform.Show(scroll, 200, 200);
         platform.Render().Dispose();
         var row = scroll.Children[0];
-        float before = row.LayoutBounds.Y;
+        float before = row.WindowBounds.Y;
 
         platform.Move(50, 50);
         platform.Listener.Wheel(0, -1, KeyModifiers.None);
-        platform.Render().Dispose();
 
-        Assert.True(row.LayoutBounds.Y < before);
+        Assert.True(row.WindowBounds.Y < before);
     }
 
     [Fact]

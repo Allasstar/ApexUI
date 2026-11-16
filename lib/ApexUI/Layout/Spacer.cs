@@ -1,11 +1,12 @@
 namespace ApexUI.Layout;
 
-/// Flexible gap for use in Row or Column.
-/// Reports zero size during Measure so the container's natural size excludes it.
-/// Row and Column detect Spacer instances and distribute leftover space equally among them.
+/// Empty, invisible to the pointer, and growing: in a Row or Column it takes leftover space
+/// (shared with other growing children by Grow). Any widget can grow; this one only has no content.
 public class Spacer : Widget
 {
-    public Spacer() { IsHitTestVisible = false; }
-
-    protected override Size MeasureCore(Size available) => Size.Zero;
+    public Spacer(float grow = 1f)
+    {
+        Grow = grow;
+        IsHitTestVisible = false;
+    }
 }

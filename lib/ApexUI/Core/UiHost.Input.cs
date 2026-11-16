@@ -169,20 +169,26 @@ public sealed partial class UiHost
 
     // ── Routing ───────────────────────────────────────────────────────────────
 
+    // Positions are re-expressed in each receiver's layout space on the way up.
     private static void Route(Widget source, InputKind kind, InputEventArgs e)
     {
         e.Reset(source);
-        for (var w = source; w is not null; w = w.Parent)
+        var positioned = e as PositionedEventArgs;
+        positioned?.MapTo(source);
+        for (var w = source; ; )
         {
             w.RaiseInput(kind, e);
             if (e.Handled) return;
+            var parent = w.Parent;
+            if (parent is null) return;
+            positioned?.MapToParent(parent);
+            w = parent;
         }
     }
 
     private void FillPointer(PointerEventArgs e, float x, float y, PointerButton button, int clickCount)
     {
-        e.X          = x;
-        e.Y          = y;
+        e.SetWindowPosition(x, y);
         e.Button     = button;
         e.ClickCount = clickCount;
         e.Modifiers  = _modifiers;
@@ -206,6 +212,7 @@ public sealed partial class UiHost
             w.IsHovered = false;
             w.Invalidate();
             _hoverArgs.Reset(w);
+            _hoverArgs.MapTo(w);
             w.RaiseInput(InputKind.PointerExited, _hoverArgs);
         }
         for (int i = _hoverChain.Count - 1; i >= 0; i--)
@@ -216,6 +223,7 @@ public sealed partial class UiHost
             w.IsHovered = true;
             w.Invalidate();
             _hoverArgs.Reset(w);
+            _hoverArgs.MapTo(w);
             w.RaiseInput(InputKind.PointerEntered, _hoverArgs);
         }
         UpdateCursor();
@@ -343,12 +351,15 @@ public sealed partial class UiHost
 
         var hit = HitTestAll(_pointerX, _pointerY);
         if (hit is null) return;
-        _wheelArgs.X         = _pointerX;
-        _wheelArgs.Y         = _pointerY;
+        _wheelArgs.SetWindowPosition(_pointerX, _pointerY);
         _wheelArgs.DeltaX    = deltaX;
         _wheelArgs.DeltaY    = deltaY;
         _wheelArgs.Modifiers = modifiers;
         Route(hit, InputKind.Wheel, _wheelArgs);
+
+        // Scrolling moved content under a still pointer.
+        EnsureLayout();
+        UpdateHover(HitTestAll(_pointerX, _pointerY), _pointerX, _pointerY);
     }
 
     void IPlatformListener.KeyDown(Key key, KeyModifiers modifiers)

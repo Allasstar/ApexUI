@@ -4,6 +4,22 @@ Newest first. **Breaking** marks changes that need edits in apps using ApexUI.
 
 ## Unreleased
 
+### Layout
+- **Breaking:** `Widget` applies `Padding` itself. `MeasureCore` gets the space inside the padding and returns the content size; `ArrangeCore` gets the content box. `LayoutBounds` (background, border, hit area) and explicit `Width`/`Height` include the padding. Setting `Padding` on a `Column`, `Row`, `Grid` or any widget now works; before, only `PaddingBox`, `Button`, `TextInput` and menu items honored it. Custom widgets that subtracted `Padding` themselves must stop doing so. New `ContentBounds` (`LayoutBounds` minus `Padding`) for drawing content. `PaddingBox` still works and is now just a widget with `Padding` set.
+- **Breaking:** `Row` and `Column` are the two forms of the new `LinearPanel` (`Orientation`: `Horizontal`/`Vertical`, `Spacing`). Any child can take leftover length with the new `Widget.Grow` (default 0): leftover space is shared by `Grow` factor. `Spacer` is now an empty widget with `Grow = 1` (`new Spacer(2f)` for a factor), no longer a type the panels look for; it behaves as before.
+- **Breaking:** `RadioGroup<T>` is a `LinearPanel`; its constructor takes `Orientation` instead of `RadioOrientation`, which is removed (`RadioOrientation.Horizontal` → `Orientation.Horizontal`).
+- Layout is cached. `Measure` with the same constraint and `Arrange` with the same rect return at once unless the widget's layout was invalidated, so a change re-lays out only its own branch instead of the whole window. `InvalidateLayout()` stops walking up at an ancestor that is already marked. Theme and font changes still re-measure everything.
+- `ArrangeCore` must arrange every visible child. A visible child it skips is arranged in its previous slot (before: left wherever it was).
+- New `Widget.ChildTransform` (`Transform2D`: uniform scale then offset; protected setter): children are laid out as usual, then drawn, hit-tested and given pointer positions through it. Changing it only redraws. New `WindowBounds` (`LayoutBounds` in window coordinates through every ancestor's transform) and `PointFromWindow(x, y)`.
+- **Breaking:** `Scroll` and `VirtualList` scroll with `ChildTransform`: scrolling no longer runs layout (a `VirtualList` lays out again only when it reaches rows it has not built; it now builds a few rows beyond the viewport). Content `LayoutBounds` no longer move when scrolling; use `WindowBounds` for on-screen position. Anchored overlays follow scrolled anchors.
+- **Breaking:** `PointerEventArgs.X/Y` and `WheelEventArgs.X/Y` are in the receiving widget's layout space (the space of its `LayoutBounds`), re-mapped as the event bubbles past a transform; they equal window coordinates outside scrolled or zoomed content. New `WindowX/WindowY` hold window coordinates for every receiver (use them to open overlays, as `ContextMenu` does). Both now derive from the new `PositionedEventArgs`.
+- After a wheel event, hover is updated for the content that moved under the pointer.
+- Children outside the visible clip are not drawn (culling), so long scrolled content draws only what is on screen.
+- `Grid` and `Canvas` keep each child's cell or position on the child (new `protected static GetParentData(child)` / `SetParentData(child, data)` for custom panels); it is dropped automatically when the child leaves.
+- `Grid` and `Wrap` reuse their buffers: laying them out allocates nothing.
+- `Stack` uses `Widget`'s default layout instead of a copy of it.
+- Fix: a widget with `Margin` and non-stretch alignment was arranged with its margin added to its width or height.
+
 ### Routed input
 - **Breaking:** widget input is now events plus overridable methods instead of public delegate fields, so your handlers add to a widget's behavior instead of replacing it (before, setting `OnClick` on a `Toggle` stopped it toggling). Migrate:
   | Before | After (user code) | After (inside a widget subclass) |

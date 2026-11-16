@@ -4,8 +4,11 @@ namespace ApexUI.Layout;
 /// Size of each child is its natural DesiredSize unless explicit W/H is provided.
 public class Canvas : Widget
 {
-    private record struct Placement(float X, float Y, float W, float H);
-    private readonly Dictionary<Widget, Placement> _placements = new();
+    private sealed class Placement(float x, float y, float width, float height)
+    {
+        public float X = x, Y = y;
+        public readonly float Width = width, Height = height;
+    }
 
     /// Add a child at (x, y); child sizes itself naturally.
     public Canvas Add(Widget child, float x, float y)
@@ -18,9 +21,10 @@ public class Canvas : Widget
     /// Move an already-added child to a new position.
     public Canvas Move(Widget child, float x, float y)
     {
-        if (_placements.TryGetValue(child, out var p))
+        if (child.Parent == this && GetParentData(child) is Placement p)
         {
-            _placements[child] = p with { X = x, Y = y };
+            p.X = x;
+            p.Y = y;
             InvalidateLayout();
         }
         return this;
@@ -33,22 +37,17 @@ public class Canvas : Widget
         return this;
     }
 
-    protected override void OnChildRemoved(Widget child)
-        => _placements.Remove(child);
-
     protected override Size MeasureCore(Size available)
     {
         float maxX = 0f, maxY = 0f;
         foreach (var child in Children)
         {
-            if (!child.IsVisible || !_placements.TryGetValue(child, out var p)) continue;
+            if (!child.IsVisible || GetParentData(child) is not Placement p) continue;
             child.Measure(new Size(
-                float.IsNaN(p.W) ? float.PositiveInfinity : p.W,
-                float.IsNaN(p.H) ? float.PositiveInfinity : p.H));
-            float rw = float.IsNaN(p.W) ? child.DesiredSize.Width  : p.W;
-            float rh = float.IsNaN(p.H) ? child.DesiredSize.Height : p.H;
-            maxX = Math.Max(maxX, p.X + rw);
-            maxY = Math.Max(maxY, p.Y + rh);
+                float.IsNaN(p.Width)  ? float.PositiveInfinity : p.Width,
+                float.IsNaN(p.Height) ? float.PositiveInfinity : p.Height));
+            maxX = Math.Max(maxX, p.X + SlotWidth(child, p));
+            maxY = Math.Max(maxY, p.Y + SlotHeight(child, p));
         }
         return new Size(maxX, maxY);
     }
@@ -57,17 +56,18 @@ public class Canvas : Widget
     {
         foreach (var child in Children)
         {
-            if (!child.IsVisible || !_placements.TryGetValue(child, out var p)) continue;
-            float rw = float.IsNaN(p.W) ? child.DesiredSize.Width  : p.W;
-            float rh = float.IsNaN(p.H) ? child.DesiredSize.Height : p.H;
-            child.Arrange(new Rect(finalRect.X + p.X, finalRect.Y + p.Y, rw, rh));
+            if (!child.IsVisible || GetParentData(child) is not Placement p) continue;
+            child.Arrange(new Rect(finalRect.X + p.X, finalRect.Y + p.Y, SlotWidth(child, p), SlotHeight(child, p)));
         }
     }
 
+    private static float SlotWidth(Widget child, Placement p)  => float.IsNaN(p.Width)  ? child.DesiredSize.Width  : p.Width;
+    private static float SlotHeight(Widget child, Placement p) => float.IsNaN(p.Height) ? child.DesiredSize.Height : p.Height;
+
     private Canvas AddAt(Widget child, float x, float y, float w, float h)
     {
-        _placements[child] = new Placement(x, y, w, h);
         AddChild(child);
+        SetParentData(child, new Placement(x, y, w, h));
         return this;
     }
 }

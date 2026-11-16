@@ -70,17 +70,18 @@ public class Label : Widget
         float fontSize = float.IsNaN(FontSize) ? ctx.Theme.FontSizeBase : FontSize;
         var color = ColorSource?.Invoke(ctx.Theme) ?? Color ?? ctx.Theme.OnSurface;
 
-        var blobs = Blobs(ctx, fontSize);
+        var blobs   = Blobs(ctx, fontSize);
+        var content = ContentBounds;
         if (!WordWrap)
         {
-            ctx.DrawText(blobs[0], LayoutBounds, color, fontSize, Bold);
+            ctx.DrawText(blobs[0], content, color, fontSize, Bold);
             return;
         }
 
         float lineH = fontSize * 1.4f;
         for (int i = 0; i < blobs.Count; i++)
         {
-            var lineRect = new Rect(LayoutBounds.X, LayoutBounds.Y + i * lineH, LayoutBounds.Width, lineH);
+            var lineRect = new Rect(content.X, content.Y + i * lineH, content.Width, lineH);
             ctx.DrawText(blobs[i], lineRect, color, fontSize, Bold);
         }
     }
@@ -90,7 +91,7 @@ public class Label : Widget
     private List<SKTextBlob?> Blobs(DrawContext ctx, float fontSize)
     {
         var   key   = new TextKey(Text, ctx.FontFamily, fontSize, Bold);
-        float width = WordWrap ? LayoutBounds.Width : -1f;
+        float width = WordWrap ? ContentBounds.Width : -1f;
         if (_hasBlobs && key == _blobsKey && width == _blobsWidth) return _blobs;
 
         ReleaseBlobs();

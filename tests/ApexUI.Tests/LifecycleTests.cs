@@ -166,7 +166,8 @@ public class VirtualListTests
         var (host, platform) = TestPlatform.Show(list, 300, 200);
         platform.Render().Dispose();
 
-        Assert.InRange(list.Children.Count, 10, 12);
+        // 11 visible rows plus a few built ahead of scrolling.
+        Assert.InRange(list.Children.Count, 11, 16);
         foreach (var row in list.Children)
         {
             Assert.Same(list, row.Parent);

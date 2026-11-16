@@ -32,7 +32,7 @@ public sealed class ContextMenu
             if (e.Source != _overlay) return;
             e.Handled = true;
             if (e.Button == PointerButton.Right && _overlay.Host is { } host)
-                Show(host, e.X, e.Y);
+                Show(host, e.WindowX, e.WindowY);
             else
                 Close();
         };
@@ -75,7 +75,7 @@ public sealed class ContextMenu
         {
             if (e.Button != PointerButton.Right || target.Host is not { } host) return;
             e.Handled = true;
-            menu.Show(host, e.X, e.Y);
+            menu.Show(host, e.WindowX, e.WindowY);
         };
     }
 

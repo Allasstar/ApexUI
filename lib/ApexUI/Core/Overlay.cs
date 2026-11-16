@@ -118,7 +118,7 @@ public class Overlay : Widget
 
         if (Anchor is not null)
         {
-            var ab = Anchor.LayoutBounds;
+            var ab = Anchor.WindowBounds;
 
             // MatchAnchorWidth: measure at anchor width so popup is never narrower than trigger.
             var measureSize = MatchAnchorWidth

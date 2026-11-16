@@ -27,12 +27,31 @@ public abstract class InputEventArgs
     }
 }
 
-/// Pointer position is in logical window coordinates, the same space as LayoutBounds.
-public sealed class PointerEventArgs : InputEventArgs
+/// An event at a pointer position.
+public abstract class PositionedEventArgs : InputEventArgs
 {
-    public float X { get; internal set; }
-    public float Y { get; internal set; }
+    /// Position in the receiving widget's layout space, the space of its LayoutBounds.
+    /// Updated as the event bubbles past an ancestor with a ChildTransform (a scrolled Scroll).
+    public float X { get; private set; }
+    public float Y { get; private set; }
 
+    /// Position in logical window coordinates, the same for every receiver. Use it to open overlays.
+    public float WindowX { get; private set; }
+    public float WindowY { get; private set; }
+
+    internal void SetWindowPosition(float x, float y)
+    {
+        WindowX = X = x;
+        WindowY = Y = y;
+    }
+
+    internal void MapTo(Widget widget) => (X, Y) = widget.PointFromWindow(WindowX, WindowY);
+
+    internal void MapToParent(Widget parent) => (X, Y) = parent.ChildTransform.Apply(X, Y);
+}
+
+public sealed class PointerEventArgs : PositionedEventArgs
+{
     /// The button that changed; None for moves, enter and exit.
     public PointerButton Button { get; internal set; }
 
@@ -42,10 +61,8 @@ public sealed class PointerEventArgs : InputEventArgs
 }
 
 /// Deltas are in wheel notches; positive DeltaY means the wheel turned away from the user (scroll up).
-public sealed class WheelEventArgs : InputEventArgs
+public sealed class WheelEventArgs : PositionedEventArgs
 {
-    public float X      { get; internal set; }
-    public float Y      { get; internal set; }
     public float DeltaX { get; internal set; }
     public float DeltaY { get; internal set; }
 }

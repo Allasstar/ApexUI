@@ -1,10 +1,8 @@
 namespace ApexUI.Widgets;
 
-public enum RadioOrientation { Vertical, Horizontal }
-
-/// Mutually-exclusive group of radio options backed by a Bindable<T>.
+/// Mutually-exclusive group of radio options backed by a Bindable<T>, laid out in a line.
 /// Use AddOption() to populate, then Bind() or SelectedValue to control selection.
-public class RadioGroup<T> : Widget
+public class RadioGroup<T> : LinearPanel
 {
     // ── Inner radio button ────────────────────────────────────────────────────
 
@@ -77,8 +75,6 @@ public class RadioGroup<T> : Widget
 
     // ── RadioGroup<T> ─────────────────────────────────────────────────────────
 
-    private readonly RadioOrientation _orientation;
-    private readonly float            _spacing;
     private readonly List<(T Value, RadioItem Item)> _options = [];
 
     private T? _selected;
@@ -97,10 +93,9 @@ public class RadioGroup<T> : Widget
 
     public Action<T?>? OnChanged;
 
-    public RadioGroup(RadioOrientation orientation = RadioOrientation.Vertical, float spacing = 8f)
+    public RadioGroup(Orientation orientation = Orientation.Vertical, float spacing = 8f) : base(orientation)
     {
-        _orientation = orientation;
-        _spacing     = spacing;
+        Spacing = spacing;
     }
 
     // ── Fluent ────────────────────────────────────────────────────────────────
@@ -122,73 +117,5 @@ public class RadioGroup<T> : Widget
         OnChanged      += v => { if (v is not null) source.Value = v; };
         Observe(source, v => SelectedValue = v);
         return this;
-    }
-
-    // ── Layout ────────────────────────────────────────────────────────────────
-
-    protected override Size MeasureCore(Size available)
-    {
-        if (_orientation == RadioOrientation.Vertical)
-        {
-            float totalH = 0f, maxW = 0f;
-            bool first = true;
-            foreach (var child in Children)
-            {
-                if (!child.IsVisible) continue;
-                if (!first) totalH += _spacing;
-                child.Measure(new Size(available.Width, MathF.Max(0f, available.Height - totalH)));
-                totalH += child.DesiredSize.Height;
-                maxW    = MathF.Max(maxW, child.DesiredSize.Width);
-                first   = false;
-            }
-            return new Size(maxW, totalH);
-        }
-        else
-        {
-            float totalW = 0f, maxH = 0f;
-            bool first = true;
-            foreach (var child in Children)
-            {
-                if (!child.IsVisible) continue;
-                if (!first) totalW += _spacing;
-                child.Measure(new Size(MathF.Max(0f, available.Width - totalW), available.Height));
-                totalW += child.DesiredSize.Width;
-                maxH    = MathF.Max(maxH, child.DesiredSize.Height);
-                first   = false;
-            }
-            return new Size(totalW, maxH);
-        }
-    }
-
-    protected override void ArrangeCore(Rect rect)
-    {
-        if (_orientation == RadioOrientation.Vertical)
-        {
-            float y = rect.Y;
-            bool first = true;
-            foreach (var child in Children)
-            {
-                if (!child.IsVisible) continue;
-                if (!first) y += _spacing;
-                child.Measure(new Size(rect.Width, MathF.Max(0f, rect.Bottom - y)));
-                child.Arrange(new Rect(rect.X, y, rect.Width, child.DesiredSize.Height));
-                y += child.DesiredSize.Height;
-                first = false;
-            }
-        }
-        else
-        {
-            float x = rect.X;
-            bool first = true;
-            foreach (var child in Children)
-            {
-                if (!child.IsVisible) continue;
-                if (!first) x += _spacing;
-                child.Measure(new Size(MathF.Max(0f, rect.Right - x), rect.Height));
-                child.Arrange(new Rect(x, rect.Y, child.DesiredSize.Width, rect.Height));
-                x += child.DesiredSize.Width;
-                first = false;
-            }
-        }
     }
 }

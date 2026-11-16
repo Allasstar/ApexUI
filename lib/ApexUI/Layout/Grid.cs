@@ -13,6 +13,7 @@ public readonly record struct GridLength(float Value, GridUnit Unit)
 /// 2D layout panel with explicit column/row definitions.
 /// Children are placed by (col, row) coordinate via Add(). Supports column/row spanning,
 /// Auto sizing (max of cell natural sizes), Fixed px sizes, and Star (*) fill sizing.
+/// Star tracks size like Auto when the constraint along them is infinite.
 ///
 /// Usage:
 ///   new Grid()
@@ -22,11 +23,20 @@ public readonly record struct GridLength(float Value, GridUnit Unit)
 ///       .Add(new TextInput(), 1, 0)
 public class Grid : Widget
 {
+    private sealed class Cell(int col, int row, int colSpan, int rowSpan)
+    {
+        public readonly int Col = col, Row = row, ColSpan = colSpan, RowSpan = rowSpan;
+    }
+
     private GridLength[]  _columns = [GridLength.Auto];
     private GridLength[]? _rows;
 
-    private readonly record struct CellInfo(Widget Child, int Col, int Row, int ColSpan, int RowSpan);
-    private readonly List<CellInfo> _cells = [];
+    // Track sizes and offsets, reused across layout passes.
+    private float[] _colW = [];
+    private float[] _rowH = [];
+    private float[] _colX = [];
+    private float[] _rowY = [];
+    private int _rowCount;
 
     public float ColumnSpacing { get; set => SetLayoutProperty(ref field, value); }
     public float RowSpacing    { get; set => SetLayoutProperty(ref field, value); }
@@ -71,162 +81,160 @@ public class Grid : Widget
     /// Add a child at a specific grid position. colSpan/rowSpan default to 1.
     public Grid Add(Widget child, int col = 0, int row = 0, int colSpan = 1, int rowSpan = 1)
     {
-        _cells.Add(new CellInfo(child, col, row, colSpan, rowSpan));
         AddChild(child);
+        SetParentData(child, new Cell(col, row, colSpan, rowSpan));
         return this;
     }
 
-    protected override void OnChildRemoved(Widget child)
-        => _cells.RemoveAll(c => c.Child == child);
-
     protected override Size MeasureCore(Size available)
     {
-        var (colW, rowH) = Resolve(available);
-        float w = Sum(colW) + Math.Max(0, colW.Length - 1) * ColumnSpacing;
-        float h = Sum(rowH) + Math.Max(0, rowH.Length - 1) * RowSpacing;
-        return new Size(w, h);
+        Resolve(available);
+        return new Size(
+            Total(_colW, _columns.Length, ColumnSpacing),
+            Total(_rowH, _rowCount, RowSpacing));
     }
 
     protected override void ArrangeCore(Rect rect)
     {
-        var (colW, rowH) = Resolve(new Size(rect.Width, rect.Height));
+        Resolve(new Size(rect.Width, rect.Height));
+        Offsets(_colW, _colX, _columns.Length, rect.X, ColumnSpacing);
+        Offsets(_rowH, _rowY, _rowCount, rect.Y, RowSpacing);
 
-        var xOff = new float[colW.Length];
-        if (xOff.Length > 0) xOff[0] = rect.X;
-        for (int c = 1; c < colW.Length; c++)
-            xOff[c] = xOff[c - 1] + colW[c - 1] + ColumnSpacing;
-
-        var yOff = new float[rowH.Length];
-        if (yOff.Length > 0) yOff[0] = rect.Y;
-        for (int r = 1; r < rowH.Length; r++)
-            yOff[r] = yOff[r - 1] + rowH[r - 1] + RowSpacing;
-
-        foreach (var cell in _cells)
+        foreach (var child in Children)
         {
-            if (cell.Col >= colW.Length || cell.Row >= rowH.Length) continue;
-
-            float cw = 0f;
-            for (int c = cell.Col; c < cell.Col + cell.ColSpan && c < colW.Length; c++)
+            if (GetParentData(child) is not Cell cell) continue;
+            // A cell outside the defined tracks gets an empty slot at the grid's origin.
+            if (cell.Col >= _columns.Length || cell.Row >= _rowCount)
             {
-                cw += colW[c];
-                if (c > cell.Col) cw += ColumnSpacing;
-            }
-            float rh = 0f;
-            for (int r = cell.Row; r < cell.Row + cell.RowSpan && r < rowH.Length; r++)
-            {
-                rh += rowH[r];
-                if (r > cell.Row) rh += RowSpacing;
+                child.Arrange(new Rect(rect.X, rect.Y, 0f, 0f));
+                continue;
             }
 
-            cell.Child.Measure(new Size(cw, rh));
-            cell.Child.Arrange(new Rect(xOff[cell.Col], yOff[cell.Row], cw, rh));
+            float cw = SpanLength(_colW, cell.Col, cell.ColSpan, _columns.Length, ColumnSpacing);
+            float rh = SpanLength(_rowH, cell.Row, cell.RowSpan, _rowCount, RowSpacing);
+            child.Measure(new Size(cw, rh));
+            child.Arrange(new Rect(_colX[cell.Col], _rowY[cell.Row], cw, rh));
         }
     }
 
-    // Resolves all column widths then all row heights.
-    // Column pass runs first so auto-row measurement can use resolved col widths.
-    // Star tracks have nothing to share under an infinite constraint, so they size like Auto.
-    private (float[] cols, float[] rows) Resolve(Size available)
+    // Resolves all column widths, then all row heights; auto rows are measured at their resolved
+    // column widths. Only single-span cells size Auto tracks, so spans do not inflate them.
+    private void Resolve(Size available)
     {
-        bool starColsAsAuto = float.IsInfinity(available.Width);
-        bool starRowsAsAuto = float.IsInfinity(available.Height);
+        _rowCount = _rows?.Length ?? InferredRowCount();
+        EnsureCapacity(ref _colW, ref _colX, _columns.Length);
+        EnsureCapacity(ref _rowH, ref _rowY, _rowCount);
 
         // ── Columns ────────────────────────────────────────────────────────────
-        var colW = new float[_columns.Length];
+        bool starColsAsAuto = float.IsInfinity(available.Width);
         float fixedColW = 0f, starColFactor = 0f;
-
         for (int c = 0; c < _columns.Length; c++)
         {
-            if (_columns[c].Unit == GridUnit.Fixed)
-            { colW[c] = _columns[c].Value; fixedColW += colW[c]; }
-            else if (_columns[c].Unit == GridUnit.Star && !starColsAsAuto)
-                starColFactor += _columns[c].Value;
+            var col = _columns[c];
+            _colW[c] = 0f;
+            if (col.Unit == GridUnit.Fixed) { _colW[c] = col.Value; fixedColW += col.Value; }
+            else if (col.Unit == GridUnit.Star && !starColsAsAuto) starColFactor += col.Value;
         }
 
-        // Auto columns: measure only single-column cells to avoid span contamination
-        for (int c = 0; c < _columns.Length; c++)
+        foreach (var child in Children)
         {
-            if (!SizesLikeAuto(_columns[c].Unit, starColsAsAuto)) continue;
-            float maxW = 0f;
-            foreach (var cell in _cells)
-                if (cell.Col == c && cell.ColSpan == 1)
-                {
-                    cell.Child.Measure(new Size(float.PositiveInfinity, float.PositiveInfinity));
-                    maxW = Math.Max(maxW, cell.Child.DesiredSize.Width);
-                }
-            colW[c] = maxW;
-            fixedColW += maxW;
+            if (GetParentData(child) is not Cell cell || cell.ColSpan != 1 || cell.Col >= _columns.Length) continue;
+            if (!SizesLikeAuto(_columns[cell.Col].Unit, starColsAsAuto)) continue;
+            child.Measure(Size.Infinite);
+            _colW[cell.Col] = Math.Max(_colW[cell.Col], child.DesiredSize.Width);
         }
+        for (int c = 0; c < _columns.Length; c++)
+            if (SizesLikeAuto(_columns[c].Unit, starColsAsAuto)) fixedColW += _colW[c];
 
-        float colSpacingTotal = (_columns.Length > 1 ? _columns.Length - 1 : 0) * ColumnSpacing;
-        float starColAvail    = Math.Max(0f, available.Width - fixedColW - colSpacingTotal);
         if (!starColsAsAuto)
+        {
+            float starColAvail = Math.Max(0f, available.Width - fixedColW - SpacingTotal(_columns.Length, ColumnSpacing));
             for (int c = 0; c < _columns.Length; c++)
                 if (_columns[c].Unit == GridUnit.Star)
-                    colW[c] = starColFactor > 0f ? starColAvail * (_columns[c].Value / starColFactor) : 0f;
+                    _colW[c] = starColFactor > 0f ? starColAvail * (_columns[c].Value / starColFactor) : 0f;
+        }
 
         // ── Rows ───────────────────────────────────────────────────────────────
-        var resolvedRows = _rows ?? BuildAutoRows();
-        var rowH = new float[resolvedRows.Length];
+        bool starRowsAsAuto = float.IsInfinity(available.Height);
         float fixedRowH = 0f, starRowFactor = 0f;
-
-        for (int r = 0; r < resolvedRows.Length; r++)
+        for (int r = 0; r < _rowCount; r++)
         {
-            if (resolvedRows[r].Unit == GridUnit.Fixed)
-            { rowH[r] = resolvedRows[r].Value; fixedRowH += rowH[r]; }
-            else if (resolvedRows[r].Unit == GridUnit.Star && !starRowsAsAuto)
-                starRowFactor += resolvedRows[r].Value;
+            var row = RowAt(r);
+            _rowH[r] = 0f;
+            if (row.Unit == GridUnit.Fixed) { _rowH[r] = row.Value; fixedRowH += row.Value; }
+            else if (row.Unit == GridUnit.Star && !starRowsAsAuto) starRowFactor += row.Value;
         }
 
-        // Auto rows: measure single-row cells using their resolved span width
-        for (int r = 0; r < resolvedRows.Length; r++)
+        foreach (var child in Children)
         {
-            if (!SizesLikeAuto(resolvedRows[r].Unit, starRowsAsAuto)) continue;
-            float maxH = 0f;
-            foreach (var cell in _cells)
-                if (cell.Row == r && cell.RowSpan == 1)
-                {
-                    float cw = 0f;
-                    for (int c = cell.Col; c < cell.Col + cell.ColSpan && c < colW.Length; c++)
-                    {
-                        cw += colW[c];
-                        if (c > cell.Col) cw += ColumnSpacing;
-                    }
-                    cell.Child.Measure(new Size(Math.Max(cw, 0f), float.PositiveInfinity));
-                    maxH = Math.Max(maxH, cell.Child.DesiredSize.Height);
-                }
-            rowH[r] = maxH;
-            fixedRowH += maxH;
+            if (GetParentData(child) is not Cell cell || cell.RowSpan != 1 || cell.Row >= _rowCount) continue;
+            if (!SizesLikeAuto(RowAt(cell.Row).Unit, starRowsAsAuto)) continue;
+            float cw = SpanLength(_colW, cell.Col, cell.ColSpan, _columns.Length, ColumnSpacing);
+            child.Measure(new Size(cw, float.PositiveInfinity));
+            _rowH[cell.Row] = Math.Max(_rowH[cell.Row], child.DesiredSize.Height);
         }
+        for (int r = 0; r < _rowCount; r++)
+            if (SizesLikeAuto(RowAt(r).Unit, starRowsAsAuto)) fixedRowH += _rowH[r];
 
-        float rowSpacingTotal = (resolvedRows.Length > 1 ? resolvedRows.Length - 1 : 0) * RowSpacing;
-        float starRowAvail    = Math.Max(0f, available.Height - fixedRowH - rowSpacingTotal);
         if (!starRowsAsAuto)
-            for (int r = 0; r < resolvedRows.Length; r++)
-                if (resolvedRows[r].Unit == GridUnit.Star)
-                    rowH[r] = starRowFactor > 0f ? starRowAvail * (resolvedRows[r].Value / starRowFactor) : 0f;
-
-        return (colW, rowH);
+        {
+            float starRowAvail = Math.Max(0f, available.Height - fixedRowH - SpacingTotal(_rowCount, RowSpacing));
+            for (int r = 0; r < _rowCount; r++)
+                if (RowAt(r).Unit == GridUnit.Star)
+                    _rowH[r] = starRowFactor > 0f ? starRowAvail * (RowAt(r).Value / starRowFactor) : 0f;
+        }
     }
 
-    // When DefineRows() is not called, infer one Auto row per unique row index in _cells.
-    private GridLength[] BuildAutoRows()
+    // Without DefineRows, one Auto row per row index any cell reaches.
+    private GridLength RowAt(int r) => _rows is null ? GridLength.Auto : _rows[r];
+
+    private int InferredRowCount()
     {
-        int maxRow = 0;
-        foreach (var cell in _cells)
-            maxRow = Math.Max(maxRow, cell.Row + cell.RowSpan);
-        var arr = new GridLength[maxRow];
-        for (int i = 0; i < maxRow; i++) arr[i] = GridLength.Auto;
-        return arr;
+        int count = 0;
+        foreach (var child in Children)
+            if (GetParentData(child) is Cell cell)
+                count = Math.Max(count, cell.Row + cell.RowSpan);
+        return count;
     }
 
     private static bool SizesLikeAuto(GridUnit unit, bool starAsAuto)
         => unit == GridUnit.Auto || (unit == GridUnit.Star && starAsAuto);
 
-    private static float Sum(float[] arr)
+    private static void EnsureCapacity(ref float[] sizes, ref float[] offsets, int count)
     {
-        float s = 0f;
-        foreach (var v in arr) s += v;
-        return s;
+        if (sizes.Length >= count) return;
+        sizes   = new float[count];
+        offsets = new float[count];
+    }
+
+    private static float SpacingTotal(int count, float spacing) => Math.Max(0, count - 1) * spacing;
+
+    private static float Total(float[] sizes, int count, float spacing)
+    {
+        float sum = SpacingTotal(count, spacing);
+        for (int i = 0; i < count; i++) sum += sizes[i];
+        return sum;
+    }
+
+    private static void Offsets(float[] sizes, float[] offsets, int count, float start, float spacing)
+    {
+        float pos = start;
+        for (int i = 0; i < count; i++)
+        {
+            offsets[i] = pos;
+            pos += sizes[i] + spacing;
+        }
+    }
+
+    private static float SpanLength(float[] sizes, int start, int span, int count, float spacing)
+    {
+        float length = 0f;
+        int end = Math.Min(start + span, count);
+        for (int i = start; i < end; i++)
+        {
+            length += sizes[i];
+            if (i > start) length += spacing;
+        }
+        return Math.Max(0f, length);
     }
 }

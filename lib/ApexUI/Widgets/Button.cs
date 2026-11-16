@@ -54,18 +54,6 @@ public class Button : Widget
         OnPressed?.Invoke();
     }
 
-    protected override Size MeasureCore(Size available)
-    {
-        _label.Measure(new Size(available.Width - Padding.Horizontal,
-            available.Height - Padding.Vertical));
-        return new Size(
-            _label.DesiredSize.Width  + Padding.Horizontal,
-            _label.DesiredSize.Height + Padding.Vertical);
-    }
-
-    protected override void ArrangeCore(Rect finalRect)
-        => _label.Arrange(finalRect.Deflate(Padding));
-
     protected override void DrawCore(DrawContext ctx)
     {
         var bg = Variant switch

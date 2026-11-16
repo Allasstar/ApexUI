@@ -95,8 +95,8 @@ public class InputsExample : Widget
                 new Label { Text = "RadioGroup — Horizontal", Bold = true, FontSize = 18f },
 
                 MakeCard(new Column(
-                    new Label { Text = "Same widget, RadioOrientation.Horizontal:" },
-                    new RadioGroup<string>(RadioOrientation.Horizontal, spacing: 20f)
+                    new Label { Text = "Same widget, Orientation.Horizontal:" },
+                    new RadioGroup<string>(Orientation.Horizontal, spacing: 20f)
                         .AddOption("North", "North")
                         .AddOption("East",  "East")
                         .AddOption("South", "South")
@@ -167,7 +167,7 @@ public class InputsExample : Widget
                 .DefineColumns(GridLength.Auto, GridLength.Star())
                 .WithSpacing(12f, 10f)
                 .Add(new Label { Text = "Difficulty", VAlign = VAlign.Center }, 0, 0)
-                .Add(new RadioGroup<string>(RadioOrientation.Horizontal, spacing: 16f)
+                .Add(new RadioGroup<string>(Orientation.Horizontal, spacing: 16f)
                         .AddOption("Easy",   "Easy")
                         .AddOption("Normal", "Normal")
                         .AddOption("Hard",   "Hard")

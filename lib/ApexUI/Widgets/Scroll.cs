@@ -5,6 +5,8 @@ public enum ScrollDirection { Vertical, Horizontal, Both }
 /// Scrollable single-child container.
 /// Content is clipped to viewport; optional scrollbar thumb drawn on the edge.
 /// Wheel events bubble up from any child to this widget.
+/// Content is laid out once at its unscrolled position and moved by ChildTransform,
+/// so scrolling redraws without a layout pass.
 public class Scroll : Widget
 {
     private const float BarSize  = 8f;
@@ -111,8 +113,11 @@ public class Scroll : Widget
         _scrollX = Math.Clamp(_scrollX, 0f, Math.Max(0f, cw - vpW));
         _scrollY = Math.Clamp(_scrollY, 0f, Math.Max(0f, ch - vpH));
 
-        _content.Arrange(new Rect(r.X - _scrollX, r.Y - _scrollY, cw, ch));
+        _content.Arrange(new Rect(r.X, r.Y, cw, ch));
+        ApplyScroll();
     }
+
+    private void ApplyScroll() => ChildTransform = Transform2D.Translation(-_scrollX, -_scrollY);
 
     // ── Drawing ───────────────────────────────────────────────────────────────
 
@@ -189,7 +194,7 @@ public class Scroll : Widget
             {
                 float ratio = Math.Clamp((y - track.Y - th * 0.5f) / Math.Max(1f, range), 0f, 1f);
                 _scrollY = ratio * maxSY;
-                InvalidateLayout();
+                ApplyScroll();
                 return true;
             }
         }
@@ -212,7 +217,7 @@ public class Scroll : Widget
             {
                 float ratio = Math.Clamp((x - track.X - tw * 0.5f) / Math.Max(1f, range), 0f, 1f);
                 _scrollX = ratio * maxSX;
-                InvalidateLayout();
+                ApplyScroll();
                 return true;
             }
         }
@@ -237,7 +242,7 @@ public class Scroll : Widget
             {
                 _scrollY = Math.Clamp(
                     _dragScrollStart + (y - _dragStart) * maxSY / range, 0f, maxSY);
-                InvalidateLayout();
+                ApplyScroll();
             }
         }
 
@@ -250,7 +255,7 @@ public class Scroll : Widget
             {
                 _scrollX = Math.Clamp(
                     _dragScrollStart + (x - _dragStart) * maxSX / range, 0f, maxSX);
-                InvalidateLayout();
+                ApplyScroll();
             }
         }
     }
@@ -263,7 +268,7 @@ public class Scroll : Widget
         float next  = Math.Clamp(_scrollX + delta, 0f, maxSX);
         if (next == _scrollX) return false;
         _scrollX = next;
-        InvalidateLayout();
+        ApplyScroll();
         return true;
     }
 
@@ -275,7 +280,7 @@ public class Scroll : Widget
         float next  = Math.Clamp(_scrollY + delta, 0f, maxSY);
         if (next == _scrollY) return false;
         _scrollY = next;
-        InvalidateLayout();
+        ApplyScroll();
         return true;
     }
 }

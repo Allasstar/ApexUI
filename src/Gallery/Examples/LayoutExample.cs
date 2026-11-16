@@ -8,8 +8,8 @@ public class LayoutExample : Widget
         AddChild(new PaddingBox(
             new Column(
 
-                // ── Spacer ────────────────────────────────────────────────────
-                new Label { Text = "Spacer", Bold = true, FontSize = 18f },
+                // ── Spacer and Grow ───────────────────────────────────────────
+                new Label { Text = "Spacer and Grow", Bold = true, FontSize = 18f },
 
                 MakeCard(new Column(
                     new Label { Text = "Pushes siblings to opposite edges:" },
@@ -25,7 +25,19 @@ public class LayoutExample : Widget
                         new Button("Middle").WithVariant(ButtonVariant.Ghost),
                         new Spacer(),
                         new Button("End").WithVariant(ButtonVariant.Ghost)
-                    ) { Spacing = 8f }
+                    ) { Spacing = 8f },
+                    new Label { Text = "Any child can grow; Grow = 1 and Grow = 2 share the leftover width 1:2:" },
+                    new Row(
+                        new Button("Fixed").WithVariant(ButtonVariant.Secondary),
+                        new Button("Grow 1") { Grow = 1f },
+                        new Button("Grow 2") { Grow = 2f }
+                    ) { Spacing = 8f },
+                    new Label { Text = "Padding works on every widget, here on the Row itself:" },
+                    new Row(
+                        new Label { Text = "Padded row" },
+                        new Spacer(),
+                        new Label { Text = "16 / 8" }
+                    ) { Padding = new Thickness(16f, 8f), BackgroundSource = t => t.SurfaceHover, CornerRadius = 6f }
                 ).WithSpacing(8f)),
 
                 new Separator { Margin = new Thickness(0, 4f) },

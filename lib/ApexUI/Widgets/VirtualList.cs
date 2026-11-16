@@ -1,8 +1,9 @@
 namespace ApexUI.Widgets;
 
-/// Scrollable list that creates, lays out and draws only the rows near the visible viewport.
-/// Rows are real children, cached by index; rows that scroll far out of view are removed
-/// (and so detached), rows just outside the viewport are kept but hidden.
+/// Scrollable list that creates and lays out only the rows near the visible viewport.
+/// Rows are real children, cached by index and laid out at their unscrolled positions;
+/// scrolling moves them with ChildTransform, and runs layout only when it reaches rows
+/// that are not built yet. Rows far out of view are removed (and so detached).
 /// Row height must be uniform. Use Height (or a parent that constrains height) to make
 /// the list scrollable; if Height is NaN and available height is infinite it sizes to content.
 public class VirtualList<T> : Widget
@@ -21,22 +22,22 @@ public class VirtualList<T> : Widget
     private readonly Dictionary<int, Widget> _cache    = [];
     private readonly List<int>               _evictBuf = [];  // reused to avoid per-pass alloc
 
+    // Rows built by the last layout; scrolling within them needs no layout.
+    private int _builtFirst;
+    private int _builtLast = -1;
+
     private bool  _sbDragging;
     private float _sbDragStartY;
     private float _sbDragStartOff;
 
-    private const float SbWidth = 7f;  // scrollbar track width
-    private const int   EvictBuf = 15; // rows kept beyond visible range
+    private const float SbWidth  = 7f;  // scrollbar track width
+    private const int   Overscan = 4;   // rows built beyond the visible range
+    private const int   EvictBuf = 15;  // rows kept beyond the visible range
 
     // Handled only when it actually scrolled, so an outer Scroll gets the wheel at the ends.
     protected override void OnWheel(WheelEventArgs e)
     {
-        float max  = MaxScrollOffset();
-        float next = Math.Clamp(_scrollOff - e.DeltaY * RowHeight * 3f, 0f, max);
-        if (next == _scrollOff) return;
-        _scrollOff = next;
-        InvalidateLayout();
-        e.Handled = true;
+        if (ScrollTo(_scrollOff - e.DeltaY * RowHeight * 3f)) e.Handled = true;
     }
 
     protected override void OnPointerCaptureLost() => _sbDragging = false;
@@ -45,8 +46,7 @@ public class VirtualList<T> : Widget
     {
         if (e.Button != PointerButton.Left) return;
         var b = LayoutBounds;
-        int count = _source?.Count ?? 0;
-        float totalH = count * RowHeight;
+        float totalH = TotalHeight;
         if (totalH <= b.Height) return;
 
         float tX = b.Right - SbWidth;
@@ -67,8 +67,7 @@ public class VirtualList<T> : Widget
         else
         {
             float ratio = Math.Clamp((e.Y - b.Y - tH * 0.5f) / (b.Height - tH), 0f, 1f);
-            _scrollOff = ratio * maxOff;
-            InvalidateLayout();
+            ScrollTo(ratio * maxOff);
         }
     }
 
@@ -77,14 +76,12 @@ public class VirtualList<T> : Widget
         if (!_sbDragging) return;
         e.Handled = true;
         var b = LayoutBounds;
-        int count = _source?.Count ?? 0;
-        float totalH = count * RowHeight;
+        float totalH = TotalHeight;
         float maxOff = Math.Max(0f, totalH - b.Height);
         float tH     = Math.Max(16f, b.Height * b.Height / totalH);
 
         float delta = e.Y - _sbDragStartY;
-        _scrollOff = Math.Clamp(_sbDragStartOff + delta * maxOff / (b.Height - tH), 0f, maxOff);
-        InvalidateLayout();
+        ScrollTo(_sbDragStartOff + delta * maxOff / (b.Height - tH));
     }
 
     // ── Fluent API ────────────────────────────────────────────────────────────
@@ -127,10 +124,8 @@ public class VirtualList<T> : Widget
 
     protected override Size MeasureCore(Size available)
     {
-        int count = _source?.Count ?? 0;
-        float totalH = count * RowHeight;
         float w = available.Width;
-        float h = float.IsInfinity(available.Height) ? totalH : available.Height;
+        float h = float.IsInfinity(available.Height) ? TotalHeight : available.Height;
         return new Size(w, h);
     }
 
@@ -140,13 +135,13 @@ public class VirtualList<T> : Widget
         if (_template is null || count == 0)
         {
             ClearRows();
+            ApplyScroll();
             return;
         }
 
-        _scrollOff = Math.Clamp(_scrollOff, 0f, Math.Max(0f, count * RowHeight - b.Height));
-        float cW    = count * RowHeight > b.Height ? b.Width - SbWidth : b.Width;
-        int   first = Math.Max(0, (int)(_scrollOff / RowHeight));
-        int   last  = Math.Min(count - 1, (int)((_scrollOff + b.Height) / RowHeight));
+        _scrollOff = Math.Clamp(_scrollOff, 0f, MaxScrollOffset(b.Height));
+        float cW = TotalHeight > b.Height ? b.Width - SbWidth : b.Width;
+        var (first, last) = VisibleRows(b.Height);
 
         _evictBuf.Clear();
         foreach (var k in _cache.Keys)
@@ -157,21 +152,23 @@ public class VirtualList<T> : Widget
             _cache.Remove(k);
         }
 
-        foreach (var (index, row) in _cache)
-            SetVisible(row, index >= first && index <= last);
-
-        for (int i = first; i <= last; i++)
+        _builtFirst = Math.Max(0, first - Overscan);
+        _builtLast  = Math.Min(count - 1, last + Overscan);
+        for (int i = _builtFirst; i <= _builtLast; i++)
         {
-            if (!_cache.TryGetValue(i, out var row))
-            {
-                row = _template(_source![i], i);
-                _cache[i] = row;
-                AddChild(row);
-            }
-            SetVisible(row, true);
-            row.Measure(new Size(cW, RowHeight));
-            row.Arrange(new Rect(b.X, b.Y + i * RowHeight - _scrollOff, cW, RowHeight));
+            if (_cache.ContainsKey(i)) continue;
+            var row = _template(_source![i], i);
+            _cache[i] = row;
+            AddChild(row);
         }
+
+        // Cached rows outside the built range are arranged too; unchanged ones return at once.
+        foreach (var (index, row) in _cache)
+        {
+            row.Measure(new Size(cW, RowHeight));
+            row.Arrange(new Rect(b.X, b.Y + index * RowHeight, cW, RowHeight));
+        }
+        ApplyScroll();
     }
 
     // ── Draw ──────────────────────────────────────────────────────────────────
@@ -181,7 +178,7 @@ public class VirtualList<T> : Widget
     protected override void DrawCore(DrawContext ctx)
     {
         var   b      = LayoutBounds;
-        float totalH = (_source?.Count ?? 0) * RowHeight;
+        float totalH = TotalHeight;
 
         if (totalH > b.Height)
         {
@@ -202,6 +199,34 @@ public class VirtualList<T> : Widget
 
     // ── Private ───────────────────────────────────────────────────────────────
 
+    private float TotalHeight => (_source?.Count ?? 0) * RowHeight;
+
+    private float MaxScrollOffset(float viewportHeight) => Math.Max(0f, TotalHeight - viewportHeight);
+
+    private (int First, int Last) VisibleRows(float viewportHeight)
+    {
+        int count = _source?.Count ?? 0;
+        int first = Math.Max(0, (int)(_scrollOff / RowHeight));
+        int last  = Math.Min(count - 1, (int)((_scrollOff + viewportHeight) / RowHeight));
+        return (first, last);
+    }
+
+    // Returns whether the offset changed.
+    private bool ScrollTo(float offset)
+    {
+        float viewportHeight = LayoutBounds.Height;
+        float next = Math.Clamp(offset, 0f, MaxScrollOffset(viewportHeight));
+        if (next == _scrollOff) return false;
+        _scrollOff = next;
+        ApplyScroll();
+
+        var (first, last) = VisibleRows(viewportHeight);
+        if (first < _builtFirst || last > _builtLast) InvalidateLayout();
+        return true;
+    }
+
+    private void ApplyScroll() => ChildTransform = Transform2D.Translation(0f, -_scrollOff);
+
     private void Refresh()
     {
         ClearRows();
@@ -211,20 +236,10 @@ public class VirtualList<T> : Widget
 
     private void ClearRows()
     {
+        _builtFirst = 0;
+        _builtLast  = -1;
         if (_cache.Count == 0) return;
         RemoveAllChildren();
         _cache.Clear();
-    }
-
-    // Guarded because every change invalidates layout, and this runs during arrange.
-    private static void SetVisible(Widget row, bool visible)
-    {
-        if (row.IsVisible != visible) row.IsVisible = visible;
-    }
-
-    private float MaxScrollOffset()
-    {
-        float totalH = (_source?.Count ?? 0) * RowHeight;
-        return Math.Max(0f, totalH - LayoutBounds.Height);
     }
 }
