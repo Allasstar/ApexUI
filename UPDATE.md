@@ -4,6 +4,12 @@ Newest first. **Breaking** marks changes that need edits in apps using ApexUI.
 
 ## Unreleased
 
+### Retro fixes
+- `Rect.Contains` is half-open: the right and bottom edges are outside. Before, two widgets sharing an edge both contained a point on it and the later one won silently.
+- `Slider`: steps count from `Min` (before: from 0, so `Min = 1, Step = 2` snapped to even numbers), a snapped value never passes `Max`, and setting `Step` snaps the current value.
+- `TextInput.Validate` redraws the field when set, so the invalid border shows at once.
+- **Breaking:** removed unused `Size.Constrain`, `Rect.Intersects`, `SKColor.Lighten` and `SKColor.Darken`.
+
 ### Tests and docs
 - 38 new tests (175 in total): measure and arrange of `Stack`, `Wrap`, `Canvas` with explicit size, `Grid` fixed/star rows, auto tracks, inferred rows, spans and out-of-range cells, hidden children in `Row`/`Column`, cross-axis alignment; right/bottom alignment, margins, min/max, explicit size and aspect ratio; `Handled` stopping a bubbling press, `Source` while bubbling, releasing capture mid-drag, capture without a press, disabled widgets passing clicks to their parent; Tab skipping hidden and disabled branches, focus event order, Shift+Tab from nothing; dirty flags on ancestors and not on siblings, render-only changes skipping layout, layout on detached widgets, showing and hiding a child.
 - `README.md` gains Input and focus and Testing sections, a corrected panel table (`Grid` tracks, `Canvas`, `Grow`) and the missing `Checkbox` and `VirtualList`.

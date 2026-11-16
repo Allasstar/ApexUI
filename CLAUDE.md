@@ -297,8 +297,7 @@ Spacer(float grow = 1f)          // empty, not hit-testable, Grow = grow
 readonly record struct Rect(float X, float Y, float Width, float Height)
 static Rect Rect.Zero
 float Right, Bottom, CenterX, CenterY
-bool  Contains(float px, float py)
-bool  Intersects(Rect other)
+bool  Contains(float px, float py)   // half-open: right and bottom edges are outside
 Rect  Deflate(Thickness t)
 Rect  Translate(float dx, float dy)
 Rect  WithSize(float w, float h)
@@ -312,7 +311,6 @@ SKRect ToSKRect()
 ```csharp
 readonly record struct Size(float Width, float Height)
 static Size Size.Zero, Size.Infinite
-Size Constrain(Size constraint)
 ```
 
 ---
@@ -374,8 +372,6 @@ static class BuiltInThemes   // names Default, Contrast, Forest, Desert, Space; 
 static SKColor SKColor.FromHex(string hex)   // "#RRGGBB" or "#RRGGBBAA"
 bool    color.IsTransparent
 SKColor color.WithAlpha(float alpha)         // 0..1
-SKColor color.Lighten(float ratio)
-SKColor color.Darken(float ratio)
 ```
 
 ---

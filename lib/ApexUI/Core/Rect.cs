@@ -1,14 +1,6 @@
-﻿// src/Core/Rect.cs
-//
-// Lightweight value type for layout bounds.
-// Used in every measure/arrange pass — must be a struct (zero allocation).
+﻿namespace ApexUI.Core;
 
-namespace ApexUI.Core;
-
-/// <summary>
-/// Axis-aligned rectangle used for layout and hit-testing.
-/// All coordinates are in logical pixels (DPI-independent).
-/// </summary>
+/// Axis-aligned rectangle in logical units, used for layout and hit-testing.
 public readonly record struct Rect(float X, float Y, float Width, float Height)
 {
     public static readonly Rect Zero = new(0, 0, 0, 0);
@@ -18,12 +10,10 @@ public readonly record struct Rect(float X, float Y, float Width, float Height)
     public float CenterX => X + Width  * 0.5f;
     public float CenterY => Y + Height * 0.5f;
 
+    /// Half-open: the left and top edges are inside, the right and bottom edges are not,
+    /// so neighbours that share an edge never both contain a point on it.
     public bool Contains(float px, float py)
-        => px >= X && px <= Right && py >= Y && py <= Bottom;
-
-    public bool Intersects(Rect other)
-        => X < other.Right && Right > other.X
-        && Y < other.Bottom && Bottom > other.Y;
+        => px >= X && px < Right && py >= Y && py < Bottom;
 
     public Rect Deflate(Thickness t)
         => new(X + t.Left, Y + t.Top,

@@ -7,15 +7,15 @@ public class Slider : Widget
     public float Min  { get; set { if (SetRenderProperty(ref field, value)) ClampToRange(); } } = 0f;
     public float Max  { get; set { if (SetRenderProperty(ref field, value)) ClampToRange(); } } = 1f;
 
-    /// 0 = continuous (no snapping); any other positive value snaps to that interval.
-    public float Step { get; set; } = 0f;
+    /// 0 = continuous (no snapping); any other positive value snaps to Min + n × Step.
+    public float Step { get; set { if (SetRenderProperty(ref field, value)) ClampToRange(); } } = 0f;
 
     public float Value
     {
         get;
         set
         {
-            float snapped = Snap(Math.Clamp(value, Min, Max));
+            float snapped = Snap(value);
             if (field == snapped) return;
             field = snapped;
             Invalidate();
@@ -141,6 +141,13 @@ public class Slider : Widget
         if (Min <= Max) Value = Value;
     }
 
+    // Steps count from Min, and a step past Max falls back one, so the result stays in range
+    // even when the range is not a whole number of steps.
     private float Snap(float raw)
-        => Step > 0f ? MathF.Round(raw / Step) * Step : raw;
+    {
+        float clamped = Math.Clamp(raw, Min, Max);
+        if (Step <= 0f) return clamped;
+        float snapped = Min + MathF.Round((clamped - Min) / Step) * Step;
+        return snapped > Max ? snapped - Step : snapped;
+    }
 }

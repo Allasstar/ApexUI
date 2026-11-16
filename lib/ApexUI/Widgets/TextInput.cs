@@ -45,7 +45,7 @@ public class TextInput : Widget
     public string? BlockedChars { get; set; }
 
     /// Full-string predicate; false → red border. Does not block typing — use for feedback only.
-    public Func<string, bool>? Validate { get; set; }
+    public Func<string, bool>? Validate { get; set => SetRenderProperty(ref field, value); }
 
     public bool IsValid => Validate is null || Validate(Value);
 

@@ -178,4 +178,79 @@ public class SliderTests
 
         Assert.Equal(10, slider.Value);
     }
+
+    [Fact]
+    public void Setting_step_snaps_the_current_value()
+    {
+        var slider = new Slider().WithMax(10).WithValue(3.4f);
+
+        slider.Step = 2;
+
+        Assert.Equal(4, slider.Value);
+    }
+
+    [Fact]
+    public void Steps_count_from_min()
+    {
+        var slider = new Slider { Max = 10, Min = 1, Step = 2 };
+
+        slider.Value = 4.2f;
+
+        Assert.Equal(5, slider.Value);
+    }
+
+    [Fact]
+    public void Snapping_never_goes_past_max()
+    {
+        var slider = new Slider { Max = 1.1f, Step = 0.4f };
+
+        slider.Value = 1.1f;
+
+        Assert.Equal(0.8f, slider.Value, 0.0001f);
+    }
+}
+
+public class HitTestEdgeTests
+{
+    [Fact]
+    public void Rect_contains_its_left_and_top_edges_but_not_its_right_and_bottom()
+    {
+        var r = new Rect(10, 10, 20, 20);
+
+        Assert.True(r.Contains(10, 10));
+        Assert.True(r.Contains(29.9f, 29.9f));
+        Assert.False(r.Contains(30, 20));
+        Assert.False(r.Contains(20, 30));
+    }
+
+    [Fact]
+    public void A_point_on_a_shared_edge_hits_only_the_widget_that_starts_there()
+    {
+        var left  = new FixedBox(50, 20);
+        var right = new FixedBox(50, 20);
+        var row   = new Row(left, right);
+        row.Measure(new Size(100, 20));
+        row.Arrange(new Rect(0, 0, 100, 20));
+
+        Assert.Null(left.HitTest(50, 10));
+        Assert.Same(right, right.HitTest(50, 10));
+        Assert.Same(left, row.HitTest(49.9f, 10));
+    }
+}
+
+public class TextInputValidationTests
+{
+    [Fact]
+    public void Setting_a_validator_redraws_the_field()
+    {
+        var input = new TextInput();
+        var (_, platform) = TestPlatform.Show(new Column(input));
+        platform.Render().Dispose();
+        int before = platform.FramesRequested;
+
+        input.Validate = s => s.Length > 0;
+
+        Assert.Equal(before + 1, platform.FramesRequested);
+        Assert.False(input.IsValid);
+    }
 }
