@@ -41,6 +41,12 @@ public class Label : Widget
     private TextKey _widthKey;
     private float   _width;
 
+    // One blob per drawn line, rebuilt when text, font or wrap width change; null for an empty line.
+    private readonly List<SKTextBlob?> _blobs = [];
+    private TextKey _blobsKey;
+    private float   _blobsWidth;
+    private bool    _hasBlobs;
+
     private readonly record struct TextKey(string? Text, string? Family, float FontSize, bool Bold);
 
     protected override Size MeasureCore(Size available)
@@ -60,19 +66,51 @@ public class Label : Widget
         float fontSize = float.IsNaN(FontSize) ? ctx.Theme.FontSizeBase : FontSize;
         var color = Color ?? ctx.Theme.OnSurface;
 
+        var blobs = Blobs(ctx, fontSize);
         if (!WordWrap)
         {
-            ctx.DrawText(Text, LayoutBounds, color, fontSize, Bold);
+            ctx.DrawText(blobs[0], LayoutBounds, color, fontSize, Bold);
             return;
         }
 
-        var   lines = Lines(fontSize, LayoutBounds.Width);
         float lineH = fontSize * 1.4f;
-        for (int i = 0; i < lines.Count; i++)
+        for (int i = 0; i < blobs.Count; i++)
         {
             var lineRect = new Rect(LayoutBounds.X, LayoutBounds.Y + i * lineH, LayoutBounds.Width, lineH);
-            ctx.DrawText(lines[i], lineRect, color, fontSize, Bold);
+            ctx.DrawText(blobs[i], lineRect, color, fontSize, Bold);
         }
+    }
+
+    protected override void OnDetached() => ReleaseBlobs();
+
+    private List<SKTextBlob?> Blobs(DrawContext ctx, float fontSize)
+    {
+        var   key   = new TextKey(Text, ctx.FontFamily, fontSize, Bold);
+        float width = WordWrap ? LayoutBounds.Width : -1f;
+        if (_hasBlobs && key == _blobsKey && width == _blobsWidth) return _blobs;
+
+        ReleaseBlobs();
+        var font = ctx.GetFont(fontSize, Bold);
+        if (WordWrap)
+        {
+            foreach (var line in Lines(fontSize, width))
+                _blobs.Add(line.Length == 0 ? null : SKTextBlob.Create(line, font));
+        }
+        else
+        {
+            _blobs.Add(Text.Length == 0 ? null : SKTextBlob.Create(Text, font));
+        }
+        _blobsKey   = key;
+        _blobsWidth = width;
+        _hasBlobs   = true;
+        return _blobs;
+    }
+
+    private void ReleaseBlobs()
+    {
+        foreach (var blob in _blobs) blob?.Dispose();
+        _blobs.Clear();
+        _hasBlobs = false;
     }
 
     private TextKey CurrentKey(float fontSize)

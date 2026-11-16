@@ -80,8 +80,12 @@ public class UiHostTests
         overlay.Close();
         platform.Click(400, 300);
 
-        Assert.Null(content.Host);
+        Assert.Same(host, content.Host);
         Assert.Equal((1, 1), (rootClicks, contentClicks));
+
+        overlay.Detach();
+
+        Assert.Null(content.Host);
     }
 
     [Fact]
@@ -95,9 +99,15 @@ public class UiHostTests
     [Fact]
     public void Gallery_renders_through_the_host()
     {
-        var (_, platform) = TestPlatform.Show(new Gallery.Examples.TabsExample(), 900, 700);
+        var gallery = new Gallery.Examples.TabsExample();
+        var tabs    = Assert.IsType<Tabs>(Assert.Single(gallery.Children));
+        var (_, platform) = TestPlatform.Show(gallery, 900, 700);
 
-        platform.Render().Dispose();
+        for (int i = 0; i < tabs.TabCount; i++)
+        {
+            tabs.SelectedIndex = i;
+            platform.Render().Dispose();
+        }
         platform.Listener.Close();
     }
 }

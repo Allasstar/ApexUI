@@ -35,6 +35,13 @@ public sealed class Tooltip : Widget, ITickable
         };
     }
 
+    protected override void OnDetached()
+    {
+        _overlay.Detach();
+        _tooltipVisible = false;
+        _hoverTimer     = 0f;
+    }
+
     // ── ITickable ─────────────────────────────────────────────────────────────
 
     public void Tick(float deltaSeconds)

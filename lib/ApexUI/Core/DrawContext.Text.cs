@@ -28,4 +28,15 @@ public sealed partial class DrawContext
         };
         Canvas.DrawText(text, x, y, align, font, TextPaint(color));
     }
+
+    /// Draws a prepared text blob left-aligned and vertically centered within bounds, like DrawText.
+    /// Drawing a blob allocates nothing, unlike drawing a string; cache the blob while the text is unchanged.
+    /// sizePx and bold must match the font the blob was made with (they give the line metrics).
+    public void DrawText(SKTextBlob? blob, Rect bounds, SKColor color, float sizePx, bool bold = false)
+    {
+        if (blob is null) return;
+        var   m = GetFont(sizePx, bold).Metrics;
+        float y = bounds.Y + (bounds.Height - (m.Descent - m.Ascent)) * 0.5f - m.Ascent;
+        Canvas.DrawText(blob, bounds.X, y, TextPaint(color));
+    }
 }

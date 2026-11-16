@@ -54,6 +54,15 @@ Each `Bind*` method wires a `Bindable<T>` to the matching host property — chan
 
 Inside a widget, `Host` is the `UiHost` showing it (null until the widget is on screen). Dialogs and overlays need it to know which window to open in: `dialog.Show(Host!)`, `overlay.Open(Host!)`. `Host.Platform` gives access to the clipboard, cursor and timers.
 
+### Widget lifecycle
+
+A widget is *attached* while it is in a tree a `UiHost` shows: the root, or an overlay that has been opened. Adding it to such a tree calls `OnAttached(host)` on it and its descendants; removing it calls `OnDetached()`. Moving a widget inside the same window does neither.
+
+- `Bind(...)` methods subscribe through `Observe(...)`, so a removed widget is no longer referenced by the `Bindable` it was bound to. When it is added back it re-subscribes and picks up the current value.
+- `Image` disposes its decoded image on detach. Call `KeepOnDetach()` to remove an image and add it again later.
+- `Label` caches its text as Skia text blobs while attached and frees them on detach.
+- A closed overlay (dialog, dropdown menu) stays attached, like a hidden tab page, so it reopens with its state. `Overlay.Detach()` releases it; `Dropdown` and `Tooltip` do that when they are removed.
+
 ---
 
 ## Building widgets

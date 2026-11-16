@@ -49,16 +49,16 @@ public class Slider : Widget
     public Slider Bind(Bindable<float> source)
     {
         Value = source.Value;
-        OnChanged      += v => source.Value = v;
-        source.Changed += v => Value = v;
+        OnChanged += v => source.Value = v;
+        Observe(source, v => Value = v);
         return this;
     }
 
     public Slider BindInt(Bindable<int> source)
     {
         Value = source.Value;
-        OnChanged      += v => source.Value = (int)MathF.Round(v);
-        source.Changed += v => Value = v;
+        OnChanged += v => source.Value = (int)MathF.Round(v);
+        Observe(source, v => Value = v);
         return this;
     }
 

@@ -30,6 +30,35 @@ public class DrawAllocationTests
     }
 
     [Fact]
+    public void Drawing_unchanged_labels_allocates_nothing()
+    {
+        using var surface = SKSurface.Create(new SKImageInfo(300, 200));
+        using var ctx     = new DrawContext(surface.Canvas, Theme.Light, 1f);
+        var tree = new Column(
+            new Label { Text = "Hello world" },
+            new Label { Text = "A longer sentence that wraps over several lines", WordWrap = true, Width = 120 });
+        tree.Measure(new Size(300, 200));
+        tree.Arrange(new Rect(0, 0, 300, 200));
+
+        Assert.Equal(0, TestCanvas.MinAllocatedBytes(() => tree.Draw(ctx)));
+    }
+
+    [Fact]
+    public void Walking_children_allocates_nothing()
+    {
+        var tree = new Column(new FixedBox(1, 1), new Row(new FixedBox(1, 1), new FixedBox(1, 1)));
+
+        static int Count(Widget w)
+        {
+            int n = 1;
+            foreach (var child in w.Children) n += Count(child);
+            return n;
+        }
+
+        Assert.Equal(0, TestCanvas.MinAllocatedBytes(() => Count(tree)));
+    }
+
+    [Fact]
     public void Drawing_an_empty_text_input_allocates_nothing()
     {
         using var surface = SKSurface.Create(new SKImageInfo(300, 40));

@@ -104,7 +104,7 @@ public class RadioGroup<T> : Widget
     {
         SelectedValue   = source.Value;
         OnChanged      += v => { if (v is not null) source.Value = v; };
-        source.Changed += v => SelectedValue = v;
+        Observe(source, v => SelectedValue = v);
         return this;
     }
 

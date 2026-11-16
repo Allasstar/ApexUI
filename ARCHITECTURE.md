@@ -36,6 +36,14 @@ Keys arrive as the `Key` enum with `KeyModifiers`; typed characters arrive separ
 can tell typing from shortcuts. Widgets reach their host through `Widget.Host`; there is no static application.
 Tests drive a `UiHost` through a fake platform, without a window.
 
+## Widget lifecycle
+
+`Widget.Host` is set on every widget in a tree the host shows (the root and opened overlays) and is
+propagated by `AddChild`/`RemoveChild`. Attaching runs `OnAttached` top-down; detaching runs `OnDetached`
+bottom-up and clears hover, press and focus references to the widget. Subscriptions made with `Observe`
+are dropped on detach and restored, with a re-sync, on attach. `VirtualList` rows are ordinary children,
+created and removed during arrange.
+
 ## The three-pass model
 
 Every frame runs three passes in order:

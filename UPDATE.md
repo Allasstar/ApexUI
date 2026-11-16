@@ -4,6 +4,19 @@ Newest first. **Breaking** marks changes that need edits in apps using ApexUI.
 
 ## Unreleased
 
+### Widget lifecycle
+- Widgets are attached while they are in a tree a `UiHost` shows. New `protected virtual void OnAttached(UiHost host)` and `OnDetached()`; `Widget.Host` is now set on each widget as it is attached instead of being looked up through the parents.
+- New `protected IDisposable Observe(Bindable<T>, Action<T>)` and `Observe(ObservableList<T>, Action)`: the subscription is dropped when the widget is detached and restored (with the current value) when it is attached again. Every built-in `Bind`, `BindInt`, `BindFloat` and `WithItems(ObservableList)` uses it, so removed widgets are no longer kept alive by the bindables and lists they were bound to.
+- Moving a widget to another parent in the same window does not detach and re-attach it.
+- Hover, press and focus are cleared when the widget holding them is detached, so a removed widget stops receiving input.
+- `Image` disposes its decoded image when detached. New `DisposeOnDetach` (default true) and `KeepOnDetach()` for images you remove and add again.
+- **Breaking:** a closed `Overlay` stays attached to the host it was opened on, so dialogs and menus keep their state and images between openings. New `Overlay.Detach()` closes it and releases it. `Dropdown` and `Tooltip` detach their overlays when they are removed.
+- **Breaking:** `VirtualList` rows are real children: created and removed during layout (not while drawing), attached and detached like any widget, hit-tested and ticked normally. Scrolling a `VirtualList` now re-runs layout.
+- **Breaking:** `Widget.Children` is a `ChildList` (read-only, `IReadOnlyList<Widget>`) instead of `IReadOnlyList<Widget>`. `foreach` over it no longer allocates.
+
+### Performance
+- `Label` caches one `SKTextBlob` per line and draws it with the new `DrawContext.DrawText(SKTextBlob?, ...)`. Drawing unchanged labels allocates nothing; the blobs are freed on detach.
+
 ### Display scaling
 - Apps are sharp on scaled displays. The platform reports the surface size in pixels and the display scale; `UiHost` applies `DpiScale × UiScale` once as the canvas transform and converts pointer positions with the same factor. Layout, drawing, fonts and input are in logical units everywhere else.
 - `DesktopPlatform` reads the display scale from GLFW, draws to a surface the size of the framebuffer (before: the window size, wrong on Retina), and treats its width and height as logical units: on a 150% display `new DesktopPlatform("App", 900, 700)` opens a 1350×1050 pixel window. It also resizes the window when it moves to a display with a different scale.

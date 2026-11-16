@@ -30,7 +30,7 @@ public class ProgressBar : Widget
     public ProgressBar Bind(Bindable<float> source)
     {
         Value = source.Value;
-        source.Changed += v => Value = v;
+        Observe(source, v => Value = v);
         return this;
     }
 

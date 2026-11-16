@@ -52,10 +52,9 @@ public sealed class UiHost : IPlatformListener
         set
         {
             if (_root == value) return;
-            _root?.SetRootHost(null);
+            _root?.DetachFromHost();
             _root = value;
-            _root?.SetRootHost(this);
-            _hoveredWidget = _focusedWidget = _pressedWidget = null;
+            _root?.AttachToHost(this);
             _root?.InvalidateLayout();
         }
     }
@@ -112,17 +111,19 @@ public sealed class UiHost : IPlatformListener
 
     // ── Overlays ──────────────────────────────────────────────────────────────
 
-    internal void RegisterOverlay(Overlay overlay)
+    internal void ShowOverlay(Overlay overlay)
     {
-        if (_overlays.Contains(overlay)) return;
-        _overlays.Add(overlay);
-        overlay.SetRootHost(this);
+        if (!_overlays.Contains(overlay)) _overlays.Add(overlay);
     }
 
-    internal void UnregisterOverlay(Overlay overlay)
+    internal void HideOverlay(Overlay overlay) => _overlays.Remove(overlay);
+
+    // A detached widget must not keep receiving pointer or key events.
+    internal void Forget(Widget widget)
     {
-        if (_overlays.Remove(overlay))
-            overlay.SetRootHost(null);
+        if (_hoveredWidget == widget) _hoveredWidget = null;
+        if (_pressedWidget == widget) _pressedWidget = null;
+        if (_focusedWidget == widget) _focusedWidget = null;
     }
 
     private Widget? HitTestAll(float x, float y)

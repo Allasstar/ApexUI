@@ -6,12 +6,12 @@
 // Design goals:
 //  - Measure → Arrange → Draw, the same 3-pass model WPF/Flutter/HTML use
 //  - Properties call Invalidate() automatically (via C# 14 `field` keyword)
-//  - Zero allocations in the render loop (Span<Widget>, no boxing)
+//  - Zero allocations in the render loop (struct child enumeration, no boxing)
 //  - Parent owns children — widgets don't need to know their own position
 
 namespace ApexUI.Core;
 
-public abstract class Widget
+public abstract partial class Widget
 {
     // ── Identity ──────────────────────────────────────────────────────────────
 
@@ -21,42 +21,29 @@ public abstract class Widget
 
     public Widget? Parent { get; internal set; }
 
-    private UiHost? _rootHost;
-
-    /// The host showing this widget's tree, or null while the widget is not on screen.
-    public UiHost? Host
-    {
-        get
-        {
-            var w = this;
-            while (w.Parent is not null) w = w.Parent;
-            return w._rootHost;
-        }
-    }
-
-    // Set by UiHost on the root of each tree it shows (the root widget and open overlays).
-    internal void SetRootHost(UiHost? host) => _rootHost = host;
-
     private readonly List<Widget> _children = [];
-    public IReadOnlyList<Widget> Children => _children;
+    public ChildList Children => new(_children);
 
-    /// Adds child as the last child. A child that already has a parent is moved here.
+    /// Adds child as the last child. A child that already has a parent is moved here;
+    /// moving within the same window keeps it attached, so it is not detached and re-attached.
     protected void AddChild(Widget child)
     {
-        child.Parent?.RemoveChild(child);
+        child.Parent?.Unlink(child);
         child.Parent = this;
         _children.Add(child);
+        if (child.Host != Host)
+        {
+            child.DetachFromHost();
+            if (Host is not null) child.AttachToHost(Host);
+        }
         InvalidateLayout();
     }
 
+    /// Removes child; if it was on screen it is detached (OnDetached runs on it and its descendants).
     protected void RemoveChild(Widget child)
     {
-        if (_children.Remove(child))
-        {
-            child.Parent = null;
-            OnChildRemoved(child);
-            InvalidateLayout();
-        }
+        if (Unlink(child))
+            child.DetachFromHost();
     }
 
     public void RemoveAllChildren()
@@ -67,8 +54,18 @@ public abstract class Widget
             child.Parent = null;
             _children.RemoveAt(i);
             OnChildRemoved(child);
+            child.DetachFromHost();
         }
         InvalidateLayout();
+    }
+
+    private bool Unlink(Widget child)
+    {
+        if (!_children.Remove(child)) return false;
+        child.Parent = null;
+        OnChildRemoved(child);
+        InvalidateLayout();
+        return true;
     }
 
     /// Called after a child left this widget, however it was removed.

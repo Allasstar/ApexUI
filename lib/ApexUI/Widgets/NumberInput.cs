@@ -106,8 +106,8 @@ public class NumberInput : Widget
     public NumberInput Bind(Bindable<float> source)
     {
         Value           = source.Value;
-        OnChanged      += v => source.Value = v;
-        source.Changed += v => Value = v;
+        OnChanged += v => source.Value = v;
+        Observe(source, v => Value = v);
         return this;
     }
 
@@ -116,8 +116,8 @@ public class NumberInput : Widget
         Step            = 1f;
         Format          = "0";
         Value           = source.Value;
-        OnChanged      += v => source.Value = (int)MathF.Round(v);
-        source.Changed += v => Value = v;
+        OnChanged += v => source.Value = (int)MathF.Round(v);
+        Observe(source, v => Value = v);
         return this;
     }
 

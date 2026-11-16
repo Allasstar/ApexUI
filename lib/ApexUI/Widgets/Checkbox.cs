@@ -37,7 +37,7 @@ public class Checkbox : Widget
     {
         IsChecked       = source.Value;
         OnChanged      += v => source.Value = v;
-        source.Changed += v => { IsChecked = v; Invalidate(); };
+        Observe(source, v => { IsChecked = v; Invalidate(); });
         return this;
     }
 

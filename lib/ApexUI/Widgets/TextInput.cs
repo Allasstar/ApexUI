@@ -90,7 +90,7 @@ public class TextInput : Widget, ITickable
         Value = source.Value.ToString(format, CultureInfo.InvariantCulture);
         _cursorPos = _selAnchor = Value.Length;
         OnChanged      += s => { if (float.TryParse(s, NumberStyles.Float, CultureInfo.InvariantCulture, out var v)) source.Value = v; };
-        source.Changed += v => { if (!IsFocused) { Value = v.ToString(format, CultureInfo.InvariantCulture); _cursorPos = _selAnchor = Value.Length; } };
+        Observe(source, v => { if (!IsFocused) { Value = v.ToString(format, CultureInfo.InvariantCulture); _cursorPos = _selAnchor = Value.Length; } });
         return this;
     }
 
@@ -99,7 +99,7 @@ public class TextInput : Widget, ITickable
         Value = source.Value.ToString();
         _cursorPos = _selAnchor = Value.Length;
         OnChanged      += s => { if (int.TryParse(s, out var v)) source.Value = v; };
-        source.Changed += v => { if (!IsFocused) { Value = v.ToString(); _cursorPos = _selAnchor = Value.Length; } };
+        Observe(source, v => { if (!IsFocused) { Value = v.ToString(); _cursorPos = _selAnchor = Value.Length; } });
         return this;
     }
 

@@ -61,7 +61,16 @@ void AddChild(Widget child);
 void RemoveChild(Widget child);
 void RemoveAllChildren();  // public
 protected virtual void OnChildRemoved(Widget child);  // drop per-child bookkeeping
-// AddChild moves a child that already has a parent.
+// AddChild moves a child that already has a parent (no detach/attach when it stays in the same window).
+ChildList Children;   // read-only; foreach uses a struct enumerator, no allocation
+
+// Lifecycle: a widget is attached while it is in a tree shown by a UiHost (root or an overlay).
+UiHost? Host;                                        // null while not attached
+protected virtual void OnAttached(UiHost host);      // Host already set
+protected virtual void OnDetached();                 // Host still set; release resources here
+protected IDisposable Observe<T>(Bindable<T> source, Action<T> onChanged);         // use in Bind methods
+protected IDisposable Observe<T>(ObservableList<T> source, Action onChanged);
+// Observe subscribes now, unsubscribes on detach, re-subscribes and re-syncs on attach. Never write `source.Changed +=` in a widget.
 
 // Layout
 float Width, Height;           // NaN = auto
@@ -87,7 +96,6 @@ Rect LayoutBounds;
 Action<PointerEvent>? OnClick, OnPointerDown, OnPointerUp, OnPointerMove, OnPointerEnter, OnPointerExit;
 Action<KeyEvent>?     OnKeyDown, OnKeyUp;
 Action<TextInputEvent>? OnTextInput;   // typed text, separate from keys
-UiHost? Host;   // host showing this widget's tree; null while not on screen
 Action<float, float>? OnScroll;   // (deltaX, deltaY)
 
 enum HAlign          { Left, Center, Right, Stretch }
@@ -274,6 +282,7 @@ void DrawCross(float cx, float cy, float size, SKColor color, float thickness = 
 
 ```csharp
 void  DrawText(string text, Rect bounds, SKColor color, float sizePx, bool bold = false, SKTextAlign align = Left)
+void  DrawText(SKTextBlob? blob, Rect bounds, SKColor color, float sizePx, bool bold = false)   // left-aligned; no allocation, cache the blob
 float MeasureText(string text, float sizePx, bool bold = false)
 float MeasureText(ReadOnlySpan<char> text, float sizePx, bool bold = false)  // no substring needed
 ```

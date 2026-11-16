@@ -13,8 +13,8 @@ public class Dropdown<T> : Widget
     private Bindable<T>? _binding;
     private bool _suppressBinding;
 
-    private ObservableList<T>? _observedItems;
-    private Action? _observedSync;
+    private IDisposable? _itemsSubscription;
+    private IDisposable? _bindingSubscription;
 
     public T? SelectedValue
     {
@@ -78,10 +78,7 @@ public class Dropdown<T> : Widget
     /// Binds the item list to an ObservableList. Rebuilds automatically on every change.
     public Dropdown<T> WithItems(ObservableList<T> source, Func<T, string> labelOf)
     {
-        if (_observedItems is not null && _observedSync is not null)
-            _observedItems.Changed -= _observedSync;
-
-        _observedItems = source;
+        _itemsSubscription?.Dispose();
         void Sync()
         {
             _items.Clear();
@@ -90,9 +87,8 @@ public class Dropdown<T> : Widget
             if (_selected is not null && !source.Contains(_selected))
             { _selected = default; SyncText(); }
         }
-        _observedSync = Sync;
         Sync();
-        source.Changed += Sync;
+        _itemsSubscription = Observe(source, Sync);
         return this;
     }
 
@@ -108,17 +104,18 @@ public class Dropdown<T> : Widget
 
     public Dropdown<T> Bind(Bindable<T> source)
     {
+        _bindingSubscription?.Dispose();
         _binding = source;
         _suppressBinding = true;
         SelectedValue = source.Value;
         _suppressBinding = false;
-        source.Changed += v =>
+        _bindingSubscription = Observe(source, v =>
         {
             if (_suppressBinding) return;
             _suppressBinding = true;
             SelectedValue = v;
             _suppressBinding = false;
-        };
+        });
         return this;
     }
 
@@ -136,6 +133,8 @@ public class Dropdown<T> : Widget
     }
 
     protected override void ArrangeCore(Rect r) => _trigger.Arrange(r);
+
+    protected override void OnDetached() => _overlay.Detach();
 
     // ── Internal ──────────────────────────────────────────────────────────────
 

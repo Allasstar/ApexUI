@@ -16,6 +16,12 @@ public class Image : Widget, IDisposable
         set { field = value; Invalidate(); }
     } = ImageStretch.Uniform;
 
+    /// When true (the default) the decoded image is disposed when the widget leaves the screen,
+    /// and the widget draws nothing afterwards. Set false to reuse an Image after removing it.
+    public bool DisposeOnDetach { get; set; } = true;
+
+    internal bool IsDisposed => _disposed;
+
     private Image() { }
 
     /// Load a raster (PNG/JPG/…) or vector (.svg) file by extension.
@@ -60,6 +66,12 @@ public class Image : Widget, IDisposable
 
     public Image WithStretch(ImageStretch s)    { Stretch = s; return this; }
     public Image WithSize(float w, float h)     { Width = w; Height = h; return this; }
+    public Image KeepOnDetach()                 { DisposeOnDetach = false; return this; }
+
+    protected override void OnDetached()
+    {
+        if (DisposeOnDetach) Dispose();
+    }
 
     // ── Layout ───────────────────────────────────────────────────────────────
 
@@ -82,6 +94,7 @@ public class Image : Widget, IDisposable
 
     protected override void DrawCore(DrawContext ctx)
     {
+        if (_disposed) return;
         if (LayoutBounds.Width <= 0 || LayoutBounds.Height <= 0) return;
         if (_naturalW <= 0 || _naturalH <= 0) return;
 

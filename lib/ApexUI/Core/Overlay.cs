@@ -60,15 +60,15 @@ public class Overlay : Widget
         OnClick = _ => { if (DismissOnClickOutside) Close(); };
     }
 
-    private UiHost? _openOn;
-
     /// Show this overlay above everything else in host's window.
+    /// The overlay stays attached to host after Close, like a hidden widget, so its content
+    /// keeps its state and resources for the next Open. Detach releases it.
     public void Open(UiHost host)
     {
-        if (_openOn is not null && _openOn != host) _openOn.UnregisterOverlay(this);
-        _openOn   = host;
+        if (Host is not null && Host != host) Detach();
+        AttachToHost(host);
         IsVisible = true;
-        host.RegisterOverlay(this);
+        host.ShowOverlay(this);
     }
 
     /// Open and anchor Content below/above/beside the given widget, in the anchor's window.
@@ -84,9 +84,17 @@ public class Overlay : Widget
     public void Close()
     {
         IsVisible = false;
-        _openOn?.UnregisterOverlay(this);
-        _openOn = null;
+        Host?.HideOverlay(this);
         OnDismiss?.Invoke();
+    }
+
+    /// Closes the overlay if open and detaches it from its host, releasing bindings and owned
+    /// resources of its content. Opening it again re-attaches it.
+    public void Detach()
+    {
+        if (Host is null) return;
+        if (IsVisible) Close();
+        DetachFromHost();
     }
 
     // ── Layout ────────────────────────────────────────────────────────────────
