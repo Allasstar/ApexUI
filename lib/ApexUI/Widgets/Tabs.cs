@@ -140,6 +140,8 @@ public class Tabs : Widget
     public TabPosition Position { get; }
     public Action<int>? OnTabChanged;
 
+    internal int TabCount => _tabs.Count;
+
     public int SelectedIndex
     {
         get => _selectedIndex;

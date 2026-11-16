@@ -29,10 +29,12 @@ public class Canvas : Widget
     /// Remove a child from the canvas.
     public new Canvas RemoveChild(Widget child)
     {
-        _placements.Remove(child);
         base.RemoveChild(child);
         return this;
     }
+
+    protected override void OnChildRemoved(Widget child)
+        => _placements.Remove(child);
 
     protected override Size MeasureCore(Size available)
     {

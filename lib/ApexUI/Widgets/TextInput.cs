@@ -9,7 +9,15 @@ public class TextInput : Widget, ITickable
     public string Value
     {
         get;
-        set { field = value; Invalidate(); OnChanged?.Invoke(value); }
+        set
+        {
+            field = value;
+            // Text can shrink under the caret when set from code (e.g. re-formatting on submit).
+            _cursorPos = Math.Min(_cursorPos, value.Length);
+            _selAnchor = Math.Min(_selAnchor, value.Length);
+            Invalidate();
+            OnChanged?.Invoke(value);
+        }
     } = "";
 
     public string Placeholder

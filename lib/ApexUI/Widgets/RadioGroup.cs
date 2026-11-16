@@ -21,8 +21,9 @@ public class RadioGroup<T> : Widget
 
         protected override Size MeasureCore(Size available)
         {
-            using var font = new SKFont(
-                SKTypeface.FromFamilyName("Segoe UI", SKFontStyle.Normal), 14f);
+            string family = Application.Current?.FontFamily ?? "Segoe UI";
+            using var typeface = SKTypeface.FromFamilyName(family, SKFontStyle.Normal);
+            using var font     = new SKFont(typeface, 14f);
             float textW = string.IsNullOrEmpty(ItemLabel) ? 0f : font.MeasureText(ItemLabel) + 2f;
             return new Size(CircleR * 2 + Gap + textW, MathF.Max(CircleR * 2 + 4f, 14f * 1.4f));
         }

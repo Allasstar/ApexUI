@@ -76,6 +76,9 @@ public class Grid : Widget
         return this;
     }
 
+    protected override void OnChildRemoved(Widget child)
+        => _cells.RemoveAll(c => c.Child == child);
+
     protected override Size MeasureCore(Size available)
     {
         var (colW, rowH) = Resolve(available);
@@ -122,8 +125,12 @@ public class Grid : Widget
 
     // Resolves all column widths then all row heights.
     // Column pass runs first so auto-row measurement can use resolved col widths.
+    // Star tracks have nothing to share under an infinite constraint, so they size like Auto.
     private (float[] cols, float[] rows) Resolve(Size available)
     {
+        bool starColsAsAuto = float.IsInfinity(available.Width);
+        bool starRowsAsAuto = float.IsInfinity(available.Height);
+
         // ── Columns ────────────────────────────────────────────────────────────
         var colW = new float[_columns.Length];
         float fixedColW = 0f, starColFactor = 0f;
@@ -132,14 +139,14 @@ public class Grid : Widget
         {
             if (_columns[c].Unit == GridUnit.Fixed)
             { colW[c] = _columns[c].Value; fixedColW += colW[c]; }
-            else if (_columns[c].Unit == GridUnit.Star)
+            else if (_columns[c].Unit == GridUnit.Star && !starColsAsAuto)
                 starColFactor += _columns[c].Value;
         }
 
         // Auto columns: measure only single-column cells to avoid span contamination
         for (int c = 0; c < _columns.Length; c++)
         {
-            if (_columns[c].Unit != GridUnit.Auto) continue;
+            if (!SizesLikeAuto(_columns[c].Unit, starColsAsAuto)) continue;
             float maxW = 0f;
             foreach (var cell in _cells)
                 if (cell.Col == c && cell.ColSpan == 1)
@@ -153,9 +160,10 @@ public class Grid : Widget
 
         float colSpacingTotal = (_columns.Length > 1 ? _columns.Length - 1 : 0) * ColumnSpacing;
         float starColAvail    = Math.Max(0f, available.Width - fixedColW - colSpacingTotal);
-        for (int c = 0; c < _columns.Length; c++)
-            if (_columns[c].Unit == GridUnit.Star)
-                colW[c] = starColFactor > 0f ? starColAvail * (_columns[c].Value / starColFactor) : 0f;
+        if (!starColsAsAuto)
+            for (int c = 0; c < _columns.Length; c++)
+                if (_columns[c].Unit == GridUnit.Star)
+                    colW[c] = starColFactor > 0f ? starColAvail * (_columns[c].Value / starColFactor) : 0f;
 
         // ── Rows ───────────────────────────────────────────────────────────────
         var resolvedRows = _rows ?? BuildAutoRows();
@@ -166,14 +174,14 @@ public class Grid : Widget
         {
             if (resolvedRows[r].Unit == GridUnit.Fixed)
             { rowH[r] = resolvedRows[r].Value; fixedRowH += rowH[r]; }
-            else if (resolvedRows[r].Unit == GridUnit.Star)
+            else if (resolvedRows[r].Unit == GridUnit.Star && !starRowsAsAuto)
                 starRowFactor += resolvedRows[r].Value;
         }
 
         // Auto rows: measure single-row cells using their resolved span width
         for (int r = 0; r < resolvedRows.Length; r++)
         {
-            if (resolvedRows[r].Unit != GridUnit.Auto) continue;
+            if (!SizesLikeAuto(resolvedRows[r].Unit, starRowsAsAuto)) continue;
             float maxH = 0f;
             foreach (var cell in _cells)
                 if (cell.Row == r && cell.RowSpan == 1)
@@ -193,9 +201,10 @@ public class Grid : Widget
 
         float rowSpacingTotal = (resolvedRows.Length > 1 ? resolvedRows.Length - 1 : 0) * RowSpacing;
         float starRowAvail    = Math.Max(0f, available.Height - fixedRowH - rowSpacingTotal);
-        for (int r = 0; r < resolvedRows.Length; r++)
-            if (resolvedRows[r].Unit == GridUnit.Star)
-                rowH[r] = starRowFactor > 0f ? starRowAvail * (resolvedRows[r].Value / starRowFactor) : 0f;
+        if (!starRowsAsAuto)
+            for (int r = 0; r < resolvedRows.Length; r++)
+                if (resolvedRows[r].Unit == GridUnit.Star)
+                    rowH[r] = starRowFactor > 0f ? starRowAvail * (resolvedRows[r].Value / starRowFactor) : 0f;
 
         return (colW, rowH);
     }
@@ -210,6 +219,9 @@ public class Grid : Widget
         for (int i = 0; i < maxRow; i++) arr[i] = GridLength.Auto;
         return arr;
     }
+
+    private static bool SizesLikeAuto(GridUnit unit, bool starAsAuto)
+        => unit == GridUnit.Auto || (unit == GridUnit.Star && starAsAuto);
 
     private static float Sum(float[] arr)
     {

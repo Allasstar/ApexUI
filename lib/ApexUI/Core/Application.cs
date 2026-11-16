@@ -437,14 +437,4 @@ public sealed class Application
         canvas.DrawPicture(pic);
         return new RawImage(size, size, new Memory<byte>(bmp.Bytes));
     }
-
-    private static RawImage BitmapToRaw(SKBitmap src)
-    {
-        var info = new SKImageInfo(src.Width, src.Height, SKColorType.Rgba8888, SKAlphaType.Unpremul);
-        using var dst    = new SKBitmap(info);
-        using var canvas = new SKCanvas(dst);
-        canvas.Clear(SKColors.Transparent);
-        canvas.DrawBitmap(src, 0, 0);
-        return new RawImage(dst.Width, dst.Height, new Memory<byte>(dst.Bytes));
-    }
 }

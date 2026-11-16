@@ -36,7 +36,8 @@ public class Label : Widget
 
     protected override Size MeasureCore(Size available)
     {
-        float fontSize = float.IsNaN(FontSize) ? 14f : FontSize;
+        // Must match the size DrawCore uses, or the measured box and the drawn text disagree.
+        float fontSize = float.IsNaN(FontSize) ? (Application.Current?.Theme ?? Theme.Light).FontSizeBase : FontSize;
         string family  = Application.Current?.FontFamily ?? "Segoe UI";
         using var typeface = SKTypeface.FromFamilyName(family, Bold ? SKFontStyle.Bold : SKFontStyle.Normal);
         using var font     = new SKFont(typeface, fontSize);

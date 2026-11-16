@@ -49,7 +49,8 @@ public class Checkbox : Widget
         if (!string.IsNullOrEmpty(Label))
         {
             string family = Application.Current?.FontFamily ?? "Segoe UI";
-            using var font = new SKFont(SKTypeface.FromFamilyName(family, SKFontStyle.Normal), 14f);
+            using var typeface = SKTypeface.FromFamilyName(family, SKFontStyle.Normal);
+            using var font     = new SKFont(typeface, 14f);
             w += Gap + font.MeasureText(Label) + 2f;
         }
         return new Size(w, BoxSize);

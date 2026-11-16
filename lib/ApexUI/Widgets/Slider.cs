@@ -7,8 +7,8 @@ public class Slider : Widget
 
     private bool _dragging;
 
-    public float Min  { get; set { field = value; Invalidate(); } } = 0f;
-    public float Max  { get; set { field = value; Invalidate(); } } = 1f;
+    public float Min  { get; set { field = value; ClampToRange(); Invalidate(); } } = 0f;
+    public float Max  { get; set { field = value; ClampToRange(); Invalidate(); } } = 1f;
 
     /// 0 = continuous (no snapping); any other positive value snaps to that interval.
     public float Step { get; set { field = value; } } = 0f;
@@ -99,6 +99,12 @@ public class Slider : Widget
         float trackW = LayoutBounds.Width - ThumbR * 2f;
         if (trackW <= 0f) return;
         Value = Min + Math.Clamp((x - cx0) / trackW, 0f, 1f) * (Max - Min);
+    }
+
+    // Min may briefly exceed Max while both are being set; clamp once the range is valid again.
+    private void ClampToRange()
+    {
+        if (Min <= Max) Value = Value;
     }
 
     private float Snap(float raw)

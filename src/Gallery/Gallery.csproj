@@ -28,7 +28,8 @@
   -->
 
   <!-- ── Full (default) ───────────────────────────────────────────────────── -->
-  <PropertyGroup Condition="'$(BuildProfile)' == '' or '$(BuildProfile)' == 'Full'">
+  <!-- Publish only: a plain build stays framework-dependent so the test project can reference the Gallery. -->
+  <PropertyGroup Condition="'$(_IsPublishing)' == 'true' and ('$(BuildProfile)' == '' or '$(BuildProfile)' == 'Full')">
     <RuntimeIdentifier>$(NETCoreSdkRuntimeIdentifier)</RuntimeIdentifier>
     <SelfContained>true</SelfContained>
     <PublishSingleFile>false</PublishSingleFile>

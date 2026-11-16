@@ -24,8 +24,10 @@ public abstract class Widget
     private readonly List<Widget> _children = [];
     public IReadOnlyList<Widget> Children => _children;
 
+    /// Adds child as the last child. A child that already has a parent is moved here.
     protected void AddChild(Widget child)
     {
+        child.Parent?.RemoveChild(child);
         child.Parent = this;
         _children.Add(child);
         InvalidateLayout();
@@ -36,6 +38,7 @@ public abstract class Widget
         if (_children.Remove(child))
         {
             child.Parent = null;
+            OnChildRemoved(child);
             InvalidateLayout();
         }
     }
@@ -44,11 +47,17 @@ public abstract class Widget
     {
         for (int i = _children.Count - 1; i >= 0; i--)
         {
-            _children[i].Parent = null;
+            var child = _children[i];
+            child.Parent = null;
             _children.RemoveAt(i);
+            OnChildRemoved(child);
         }
         InvalidateLayout();
     }
+
+    /// Called after a child left this widget, however it was removed.
+    /// Override to drop per-child bookkeeping such as grid cells or positions.
+    protected virtual void OnChildRemoved(Widget child) { }
 
     // ── Layout properties (C# 14 `field` keyword) ─────────────────────────
     // `field` is the implicit backing field — no separate `private float _width`
@@ -286,17 +295,7 @@ public abstract class Widget
                 ctx.FillRect(LayoutBounds, bg);
         }
 
-        // Let subclass draw its content — isolated so one bad widget can't crash the frame
-        try
-        {
-            DrawCore(ctx);
-        }
-        catch (Exception ex)
-        {
-            ctx.FillRect(LayoutBounds, new SkiaSharp.SKColor(255, 0, 80, 60));
-            ctx.StrokeRoundRect(LayoutBounds, 0, new SkiaSharp.SKColor(255, 0, 80), 2f);
-            Console.Error.WriteLine($"[ApexUI] DrawCore failed on {GetType().Name}: {ex.Message}");
-        }
+        DrawCore(ctx);
 
         // Draw children on top
         foreach (var child in _children)

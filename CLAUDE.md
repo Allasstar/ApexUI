@@ -59,6 +59,8 @@ void InvalidateLayout();  // layout+visual dirty
 void AddChild(Widget child);
 void RemoveChild(Widget child);
 void RemoveAllChildren();  // public
+protected virtual void OnChildRemoved(Widget child);  // drop per-child bookkeeping
+// AddChild moves a child that already has a parent.
 
 // Layout
 float Width, Height;           // NaN = auto
@@ -280,14 +282,6 @@ Canvas Move(Widget child, float x, float y)    // reposition an existing child
 Canvas RemoveChild(Widget child)               // remove from canvas
 
 // Canvas auto-sizes to the bounding box of all children unless Width/Height are set explicitly.
-```
-
-### `SKCanvasExtensions` · `lib/ApexUI/Extensions/SKCanvasExtensions.cs`
-
-```csharp
-void canvas.FillRoundRect(SKRect rect, float rx, SKColor color)
-void canvas.StrokeRoundRect(SKRect rect, float rx, SKColor color, float strokeWidth = 1f)
-void canvas.DrawTextCentered(string text, SKRect bounds, SKFont font, SKPaint paint)
 ```
 
 ---

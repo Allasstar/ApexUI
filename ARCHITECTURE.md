@@ -94,7 +94,7 @@ That's it. `FillRoundRect` comes from the C# 14 extension member on SKCanvas.
 | Feature | Where used | Why |
 |---------|-----------|-----|
 | `field` keyword | `Widget.cs` — every property | No separate backing field per property |
-| Extension members | `SKColorExtensions.cs`, `SKCanvasExtensions.cs` | `SKColor.FromHex()`, `canvas.FillRoundRect()` |
+| Extension members | `SKColorExtensions.cs` | `SKColor.FromHex()`, `color.WithAlpha()` |
 | Implicit `Span<T>` | Layout loops | Zero-alloc child iteration |
 | `?.=` null-conditional | Event callbacks | `widget.OnClick ??= default` |
 | Records (`record struct`) | `Rect`, `Size`, `Thickness` | Value equality + `with` expressions for free |

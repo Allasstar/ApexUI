@@ -19,10 +19,15 @@ public class Theme
         Background     = new(30,  30,  46),
         Surface        = new(49,  50,  68),
         SurfaceHover   = new(69,  71,  90),
+        SurfacePressed = new(88,  91,  112),
         OnSurface      = new(205, 214, 244),
         OnSurfaceMuted = new(108, 112, 134),
         Primary        = new(137, 180, 250),
+        PrimaryHover   = new(180, 190, 254),
         OnPrimary      = new(30,  30,  46),
+        Success        = new(166, 227, 161),
+        Warning        = new(250, 179, 135),
+        Danger         = new(243, 139, 168),
         Border         = new(88,  91,  112),
     };
 
