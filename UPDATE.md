@@ -4,6 +4,11 @@ Newest first. **Breaking** marks changes that need edits in apps using ApexUI.
 
 ## Unreleased
 
+### Composite cleanup
+- `ContextMenu` and `Dropdown` share one popup panel (the context menu's own copy is gone). Context menu separators are inset by the theme's `SpacingXs` instead of a fixed 4 × 2.
+- `Separator` draws inside its `Padding`, so padding insets the line. It takes no length when measured unconstrained, so a separator in a panel that sizes to its content no longer makes that panel infinitely wide; with stretch alignment (the default) it still fills its slot.
+- `Scroll` computes viewport, thumb and track geometry in one helper used by layout, drawing, thumb dragging, track clicks and the wheel (before: five copies).
+
 ### Theme
 - Built-in widgets take every visual value from the theme: no hardcoded colors, font sizes, radii, paddings or control sizes remain in the library. New tokens:
   - Colors: `BorderSubtle`, `Scrim`, `Shadow`, `Selection`, `Knob`, `ScrollbarTrack`, `ScrollbarThumb`, `ScrollbarThumbActive`. `PrimaryHoverGhost` can now be set. Colors marked derived (`PrimaryHoverGhost`, `BorderSubtle`, `FocusRing`, `Selection`, scrollbar colors) follow their base token (e.g. `Selection` = `Primary` at 30%) unless set.

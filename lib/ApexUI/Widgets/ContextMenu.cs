@@ -100,13 +100,13 @@ public sealed class ContextMenu
     private void BuildPanel()
     {
         _built = true;
-        var panel = new ContextPanel(minWidth: 180f);
+        var panel = new MenuList(minWidth: 180f, maxHeight: float.PositiveInfinity);
 
         foreach (var entry in _entries)
         {
             if (entry.IsSeparator)
             {
-                panel.Add(new Separator { Margin = new Thickness(4f, 2f) });
+                panel.Add(new MenuSeparator());
                 continue;
             }
             if (entry.IsHeader)
@@ -141,30 +141,6 @@ public sealed class ContextMenu
         }
 
         _overlay.Content = panel;
-    }
-
-    // ── Panel widget ──────────────────────────────────────────────────────────
-
-    // Flat panel: Surface background + rounded border + Column of items.
-    private sealed class ContextPanel : Widget
-    {
-        private readonly Column _column;
-
-        public ContextPanel(float minWidth = 180f)
-        {
-            MinWidth         = minWidth;
-            BackgroundSource = t => t.Surface;
-            _column          = new Column { Spacing = 2f };
-            AddChild(_column);
-        }
-
-        public void Add(Widget item) => _column.Add(item);
-
-        protected override Thickness DefaultPadding(Theme theme) => theme.PopupPadding;
-        protected override float DefaultCornerRadius(Theme theme) => theme.CornerRadiusPopup;
-
-        protected override void DrawCore(DrawContext ctx)
-            => ctx.StrokeRoundRect(LayoutBounds, CornerRadius, ctx.Theme.BorderSubtle);
     }
 
     // ── Entry data ────────────────────────────────────────────────────────────

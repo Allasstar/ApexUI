@@ -9,8 +9,6 @@ public enum ScrollDirection { Vertical, Horizontal, Both }
 /// so scrolling redraws without a layout pass.
 public class Scroll : Widget
 {
-    private float BarSize  => Theme.ScrollbarSize;
-    private float MinThumb => Theme.ScrollbarMinThumb;
     private const float WheelSpd = 40f;
 
     private float _scrollX;
@@ -44,9 +42,9 @@ public class Scroll : Widget
     {
         bool moved = Direction switch
         {
-            ScrollDirection.Horizontal => MoveX((-e.DeltaX - e.DeltaY) * WheelSpd), // both axes for horizontal-only
-            ScrollDirection.Vertical   => MoveY(-e.DeltaY * WheelSpd),
-            _                          => MoveX(-e.DeltaX * WheelSpd) | MoveY(-e.DeltaY * WheelSpd),
+            ScrollDirection.Horizontal => ScrollBy(vertical: false, (-e.DeltaX - e.DeltaY) * WheelSpd), // both axes for horizontal-only
+            ScrollDirection.Vertical   => ScrollBy(vertical: true, -e.DeltaY * WheelSpd),
+            _                          => ScrollBy(vertical: false, -e.DeltaX * WheelSpd) | ScrollBy(vertical: true, -e.DeltaY * WheelSpd),
         };
         if (moved) e.Handled = true;
     }
@@ -74,44 +72,70 @@ public class Scroll : Widget
     public Scroll WithDirection(ScrollDirection dir) { Direction = dir; return this; }
     public Scroll HideScrollbar()                    { ShowScrollbar = false; return this; }
 
+    // ── Geometry ──────────────────────────────────────────────────────────────
+
+    private bool HasV => Direction is ScrollDirection.Vertical   or ScrollDirection.Both;
+    private bool HasH => Direction is ScrollDirection.Horizontal or ScrollDirection.Both;
+
+    // The area left for content once the scrollbars take their edge.
+    private Size Viewport(float width, float height)
+    {
+        float bar = ShowScrollbar ? Theme.ScrollbarSize : 0f;
+        return new Size(
+            HasV ? Math.Max(0f, width  - bar) : width,
+            HasH ? Math.Max(0f, height - bar) : height);
+    }
+
+    // One scrollbar, from the current layout and offset. Range is how far the thumb can travel.
+    private readonly record struct Bar(Rect Track, Rect Thumb, float MaxScroll, float Range);
+
+    private Bar BarFor(bool vertical)
+    {
+        var   lb      = LayoutBounds;
+        var   vp      = Viewport(lb.Width, lb.Height);
+        float size    = Theme.ScrollbarSize;
+        float view    = vertical ? vp.Height : vp.Width;
+        float content = vertical ? _content.DesiredSize.Height : _content.DesiredSize.Width;
+        float max     = Math.Max(0f, content - view);
+        // Thumb length shows the visible share of the content.
+        float thumb   = Math.Max(Theme.ScrollbarMinThumb, view * view / Math.Max(1f, content));
+        float range   = Math.Max(0f, view - thumb);
+        float offset  = max > 0f ? (vertical ? _scrollY : _scrollX) / max * range : 0f;
+
+        return vertical
+            ? new Bar(new Rect(lb.Right - size, lb.Y, size, view), new Rect(lb.Right - size, lb.Y + offset, size, thumb), max, range)
+            : new Bar(new Rect(lb.X, lb.Bottom - size, view, size), new Rect(lb.X + offset, lb.Bottom - size, thumb, size), max, range);
+    }
+
     // ── Layout ────────────────────────────────────────────────────────────────
 
     protected override Size MeasureCore(Size available)
     {
-        bool hasV = Direction is ScrollDirection.Vertical   or ScrollDirection.Both;
-        bool hasH = Direction is ScrollDirection.Horizontal or ScrollDirection.Both;
-
-        float vpW = hasV && ShowScrollbar ? Math.Max(0f, available.Width  - BarSize) : available.Width;
-        float vpH = hasH && ShowScrollbar ? Math.Max(0f, available.Height - BarSize) : available.Height;
-
+        var vp = Viewport(available.Width, available.Height);
         _content.Measure(new Size(
-            hasH ? float.PositiveInfinity : vpW,
-            hasV ? float.PositiveInfinity : vpH));
+            HasH ? float.PositiveInfinity : vp.Width,
+            HasV ? float.PositiveInfinity : vp.Height));
 
         // When available is infinite (e.g. inside an Overlay), shrink to content size.
         // When available is finite (normal layout), fill the given space.
+        float bars = ShowScrollbar ? Theme.ScrollbarSize : 0f;
         float reportW = float.IsInfinity(available.Width)
-            ? _content.DesiredSize.Width  + (hasV && ShowScrollbar ? BarSize : 0f)
+            ? _content.DesiredSize.Width  + (HasV ? bars : 0f)
             : available.Width;
         float reportH = float.IsInfinity(available.Height)
-            ? _content.DesiredSize.Height + (hasH && ShowScrollbar ? BarSize : 0f)
+            ? _content.DesiredSize.Height + (HasH ? bars : 0f)
             : available.Height;
         return new Size(reportW, reportH);
     }
 
     protected override void ArrangeCore(Rect r)
     {
-        bool hasV = Direction is ScrollDirection.Vertical   or ScrollDirection.Both;
-        bool hasH = Direction is ScrollDirection.Horizontal or ScrollDirection.Both;
+        var   vp = Viewport(r.Width, r.Height);
+        float cw = HasH ? _content.DesiredSize.Width  : vp.Width;
+        float ch = HasV ? _content.DesiredSize.Height : vp.Height;
 
-        float vpW = hasV && ShowScrollbar ? r.Width  - BarSize : r.Width;
-        float vpH = hasH && ShowScrollbar ? r.Height - BarSize : r.Height;
-
-        float cw = hasH ? _content.DesiredSize.Width  : vpW;
-        float ch = hasV ? _content.DesiredSize.Height : vpH;
-
-        _scrollX = Math.Clamp(_scrollX, 0f, Math.Max(0f, cw - vpW));
-        _scrollY = Math.Clamp(_scrollY, 0f, Math.Max(0f, ch - vpH));
+        _scrollX = Math.Clamp(_scrollX, 0f, Math.Max(0f, cw - vp.Width));
+        _scrollY = Math.Clamp(_scrollY, 0f, Math.Max(0f, ch - vp.Height));
 
         _content.Arrange(new Rect(r.X, r.Y, cw, ch));
         ApplyScroll();
@@ -124,40 +148,17 @@ public class Scroll : Widget
     protected override void DrawCore(DrawContext ctx)
     {
         if (!ShowScrollbar) return;
+        if (HasV) DrawBar(ctx, BarFor(vertical: true),  _draggingV);
+        if (HasH) DrawBar(ctx, BarFor(vertical: false), _draggingH);
+    }
 
-        bool hasV = Direction is ScrollDirection.Vertical   or ScrollDirection.Both;
-        bool hasH = Direction is ScrollDirection.Horizontal or ScrollDirection.Both;
-        var lb = LayoutBounds;
-        var t  = ctx.Theme;
-
-        float vpW = hasV ? lb.Width  - BarSize : lb.Width;
-        float vpH = hasH ? lb.Height - BarSize : lb.Height;
-        float maxSX = Math.Max(0f, _content.DesiredSize.Width  - vpW);
-        float maxSY = Math.Max(0f, _content.DesiredSize.Height - vpH);
-
-        if (hasV && maxSY > 0f)
-        {
-            var track  = new Rect(lb.Right - BarSize, lb.Y, BarSize, vpH);
-            float th   = Math.Max(MinThumb, vpH * vpH / _content.DesiredSize.Height);
-            float range = vpH - th;
-            float ty   = range > 0f ? lb.Y + _scrollY / maxSY * range : lb.Y;
-            ctx.FillRoundRect(track, BarSize * 0.5f, t.ScrollbarTrack);
-            ctx.FillRoundRect(new Rect(lb.Right - BarSize, ty, BarSize, th),
-                BarSize * 0.5f,
-                _draggingV ? t.ScrollbarThumbActive : t.ScrollbarThumb);
-        }
-
-        if (hasH && maxSX > 0f)
-        {
-            var track  = new Rect(lb.X, lb.Bottom - BarSize, vpW, BarSize);
-            float tw   = Math.Max(MinThumb, vpW * vpW / _content.DesiredSize.Width);
-            float range = vpW - tw;
-            float tx   = range > 0f ? lb.X + _scrollX / maxSX * range : lb.X;
-            ctx.FillRoundRect(track, BarSize * 0.5f, t.ScrollbarTrack);
-            ctx.FillRoundRect(new Rect(tx, lb.Bottom - BarSize, tw, BarSize),
-                BarSize * 0.5f,
-                _draggingH ? t.ScrollbarThumbActive : t.ScrollbarThumb);
-        }
+    private static void DrawBar(DrawContext ctx, Bar bar, bool dragging)
+    {
+        if (bar.MaxScroll <= 0f) return;
+        var   t      = ctx.Theme;
+        float radius = t.ScrollbarSize * 0.5f;
+        ctx.FillRoundRect(bar.Track, radius, t.ScrollbarTrack);
+        ctx.FillRoundRect(bar.Thumb, radius, dragging ? t.ScrollbarThumbActive : t.ScrollbarThumb);
     }
 
     // ── Scrollbar dragging ────────────────────────────────────────────────────
@@ -167,119 +168,61 @@ public class Scroll : Widget
     private bool BeginDrag(float x, float y)
     {
         if (!ShowScrollbar) return false;
-        var lb = LayoutBounds;
-        bool hasV = Direction is ScrollDirection.Vertical   or ScrollDirection.Both;
-        bool hasH = Direction is ScrollDirection.Horizontal or ScrollDirection.Both;
+        return (HasV && PressBar(vertical: true, x, y)) || (HasH && PressBar(vertical: false, x, y));
+    }
 
-        float vpW = hasV ? lb.Width  - BarSize : lb.Width;
-        float vpH = hasH ? lb.Height - BarSize : lb.Height;
-        float maxSX = Math.Max(0f, _content.DesiredSize.Width  - vpW);
-        float maxSY = Math.Max(0f, _content.DesiredSize.Height - vpH);
+    // A press on the thumb starts a drag; on the track it jumps so the thumb centers on the pointer.
+    private bool PressBar(bool vertical, float x, float y)
+    {
+        var bar = BarFor(vertical);
+        if (bar.MaxScroll <= 0f) return false;
 
-        if (hasV && maxSY > 0f)
+        float along = vertical ? y : x;
+        if (bar.Thumb.Contains(x, y))
         {
-            float th    = Math.Max(MinThumb, vpH * vpH / _content.DesiredSize.Height);
-            float range = vpH - th;
-            float ty    = range > 0f ? lb.Y + _scrollY / maxSY * range : lb.Y;
-            var track   = new Rect(lb.Right - BarSize, lb.Y, BarSize, vpH);
-            var thumb   = new Rect(lb.Right - BarSize, ty, BarSize, th);
-            if (thumb.Contains(x, y))
-            {
-                _draggingV = true; _dragStart = y; _dragScrollStart = _scrollY;
-                CapturePointer();
-                Invalidate();
-                return true;
-            }
-            if (track.Contains(x, y))
-            {
-                float ratio = Math.Clamp((y - track.Y - th * 0.5f) / Math.Max(1f, range), 0f, 1f);
-                _scrollY = ratio * maxSY;
-                ApplyScroll();
-                return true;
-            }
+            if (vertical) _draggingV = true; else _draggingH = true;
+            _dragStart       = along;
+            _dragScrollStart = vertical ? _scrollY : _scrollX;
+            CapturePointer();
+            Invalidate();
+            return true;
         }
+        if (!bar.Track.Contains(x, y)) return false;
 
-        if (hasH && maxSX > 0f)
-        {
-            float tw    = Math.Max(MinThumb, vpW * vpW / _content.DesiredSize.Width);
-            float range = vpW - tw;
-            float tx    = range > 0f ? lb.X + _scrollX / maxSX * range : lb.X;
-            var track   = new Rect(lb.X, lb.Bottom - BarSize, vpW, BarSize);
-            var thumb   = new Rect(tx, lb.Bottom - BarSize, tw, BarSize);
-            if (thumb.Contains(x, y))
-            {
-                _draggingH = true; _dragStart = x; _dragScrollStart = _scrollX;
-                CapturePointer();
-                Invalidate();
-                return true;
-            }
-            if (track.Contains(x, y))
-            {
-                float ratio = Math.Clamp((x - track.X - tw * 0.5f) / Math.Max(1f, range), 0f, 1f);
-                _scrollX = ratio * maxSX;
-                ApplyScroll();
-                return true;
-            }
-        }
-        return false;
+        float trackStart = vertical ? bar.Track.Y : bar.Track.X;
+        float thumbLen   = vertical ? bar.Thumb.Height : bar.Thumb.Width;
+        float ratio      = Math.Clamp((along - trackStart - thumbLen * 0.5f) / Math.Max(1f, bar.Range), 0f, 1f);
+        SetScroll(vertical, ratio * bar.MaxScroll);
+        return true;
     }
 
     private void UpdateDrag(float x, float y)
     {
-        var lb = LayoutBounds;
-        bool hasV = Direction is ScrollDirection.Vertical   or ScrollDirection.Both;
-        bool hasH = Direction is ScrollDirection.Horizontal or ScrollDirection.Both;
-
-        float vpW = hasV ? lb.Width  - BarSize : lb.Width;
-        float vpH = hasH ? lb.Height - BarSize : lb.Height;
-
-        if (_draggingV)
-        {
-            float maxSY = Math.Max(0f, _content.DesiredSize.Height - vpH);
-            float th    = Math.Max(MinThumb, vpH * vpH / Math.Max(1f, _content.DesiredSize.Height));
-            float range = vpH - th;
-            if (range > 0f)
-            {
-                _scrollY = Math.Clamp(
-                    _dragScrollStart + (y - _dragStart) * maxSY / range, 0f, maxSY);
-                ApplyScroll();
-            }
-        }
-
-        if (_draggingH)
-        {
-            float maxSX = Math.Max(0f, _content.DesiredSize.Width - vpW);
-            float tw    = Math.Max(MinThumb, vpW * vpW / Math.Max(1f, _content.DesiredSize.Width));
-            float range = vpW - tw;
-            if (range > 0f)
-            {
-                _scrollX = Math.Clamp(
-                    _dragScrollStart + (x - _dragStart) * maxSX / range, 0f, maxSX);
-                ApplyScroll();
-            }
-        }
+        bool vertical = _draggingV;
+        var  bar      = BarFor(vertical);
+        if (bar.Range <= 0f) return;
+        float along = vertical ? y : x;
+        SetScroll(vertical, _dragScrollStart + (along - _dragStart) * bar.MaxScroll / bar.Range);
     }
 
-    private bool MoveX(float delta)
-    {
-        bool hasV = Direction is ScrollDirection.Vertical   or ScrollDirection.Both;
-        float vpW = hasV && ShowScrollbar ? LayoutBounds.Width - BarSize : LayoutBounds.Width;
-        float maxSX = Math.Max(0f, _content.DesiredSize.Width - vpW);
-        float next  = Math.Clamp(_scrollX + delta, 0f, maxSX);
-        if (next == _scrollX) return false;
-        _scrollX = next;
-        ApplyScroll();
-        return true;
-    }
+    // ── Offsets ───────────────────────────────────────────────────────────────
 
-    private bool MoveY(float delta)
+    private bool ScrollBy(bool vertical, float delta)
+        => SetScroll(vertical, (vertical ? _scrollY : _scrollX) + delta);
+
+    // Clamps to the content and returns whether the offset changed.
+    private bool SetScroll(bool vertical, float value)
     {
-        bool hasH = Direction is ScrollDirection.Horizontal or ScrollDirection.Both;
-        float vpH = hasH && ShowScrollbar ? LayoutBounds.Height - BarSize : LayoutBounds.Height;
-        float maxSY = Math.Max(0f, _content.DesiredSize.Height - vpH);
-        float next  = Math.Clamp(_scrollY + delta, 0f, maxSY);
-        if (next == _scrollY) return false;
-        _scrollY = next;
+        var   lb   = LayoutBounds;
+        var   vp   = Viewport(lb.Width, lb.Height);
+        float max  = vertical
+            ? Math.Max(0f, _content.DesiredSize.Height - vp.Height)
+            : Math.Max(0f, _content.DesiredSize.Width  - vp.Width);
+        float next = Math.Clamp(value, 0f, max);
+
+        ref float current = ref vertical ? ref _scrollY : ref _scrollX;
+        if (next == current) return false;
+        current = next;
         ApplyScroll();
         return true;
     }

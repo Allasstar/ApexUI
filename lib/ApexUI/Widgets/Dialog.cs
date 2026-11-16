@@ -134,8 +134,7 @@ public sealed class Dialog
 
     private sealed class DialogSeparator : Separator
     {
-        protected override Size MeasureCore(Size available)
-            => base.MeasureCore(available) with { Height = 1f + Theme.SpacingSm };
+        protected override Thickness DefaultPadding(Theme theme) => new(0f, theme.SpacingXs);
     }
 
     private sealed class ButtonRow : Row

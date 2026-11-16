@@ -2,8 +2,8 @@ namespace ApexUI.Widgets;
 
 // ── Shared popup-list building blocks used by Dropdown<T> and ContextMenu ─────
 
-/// Scrollable popup panel: Surface background + border + Column of item widgets.
-/// Sizes to content height, capped at maxHeight. Width auto-fits content, floored at minWidth.
+/// Popup panel shared by Dropdown and ContextMenu: Surface background + border + a column of items.
+/// Sizes to content height, capped at maxHeight (scrollable beyond it). Width auto-fits content, floored at minWidth.
 internal sealed class MenuList : Widget
 {
     private readonly Column _column;
@@ -93,6 +93,12 @@ internal sealed class MenuItemWidget : Widget
         if (_isChecked is not null && _isChecked())
             ctx.FillCircle(LayoutBounds.X + t.MenuItemPadding.Left + CheckW * 0.5f, LayoutBounds.CenterY, 4f, t.Primary);
     }
+}
+
+/// Divider between groups of menu items, inset from the panel's edges.
+internal sealed class MenuSeparator : Separator
+{
+    protected override Thickness DefaultPadding(Theme theme) => new(theme.SpacingXs, theme.SpacingXs * 0.5f);
 }
 
 /// Compact non-interactive section header inside a menu list.
