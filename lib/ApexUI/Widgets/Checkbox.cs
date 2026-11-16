@@ -5,7 +5,7 @@ public class Checkbox : Widget
     public bool IsChecked
     {
         get;
-        set => SetRenderProperty(ref field, value);
+        set { if (SetRenderProperty(ref field, value)) CheckedChanged?.Invoke(value); }
     }
 
     public string Label
@@ -14,13 +14,13 @@ public class Checkbox : Widget
         set => SetLayoutProperty(ref field, value);
     } = "";
 
-    public Action<bool>? OnChanged;
+    public event Action<bool>? CheckedChanged;
 
     public Checkbox(bool isChecked = false, string label = "", Action<bool>? onChanged = null)
     {
         IsChecked = isChecked;
         Label     = label;
-        OnChanged = onChanged;
+        CheckedChanged += onChanged;
         Focusable = true;
     }
 
@@ -41,12 +41,12 @@ public class Checkbox : Widget
 
     public Checkbox WithLabel(string label)       { Label     = label; return this; }
     public Checkbox WithChecked(bool value)       { IsChecked = value; return this; }
-    public Checkbox OnChange(Action<bool> action) { OnChanged = action; return this; }
+    public Checkbox OnChange(Action<bool> action) { CheckedChanged += action; return this; }
 
     public Checkbox Bind(Bindable<bool> source)
     {
-        IsChecked       = source.Value;
-        OnChanged      += v => source.Value = v;
+        IsChecked = source.Value;
+        CheckedChanged += v => source.Value = v;
         Observe(source, v => IsChecked = v);
         return this;
     }
@@ -106,6 +106,5 @@ public class Checkbox : Widget
     private void Toggle()
     {
         IsChecked = !IsChecked;
-        OnChanged?.Invoke(IsChecked);
     }
 }

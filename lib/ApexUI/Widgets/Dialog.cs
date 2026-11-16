@@ -25,7 +25,7 @@ public sealed class Dialog
         set => _titleLabel.Text = value;
     }
 
-    public Action? OnClosed;
+    public event Action? Closed;
 
     public Dialog(string title, Widget content)
     {
@@ -64,7 +64,7 @@ public sealed class Dialog
     public void Close()
     {
         _overlay.Close();
-        OnClosed?.Invoke();
+        Closed?.Invoke();
     }
 
     // ── Static factories ──────────────────────────────────────────────────────

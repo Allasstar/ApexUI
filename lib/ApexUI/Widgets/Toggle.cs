@@ -5,7 +5,7 @@ public class Toggle : Widget
     public bool IsChecked
     {
         get;
-        set => SetRenderProperty(ref field, value);
+        set { if (SetRenderProperty(ref field, value)) CheckedChanged?.Invoke(value); }
     }
 
     public string Label
@@ -14,13 +14,13 @@ public class Toggle : Widget
         set => SetLayoutProperty(ref field, value);
     } = "";
 
-    public Action<bool>? OnChanged;
+    public event Action<bool>? CheckedChanged;
 
     public Toggle(bool isChecked = false, string label = "", Action<bool>? onChanged = null)
     {
         IsChecked = isChecked;
         Label     = label;
-        OnChanged = onChanged;
+        CheckedChanged += onChanged;
         Focusable = true;
     }
 
@@ -43,12 +43,12 @@ public class Toggle : Widget
 
     public Toggle WithLabel(string label)        { Label = label; return this; }
     public Toggle WithChecked(bool value)        { IsChecked = value; return this; }
-    public Toggle OnChange(Action<bool> action)  { OnChanged = action; return this; }
+    public Toggle OnChange(Action<bool> action)  { CheckedChanged += action; return this; }
 
     public Toggle Bind(Bindable<bool> source)
     {
         IsChecked  = source.Value;
-        OnChanged += v => source.Value = v;
+        CheckedChanged += v => source.Value = v;
         Observe(source, v => IsChecked = v);
         return this;
     }
@@ -101,6 +101,5 @@ public class Toggle : Widget
     private void Flip()
     {
         IsChecked = !IsChecked;
-        OnChanged?.Invoke(IsChecked);
     }
 }

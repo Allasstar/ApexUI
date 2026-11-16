@@ -42,11 +42,11 @@ public class NumberInput : Widget
             if (_value == clamped) return;
             _value = clamped;
             SyncDisplay();
-            OnChanged?.Invoke(_value);
+            ValueChanged?.Invoke(_value);
         }
     }
 
-    public Action<float>? OnChanged;
+    public event Action<float>? ValueChanged;
 
     // ── Children ──────────────────────────────────────────────────────────────
 
@@ -62,7 +62,7 @@ public class NumberInput : Widget
 
         _input = new TextInput().AsFloat();
         _input.MinWidth = 40f;
-        _input.OnChanged = s =>
+        _input.ValueChanged += s =>
         {
             if (_syncing) return;
             if (float.TryParse(s, NumberStyles.Float, CultureInfo.InvariantCulture, out var v))
@@ -70,15 +70,15 @@ public class NumberInput : Widget
                 var clamped = Math.Clamp(v, Min, Max);
                 if (clamped == _value) return;
                 _value = clamped;
-                OnChanged?.Invoke(_value);
+                ValueChanged?.Invoke(_value);
             }
         };
-        _input.OnSubmit = _ => SyncDisplay();   // re-sync display to clamped value on Enter
+        _input.Submitted += _ => SyncDisplay();   // re-sync display to clamped value on Enter
 
         _plus = new StepButton("+");
 
-        _minus.OnPressed = () => Value = _value - Step;
-        _plus.OnPressed  = () => Value = _value + Step;
+        _minus.Pressed += () => Value = _value - Step;
+        _plus.Pressed  += () => Value = _value + Step;
         // Tab goes straight to the next field; Up/Down in the field step the value instead.
         _minus.Focusable = false;
         _plus.Focusable  = false;
@@ -106,14 +106,14 @@ public class NumberInput : Widget
     public NumberInput WithStep(float step)      { Step   = step; return this; }
     public NumberInput WithFormat(string format) { Format = format; return this; }
     public NumberInput WithValue(float v)        { Value  = v;    return this; }
-    public NumberInput OnChange(Action<float> a) { OnChanged = a; return this; }
+    public NumberInput OnChange(Action<float> a) { ValueChanged += a; return this; }
 
     // ── Binding ───────────────────────────────────────────────────────────────
 
     public NumberInput Bind(Bindable<float> source)
     {
         Value           = source.Value;
-        OnChanged += v => source.Value = v;
+        ValueChanged += v => source.Value = v;
         Observe(source, v => Value = v);
         return this;
     }
@@ -123,7 +123,7 @@ public class NumberInput : Widget
         Step            = 1f;
         Format          = "0";
         Value           = source.Value;
-        OnChanged += v => source.Value = (int)MathF.Round(v);
+        ValueChanged += v => source.Value = (int)MathF.Round(v);
         Observe(source, v => Value = v);
         return this;
     }

@@ -88,7 +88,7 @@ public class Tabs : Widget
     private int _selectedIndex;
 
     public TabPosition Position { get; }
-    public Action<int>? OnTabChanged;
+    public event Action<int>? SelectionChanged;
 
     internal int TabCount => _tabs.Count;
 
@@ -197,7 +197,7 @@ public class Tabs : Widget
             _tabs[i].Content.IsVisible = i == index;
             _buttons[i].IsActive       = i == index;
         }
-        OnTabChanged?.Invoke(index);
+        SelectionChanged?.Invoke(index);
         InvalidateLayout();
     }
 }

@@ -29,7 +29,7 @@ public class Dropdown<T> : Widget
                 _binding.Value = value!;
                 _suppressBinding = false;
             }
-            OnChanged?.Invoke(value);
+            SelectionChanged?.Invoke(value);
         }
     }
 
@@ -39,7 +39,7 @@ public class Dropdown<T> : Widget
         set { _placeholder = value; SyncText(); }
     }
 
-    public Action<T?>? OnChanged;
+    public event Action<T?>? SelectionChanged;
 
     public Dropdown()
     {
@@ -49,7 +49,7 @@ public class Dropdown<T> : Widget
         _overlay.Content = _menuList;
 
         _trigger = new DropdownTrigger(ToggleOpen) { Text = _placeholder, IsPlaceholder = true };
-        _overlay.OnDismiss = () => _trigger.IsOpen = false;
+        _overlay.Closed += () => _trigger.IsOpen = false;
 
         AddChild(_trigger);
     }
@@ -88,7 +88,7 @@ public class Dropdown<T> : Widget
 
     public Dropdown<T> WithSelected(T value) { SelectedValue = value; return this; }
 
-    public Dropdown<T> OnChange(Action<T?> action) { OnChanged = action; return this; }
+    public Dropdown<T> OnChange(Action<T?> action) { SelectionChanged += action; return this; }
 
     public Dropdown<T> Bind(Bindable<T> source)
     {

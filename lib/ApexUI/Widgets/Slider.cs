@@ -19,11 +19,11 @@ public class Slider : Widget
             if (field == snapped) return;
             field = snapped;
             Invalidate();
-            OnChanged?.Invoke(snapped);
+            ValueChanged?.Invoke(snapped);
         }
     }
 
-    public Action<float>? OnChanged;
+    public event Action<float>? ValueChanged;
 
     public Slider()
     {
@@ -73,14 +73,14 @@ public class Slider : Widget
     public Slider WithMax(float max)        { Max   = max;   return this; }
     public Slider WithStep(float step)      { Step  = step;  return this; }
     public Slider WithValue(float value)    { Value = value; return this; }
-    public Slider OnChange(Action<float> a) { OnChanged = a; return this; }
+    public Slider OnChange(Action<float> a) { ValueChanged += a; return this; }
 
     // ── Binding ───────────────────────────────────────────────────────────────
 
     public Slider Bind(Bindable<float> source)
     {
         Value = source.Value;
-        OnChanged += v => source.Value = v;
+        ValueChanged += v => source.Value = v;
         Observe(source, v => Value = v);
         return this;
     }
@@ -88,7 +88,7 @@ public class Slider : Widget
     public Slider BindInt(Bindable<int> source)
     {
         Value = source.Value;
-        OnChanged += v => source.Value = (int)MathF.Round(v);
+        ValueChanged += v => source.Value = (int)MathF.Round(v);
         Observe(source, v => Value = v);
         return this;
     }

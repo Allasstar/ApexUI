@@ -83,11 +83,11 @@ public class RadioGroup<T> : LinearPanel
             _selected = value;
             foreach (var (v, item) in _options)
                 item.IsSelected = EqualityComparer<T>.Default.Equals(v, value);
-            OnChanged?.Invoke(value);
+            SelectionChanged?.Invoke(value);
         }
     }
 
-    public Action<T?>? OnChanged;
+    public event Action<T?>? SelectionChanged;
 
     /// spacing: gap between options; NaN takes the theme's SpacingSm.
     public RadioGroup(Orientation orientation = Orientation.Vertical, float spacing = float.NaN) : base(orientation)
@@ -108,12 +108,12 @@ public class RadioGroup<T> : LinearPanel
     }
 
     public RadioGroup<T> WithSelected(T value)    { SelectedValue = value; return this; }
-    public RadioGroup<T> OnChange(Action<T?> action) { OnChanged  = action; return this; }
+    public RadioGroup<T> OnChange(Action<T?> action) { SelectionChanged += action; return this; }
 
     public RadioGroup<T> Bind(Bindable<T> source)
     {
-        SelectedValue   = source.Value;
-        OnChanged      += v => { if (v is not null) source.Value = v; };
+        SelectedValue = source.Value;
+        SelectionChanged += v => { if (v is not null) source.Value = v; };
         Observe(source, v => SelectedValue = v);
         return this;
     }

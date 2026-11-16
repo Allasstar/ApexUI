@@ -254,3 +254,55 @@ public class TextInputValidationTests
         Assert.False(input.IsValid);
     }
 }
+
+public class ChangeEventTests
+{
+    [Fact]
+    public void A_bound_slider_keeps_its_binding_when_a_change_handler_is_added()
+    {
+        var volume = new Bindable<float>(0f);
+        float seen = -1f;
+        var slider = new Slider().Bind(volume).OnChange(v => seen = v);
+
+        slider.Value = 0.5f;
+
+        Assert.Equal(0.5f, volume.Value);
+        Assert.Equal(0.5f, seen);
+    }
+
+    [Fact]
+    public void Every_change_handler_runs()
+    {
+        var toggle = new Toggle(onChanged: _ => { });
+        var button = new Button("Go", () => { });
+        int toggled = 0, pressed = 0;
+        toggle.OnChange(_ => toggled++);
+        toggle.CheckedChanged += _ => toggled++;
+        button.OnPress(() => pressed++);
+        button.Pressed += () => pressed++;
+        var (_, platform) = TestPlatform.Show(new Column(toggle, button));
+        platform.Render().Dispose();
+
+        toggle.IsChecked = true;
+        platform.Click(button.WindowBounds.CenterX, button.WindowBounds.CenterY);
+
+        Assert.Equal(2, toggled);
+        Assert.Equal(2, pressed);
+    }
+
+    [Fact]
+    public void Number_input_buttons_still_step_when_the_user_subscribes_to_its_events()
+    {
+        float last = 0f;
+        var input = new NumberInput().OnChange(v => last = v);
+        input.ValueChanged += _ => { };
+        var (_, platform) = TestPlatform.Show(new Column(input));
+        platform.Render().Dispose();
+        var plus = input.Children[^1];
+
+        platform.Click(plus.WindowBounds.CenterX, plus.WindowBounds.CenterY);
+
+        Assert.Equal(1f, input.Value);
+        Assert.Equal(1f, last);
+    }
+}

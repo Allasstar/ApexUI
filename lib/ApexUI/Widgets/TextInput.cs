@@ -22,7 +22,7 @@ public class TextInput : Widget
             _selAnchor = Math.Min(_selAnchor, value.Length);
             ScrollToCaret();
             Invalidate();
-            OnChanged?.Invoke(value);
+            ValueChanged?.Invoke(value);
         }
     } = "";
 
@@ -49,8 +49,8 @@ public class TextInput : Widget
 
     public bool IsValid => Validate is null || Validate(Value);
 
-    public Action<string>? OnChanged;
-    public Action<string>? OnSubmit;   // fired on Enter
+    public event Action<string>? ValueChanged;
+    public event Action<string>? Submitted;   // Enter
 
     private int   _cursorPos;
     private int   _selAnchor;          // selection anchor; differs from _cursorPos when text is selected
@@ -79,8 +79,8 @@ public class TextInput : Widget
 
     public TextInput WithPlaceholder(string ph)            { Placeholder = ph; return this; }
     public TextInput WithValue(string v)                   { Value = v; _cursorPos = _selAnchor = v.Length; return this; }
-    public TextInput OnChange(Action<string> a)            { OnChanged = a; return this; }
-    public TextInput WithSubmit(Action<string> a)          { OnSubmit = a; return this; }
+    public TextInput OnChange(Action<string> a)            { ValueChanged += a; return this; }
+    public TextInput WithSubmit(Action<string> a)          { Submitted += a; return this; }
     public TextInput AsPassword()                          { IsPassword = true; return this; }
     public TextInput AsInteger()                           { InputMode = InputMode.Integer; return this; }
     public TextInput AsFloat()                             { InputMode = InputMode.Float; return this; }
@@ -94,7 +94,7 @@ public class TextInput : Widget
     {
         Value = source.Value.ToString(format, CultureInfo.InvariantCulture);
         _cursorPos = _selAnchor = Value.Length;
-        OnChanged      += s => { if (float.TryParse(s, NumberStyles.Float, CultureInfo.InvariantCulture, out var v)) source.Value = v; };
+        ValueChanged += s => { if (float.TryParse(s, NumberStyles.Float, CultureInfo.InvariantCulture, out var v)) source.Value = v; };
         Observe(source, v => { if (!IsFocused) { Value = v.ToString(format, CultureInfo.InvariantCulture); _cursorPos = _selAnchor = Value.Length; } });
         return this;
     }
@@ -103,7 +103,7 @@ public class TextInput : Widget
     {
         Value = source.Value.ToString();
         _cursorPos = _selAnchor = Value.Length;
-        OnChanged      += s => { if (int.TryParse(s, out var v)) source.Value = v; };
+        ValueChanged += s => { if (int.TryParse(s, out var v)) source.Value = v; };
         Observe(source, v => { if (!IsFocused) { Value = v.ToString(); _cursorPos = _selAnchor = Value.Length; } });
         return this;
     }
@@ -354,7 +354,7 @@ public class TextInput : Widget
                 MoveCaret(Value.Length, e.Shift);
                 break;
             case Key.Enter or Key.KeypadEnter:
-                OnSubmit?.Invoke(Value);
+                Submitted?.Invoke(Value);
                 break;
             case Key.Escape:
                 Value = _valueOnFocus;

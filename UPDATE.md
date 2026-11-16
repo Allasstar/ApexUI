@@ -4,6 +4,21 @@ Newest first. **Breaking** marks changes that need edits in apps using ApexUI.
 
 ## Unreleased
 
+### Change events
+- **Breaking:** value-change callbacks are now `event`s instead of public delegate fields, like the input events. Before, assigning one replaced every other handler: `slider.Bind(volume).OnChange(...)` silently dropped the binding, because `Bind` subscribed and `OnChange` overwrote. Migrate `x.OnChanged = h` to `x.ValueChanged += h` (or keep using the fluent method):
+  | Widget | Before | After |
+  |---|---|---|
+  | `Button` | `OnPressed` | `Pressed` |
+  | `Checkbox`, `Toggle` | `OnChanged` | `CheckedChanged` |
+  | `Slider`, `NumberInput`, `TextInput` | `OnChanged` | `ValueChanged` |
+  | `TextInput` | `OnSubmit` | `Submitted` |
+  | `Dropdown<T>`, `RadioGroup<T>` | `OnChanged` | `SelectionChanged` |
+  | `Tabs` | `OnTabChanged` | `SelectionChanged` |
+  | `Dialog` | `OnClosed` | `Closed` |
+  | `Overlay` | `OnDismiss` (property) | `Closed` |
+- Fluent `OnChange(...)`, `OnPress(...)`, `WithSubmit(...)` and the constructor callbacks of `Button`, `Checkbox` and `Toggle` now add a handler instead of replacing the previous one.
+- **Breaking:** `Checkbox` and `Toggle` raise `CheckedChanged` whenever `IsChecked` changes, including from code and from `Bind`, like every other widget's change event. Before, only a click or key press raised it.
+
 ### Retro fixes
 - `Rect.Contains` is half-open: the right and bottom edges are outside. Before, two widgets sharing an edge both contained a point on it and the later one won silently.
 - `Slider`: steps count from `Min` (before: from 0, so `Min = 1, Step = 2` snapped to even numbers), a snapped value never passes `Max`, and setting `Step` snaps the current value.

@@ -16,7 +16,7 @@ public class Button : Widget
         set => SetRenderProperty(ref field, value);
     } = ButtonVariant.Primary;
 
-    public Action? OnPressed;
+    public event Action? Pressed;
 
     private readonly Label _label;
 
@@ -31,7 +31,7 @@ public class Button : Widget
             ColorSource      = t => Variant == ButtonVariant.Primary ? t.OnPrimary : t.OnSurface,
         };
         AddChild(_label);
-        OnPressed = onPressed;
+        Pressed   += onPressed;
         Focusable = true;
     }
 
@@ -40,19 +40,19 @@ public class Button : Widget
 
     public Button WithText(string text)    { Text = text; return this; }
     public Button WithVariant(ButtonVariant v) { Variant = v; return this; }
-    public Button OnPress(Action action)   { OnPressed = action; return this; }
+    public Button OnPress(Action action)   { Pressed += action; return this; }
 
     protected override void OnClick(PointerEventArgs e)
     {
         e.Handled = true;
-        OnPressed?.Invoke();
+        Pressed?.Invoke();
     }
 
     protected override void OnKeyDown(KeyEventArgs e)
     {
         if (!Activation.IsActivationKey(e)) return;
         e.Handled = true;
-        OnPressed?.Invoke();
+        Pressed?.Invoke();
     }
 
     protected override void DrawCore(DrawContext ctx)

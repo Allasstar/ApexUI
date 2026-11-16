@@ -11,7 +11,7 @@ public class TransformExample : Widget
         int count     = 0;
 
         var button = new Button("Click me, zoomed");
-        button.OnPressed = () => clicks.Text = $"Button clicks: {++count}";
+        button.Pressed += () => clicks.Text = $"Button clicks: {++count}";
 
         var content = new Canvas()
             .Add(MakeTile("A", new SKColor(0x33, 0x6B, 0xE6)), 0, 0, 120, 120)

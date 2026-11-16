@@ -195,6 +195,8 @@ new TextInput { Width = 72f }.AsFloat().BindFloat(volume, "F2");
 
 Changing either widget updates the other. Same-value writes are no-ops — no cycles.
 
+Widgets also raise change events (`ValueChanged`, `CheckedChanged`, `SelectionChanged`, `Submitted`, `Pressed`, `Closed`). Any number of handlers can subscribe, next to a binding: `slider.Bind(volume).OnChange(v => Preview(v))` keeps both.
+
 ```csharp
 // Listen to changes directly
 volume.Changed += v => Console.WriteLine($"Volume: {v}");

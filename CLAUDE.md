@@ -425,13 +425,29 @@ ClipScope PushClip(Rect r, float radius) // rounded-rect clip
 Checkbox(bool isChecked = false, string label = "", Action<bool>? onChanged = null)
 bool     IsChecked  { get; set; }
 string   Label      { get; set; }
-Action<bool>? OnChanged
+event Action<bool>? CheckedChanged
 
 Checkbox WithLabel(string label)
 Checkbox WithChecked(bool value)
-Checkbox OnChange(Action<bool> action)
+Checkbox OnChange(Action<bool> action)   // CheckedChanged += action
 Checkbox Bind(Bindable<bool> source)
 ```
+
+### Change events
+
+Widgets report state changes through `event`s, never public delegate fields, so handlers, `Bind` and the
+widget's own wiring all run. Each fires when the value changes, whether from the user or from code.
+Fluent methods (`OnChange`, `OnPress`, `WithSubmit`) subscribe with `+=`; constructor callbacks do the same.
+
+| Widget | Event |
+|---|---|
+| `Button` | `Pressed` |
+| `Checkbox`, `Toggle` | `CheckedChanged(bool)` |
+| `Slider`, `NumberInput` | `ValueChanged(float)` |
+| `TextInput` | `ValueChanged(string)`, `Submitted(string)` (Enter) |
+| `Dropdown<T>`, `RadioGroup<T>` | `SelectionChanged(T?)` |
+| `Tabs` | `SelectionChanged(int)` |
+| `Dialog`, `Overlay` | `Closed` |
 
 ### `Wrap` · `lib/ApexUI/Layout/Wrap.cs`
 

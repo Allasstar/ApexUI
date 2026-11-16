@@ -51,7 +51,7 @@ public class Overlay : Widget
     /// When Anchor is set, stretches Content to match the anchor's width (e.g. for dropdowns).
     public bool MatchAnchorWidth { get; set => SetLayoutProperty(ref field, value); }
 
-    public Action? OnDismiss { get; set; }
+    public event Action? Closed;
 
     public Overlay()
     {
@@ -91,7 +91,7 @@ public class Overlay : Widget
     {
         IsVisible = false;
         Host?.HideOverlay(this);
-        OnDismiss?.Invoke();
+        Closed?.Invoke();
     }
 
     /// Closes the overlay if open and detaches it from its host, releasing bindings and owned
