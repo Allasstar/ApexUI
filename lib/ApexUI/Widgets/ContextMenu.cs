@@ -19,9 +19,11 @@ namespace ApexUI.Widgets;
 ///   ContextMenu.Attach(panel, menu);
 public sealed class ContextMenu
 {
-    private readonly List<MenuEntry> _entries = [];
+    private const float MinWidth = 180f;
+
+    private readonly MenuItems _items = new();
     private readonly Overlay _overlay;
-    private bool _built;
+    private int _builtVersion = -1;
 
     public ContextMenu()
     {
@@ -42,26 +44,25 @@ public sealed class ContextMenu
 
     public ContextMenu AddItem(string label, Action action, bool enabled = true)
     {
-        _entries.Add(new MenuEntry(label, action, enabled));
+        _items.AddItem(label, action, enabled);
         return this;
     }
 
     public ContextMenu AddCheckItem(string label, Bindable<bool> binding, bool closeOnClick = false)
     {
-        _entries.Add(new MenuEntry(label, () => binding.Value = !binding.Value, true)
-            { Binding = binding, CloseOnClick = closeOnClick });
+        _items.AddCheckItem(label, binding, closeOnClick);
         return this;
     }
 
     public ContextMenu AddSeparator()
     {
-        _entries.Add(new MenuEntry("", () => { }, true) { IsSeparator = true });
+        _items.AddSeparator();
         return this;
     }
 
     public ContextMenu AddHeader(string text)
     {
-        _entries.Add(new MenuEntry(text, () => { }, false) { IsHeader = true });
+        _items.AddHeader(text);
         return this;
     }
 
@@ -84,7 +85,12 @@ public sealed class ContextMenu
     /// Shows the menu at (x, y) in host's window, in logical units.
     public void Show(UiHost host, float x, float y)
     {
-        if (!_built) BuildPanel();
+        if (_builtVersion != _items.Version)
+        {
+            _overlay.Content = _items.Build(Close, MinWidth);
+            _builtVersion = _items.Version;
+        }
+
         _overlay.ContentHAlign = HAlign.Left;
         _overlay.ContentVAlign = VAlign.Top;
         _overlay.PositionX     = x;
@@ -94,65 +100,4 @@ public sealed class ContextMenu
     }
 
     public void Close() => _overlay.Close();
-
-    // ── Panel construction (lazy — built once on first Show) ──────────────────
-
-    private void BuildPanel()
-    {
-        _built = true;
-        var panel = new MenuList(minWidth: 180f, maxHeight: float.PositiveInfinity);
-
-        foreach (var entry in _entries)
-        {
-            if (entry.IsSeparator)
-            {
-                panel.Add(new MenuSeparator());
-                continue;
-            }
-            if (entry.IsHeader)
-            {
-                panel.Add(new MenuHeaderWidget(entry.Label));
-                continue;
-            }
-            if (entry.Binding is not null)
-            {
-                var binding      = entry.Binding;
-                var closeOnClick = entry.CloseOnClick;
-                MenuItemWidget? item = null;
-                item = new MenuItemWidget(entry.Label, isChecked: () => binding.Value, onActivate: () =>
-                {
-                    binding.Value = !binding.Value;
-                    item!.Invalidate();
-                    if (closeOnClick) Close();
-                });
-                panel.Add(item);
-            }
-            else
-            {
-                var action  = entry.Action;
-                var enabled = entry.Enabled;
-                var item    = new MenuItemWidget(entry.Label, enabled: enabled, onActivate: () =>
-                {
-                    Close();
-                    if (enabled) action();
-                });
-                panel.Add(item);
-            }
-        }
-
-        _overlay.Content = panel;
-    }
-
-    // ── Entry data ────────────────────────────────────────────────────────────
-
-    private sealed class MenuEntry(string Label, Action Action, bool Enabled)
-    {
-        public string          Label        { get; } = Label;
-        public Action          Action       { get; } = Action;
-        public bool            Enabled      { get; } = Enabled;
-        public bool            IsSeparator  { get; init; }
-        public bool            IsHeader     { get; init; }
-        public Bindable<bool>? Binding      { get; init; }
-        public bool            CloseOnClick { get; init; }
-    }
 }

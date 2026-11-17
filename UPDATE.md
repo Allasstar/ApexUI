@@ -4,6 +4,18 @@ Newest first. **Breaking** marks changes that need edits in apps using ApexUI.
 
 ## Unreleased
 
+### Tree view, menu button, units in number fields
+- New `TreeView<T>`: a virtual list of hierarchical items. `new TreeView<T>(childrenOf, comparer)`, `WithRoots`, `WithTemplate(content)` (the tree adds the indent and the expand arrow), `Refresh()` (rebuilds rows only when the visible items or their depths changed). `ReverseChildren` lists each child list last item first, as layer stacks do. `ExpandByDefault`, `IsExpanded`/`SetExpanded`, `VisibleItems`, `IndexOf`, `ScrollIntoView(item)`.
+- Tree selection: click selects one row, Ctrl (Cmd on macOS) toggles, Shift selects a range; Up/Down/Home/End move it (Shift extends), Left collapses or goes to the parent, Right expands or goes to the first child. `IsSelected`, `Select`, `SetSelection`, `ClearSelection`, `GetSelection(list)`, `SelectionCount`, `SelectionChanged`. Selection and expansion use the comparer, so they survive items replaced by equal copies.
+- Tree dragging (`AllowDrag`): drags the selected rows (a row whose ancestor is selected moves with it). Between rows the pointer's x picks the depth; over the middle half of a row the items go inside it, at the visual top. `CanDrop(items, TreeDrop<T>)` refuses a drop (red indicator; a refused drop onto a row falls back to the gap); a drop into a dragged item is always refused. `Dropped(items, TreeDrop<T>(Parent, Index, Into))` with the index in the accessor's order, counted before the items leave. The list scrolls when dragging near its edges.
+- New `MenuButton`: a ghost button with a chevron that opens a menu below it (click, Space, Enter or Down). `AddItem`, `AddCheckItem`, `AddSeparator`, `AddHeader` as in `ContextMenu`, plus `Open`, `Close`, `IsOpen`, `Face`. `ContextMenu` and `MenuButton` now share one internal item builder; items added after the first open now show up in `ContextMenu` too.
+- `NumberField` units: `WithUnits("px", "%")` shows the current `Unit` after the field. Typing a suffix ("50%", "120 px") switches the unit; clicking the unit label cycles units, converting the value through `ConvertUnit(value, from, to)`. `UnitChanged` fires before the edit's `ValueChanged`, then `EditCompleted`. An unknown suffix is rejected.
+- `NumberField.IsMixed` shows `MixedText` ("Mixed") in place of the number, for a field standing for several different values. A typed or scrubbed edit clears it before raising `ValueChanged`, so handlers can ignore changes while it is set (a unit switch on a mixed field converts the hidden value and stays mixed).
+- New theme token `TreeIndent` (16).
+- Fixed: in a `Row` or `Column`, a growing child that fills the length it is offered (a text field) left nothing for the children after it, which then overflowed the panel. Growing children are now measured after the others.
+- Gallery: TreeView on the Lists tab, MenuButton on the Composite tab, number fields with units and a Mixed field on the Inputs tab.
+- 32 new tests (332 in total).
+
 ### Moving between displays with different scales
 - Fixed: dragging the desktop window from a scaled display (150% 4K) toward an unscaled one froze it on the border, flickering and loading the CPU. `DesktopPlatform` resized the window itself whenever most of it crossed onto the other display; the smaller window then sat mostly on the first display again, so it grew back, and so on without end.
 - The window is now scaled by GLFW (`GLFW_SCALE_TO_MONITOR`): sized for the display's scale on creation and, on Windows, resized to the rectangle the system suggests when the window's DPI changes. `DesktopPlatform` no longer resizes the window.

@@ -7,17 +7,29 @@ namespace ApexUI.Widgets;
 /// or type a value and press Enter or move focus away. Escape restores the value from before typing.
 /// ValueChanged fires on every change (each scrub step); EditCompleted fires once when a scrub or
 /// typed edit that changed the value ends, which suits recording undo steps.
+///
+/// Units (optional): WithUnits("px", "%") shows the current unit after the field. Typing a value with a
+/// unit suffix ("50%", "120 px") switches to that unit; clicking the unit label cycles to the next one,
+/// converting the value through ConvertUnit when set. A unit change raises UnitChanged before the
+/// ValueChanged of the same edit, and the edit ends with EditCompleted.
+///
+/// IsMixed shows MixedText instead of a number, for a field that stands for several differing values.
+/// A typed or scrubbed edit clears it before raising ValueChanged, so a handler can ignore changes while
+/// IsMixed is set (a unit switch converts the hidden value but leaves the field mixed).
 public class NumberField : Widget
 {
     private const float FastFactor = 10f;
 
     private readonly Label _caption;
     private readonly TextInput _input;
+    private readonly Label _unitLabel;
     private float _value;
     private bool _scrubbing;
     private float _scrubStartX;
     private float _scrubStartValue;
     private float _valueBeforeEdit;
+    private string _unitBeforeEdit = "";
+    private bool _mixedBeforeEdit;
 
     public NumberField(string caption = "", float value = 0f)
     {
@@ -25,9 +37,16 @@ public class NumberField : Widget
         _input = new TextInput { Grow = 1f }.AsFloat();
         _input.MinWidth = 40f;
         _input.Submitted += _ => CommitText();
-        _input.GotFocus += () => _valueBeforeEdit = _value;
+        _input.GotFocus += () =>
+        {
+            _valueBeforeEdit = _value;
+            _unitBeforeEdit = Unit;
+            _mixedBeforeEdit = IsMixed;
+        };
         _input.LostFocus += CommitText;
-        AddChild(new Row(_caption, _input) { SpacingSource = t => t.SpacingSm });
+        _input.Placeholder = "Mixed";
+        _unitLabel = new Label { ColorSource = t => t.OnSurfaceMuted, VAlign = VAlign.Center, IsVisible = false };
+        AddChild(new Row(_caption, _input, _unitLabel) { SpacingSource = t => t.SpacingSm });
 
         _value = value;
         SyncText();
@@ -64,9 +83,58 @@ public class NumberField : Widget
 
     public bool IsScrubbing => _scrubbing;
 
+    /// The units the value can be in; empty (the default) shows no unit.
+    public IReadOnlyList<string> Units
+    {
+        get;
+        set
+        {
+            field = value;
+            _input.InputMode = value.Count > 0 ? InputMode.Any : InputMode.Float;
+            _unitLabel.IsVisible = value.Count > 0;
+            _unitLabel.Cursor = value.Count > 1 ? CursorShape.Hand : null;
+            if (IndexOfUnit(Unit) < 0) Unit = value.Count > 0 ? value[0] : "";
+        }
+    } = [];
+
+    /// One of Units. Setting it does not convert the value.
+    public string Unit
+    {
+        get;
+        set
+        {
+            if (field == value) return;
+            field = value;
+            _unitLabel.Text = value;
+            UnitChanged?.Invoke(value);
+        }
+    } = "";
+
+    /// (value, from, to) → the same quantity in the unit `to`; used when the unit label is clicked.
+    public Func<float, string, string, float>? ConvertUnit { get; set; }
+
+    public bool IsMixed
+    {
+        get;
+        set
+        {
+            if (field == value) return;
+            field = value;
+            SyncText();
+        }
+    }
+
+    public string MixedText
+    {
+        get => _input.Placeholder;
+        set => _input.Placeholder = value;
+    }
+
     public event Action<float>? ValueChanged;
 
     public event Action<float>? EditCompleted;
+
+    public event Action<string>? UnitChanged;
 
     public NumberField WithRange(float min, float max) { Min = min; Max = max; return this; }
     public NumberField WithStep(float step)            { Step = step; return this; }
@@ -74,6 +142,9 @@ public class NumberField : Widget
     public NumberField WithValue(float value)          { Value = value; return this; }
     public NumberField OnChange(Action<float> action)  { ValueChanged += action; return this; }
     public NumberField OnEditCompleted(Action<float> action) { EditCompleted += action; return this; }
+    public NumberField WithUnits(params string[] units)      { Units = units; return this; }
+    public NumberField WithUnitConversion(Func<float, string, string, float> convert) { ConvertUnit = convert; return this; }
+    public NumberField OnUnitChange(Action<string> action)   { UnitChanged += action; return this; }
 
     public NumberField Bind(Bindable<float> source)
     {
@@ -91,6 +162,13 @@ public class NumberField : Widget
 
     protected override void OnPointerPressed(PointerEventArgs e)
     {
+        if (e.Source == _unitLabel && e.Button == PointerButton.Left && Units.Count > 1)
+        {
+            e.Handled = true;
+            CycleUnit();
+            return;
+        }
+
         if (e.Source != _caption || e.Button != PointerButton.Left || !_caption.CapturePointer()) return;
         e.Handled = true;
         _scrubbing = true;
@@ -103,7 +181,10 @@ public class NumberField : Widget
         if (!_scrubbing) return;
         e.Handled = true;
         float factor = e.Shift ? FastFactor : 1f;
-        Value = _scrubStartValue + MathF.Round(e.X - _scrubStartX) * Step * factor;
+        float next = _scrubStartValue + MathF.Round(e.X - _scrubStartX) * Step * factor;
+        if (next == _value) return;
+        IsMixed = false;
+        Value = next;
     }
 
     protected override void OnPointerReleased(PointerEventArgs e)
@@ -121,21 +202,77 @@ public class NumberField : Widget
     private void EndScrub()
     {
         _scrubbing = false;
-        if (_value != _scrubStartValue) EditCompleted?.Invoke(_value);
+        if (_value == _scrubStartValue) return;
+        EditCompleted?.Invoke(_value);
+    }
+
+    // ── Units ─────────────────────────────────────────────────────────────────
+
+    private void CycleUnit()
+    {
+        string from = Unit;
+        string to = Units[(IndexOfUnit(from) + 1) % Units.Count];
+        float converted = ConvertUnit?.Invoke(_value, from, to) ?? _value;
+        Unit = to;
+        Value = converted;
+        SyncText();
+        EditCompleted?.Invoke(_value);
+    }
+
+    private int IndexOfUnit(string unit)
+    {
+        IReadOnlyList<string> units = Units;
+        for (int i = 0; i < units.Count; i++)
+        {
+            if (string.Equals(units[i], unit, StringComparison.OrdinalIgnoreCase)) return i;
+        }
+
+        return -1;
+    }
+
+    // "50%", "120 px", "-3.5": the number, and the unit after it (null when there is none).
+    private bool TryParse(string text, out float value, out string? unit)
+    {
+        unit = null;
+        string trimmed = text.Trim();
+        int end = trimmed.Length;
+        while (end > 0 && !char.IsDigit(trimmed[end - 1]) && trimmed[end - 1] != '.') end--;
+
+        if (end < trimmed.Length)
+        {
+            int index = IndexOfUnit(trimmed[end..].Trim());
+            if (index < 0)
+            {
+                value = 0f;
+                return false;
+            }
+
+            unit = Units[index];
+        }
+
+        return float.TryParse(trimmed[..end], NumberStyles.Float, CultureInfo.InvariantCulture, out value);
     }
 
     // ── Typing ────────────────────────────────────────────────────────────────
 
     private void CommitText()
     {
-        if (float.TryParse(_input.Value, NumberStyles.Float, CultureInfo.InvariantCulture, out float typed)) Value = typed;
+        if (TryParse(_input.Value, out float typed, out string? unit))
+        {
+            IsMixed = false;
+            if (unit is not null) Unit = unit;
+            Value = typed;
+        }
+
         SyncText();
-        if (_value != _valueBeforeEdit)
+        if (_value != _valueBeforeEdit || Unit != _unitBeforeEdit || IsMixed != _mixedBeforeEdit)
         {
             _valueBeforeEdit = _value;
+            _unitBeforeEdit = Unit;
+            _mixedBeforeEdit = IsMixed;
             EditCompleted?.Invoke(_value);
         }
     }
 
-    private void SyncText() => _input.Value = _value.ToString(Format, CultureInfo.InvariantCulture);
+    private void SyncText() => _input.Value = IsMixed ? "" : _value.ToString(Format, CultureInfo.InvariantCulture);
 }

@@ -146,6 +146,14 @@ public class InputsExample : Widget
                         new NumberField("Y", 80f) { Width = 120f },
                         new NumberField("°", 0f) { Width = 120f }.WithRange(-180f, 180f)
                     ).WithSpacing(8f),
+                    new Label { Text = "With units: type 50% or 120px, or click the unit to switch (the value converts against a 400 px parent):", WordWrap = true },
+                    new Row(
+                        new NumberField("W", 200f) { Width = 140f }
+                            .WithUnits("px", "%")
+                            .WithUnitConversion((v, from, to) => to == "%" ? v / 4f : v * 4f),
+                        new NumberField("H", 0f) { Width = 140f, IsMixed = true }.WithUnits("px")
+                    ).WithSpacing(8f),
+                    new Label { Text = "H shows Mixed: it stands for several different values until you edit it.", ColorSource = t => t.OnSurfaceMuted },
                     new Row(
                         new NumberField("Opacity", 1f) { Width = 180f }.WithRange(0f, 1f).WithStep(0.01f).Bind(opacity),
                         new Label { Text = "shares its value with the NumberInput and Slider above", VAlign = VAlign.Center, ColorSource = t => t.OnSurfaceMuted }

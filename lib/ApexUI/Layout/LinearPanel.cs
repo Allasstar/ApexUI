@@ -31,20 +31,7 @@ public abstract class LinearPanel : Widget
     {
         float availMain  = Horizontal ? available.Width  : available.Height;
         float availCross = Horizontal ? available.Height : available.Width;
-        float main = 0f, cross = 0f;
-        bool first = true;
-
-        foreach (var child in Children)
-        {
-            if (!child.IsVisible) continue;
-            if (!first) main += Spacing;
-            first = false;
-
-            child.Measure(Oriented(Math.Max(0f, availMain - main), availCross));
-            main += MainOf(child.DesiredSize);
-            cross = Math.Max(cross, CrossOf(child.DesiredSize));
-        }
-
+        (float main, float cross, _) = MeasureChildren(availMain, availCross);
         return Oriented(main, cross);
     }
 
@@ -54,22 +41,11 @@ public abstract class LinearPanel : Widget
         float finalCross = Horizontal ? r.Height : r.Width;
 
         // Re-measured at the final thickness: a wrapping label is taller in a narrower column.
-        float used = 0f, totalGrow = 0f;
-        bool first = true;
-        foreach (var child in Children)
-        {
-            if (!child.IsVisible) continue;
-            if (!first) used += Spacing;
-            first = false;
-
-            child.Measure(Oriented(Math.Max(0f, finalMain - used), finalCross));
-            used += MainOf(child.DesiredSize);
-            if (child.Grow > 0f) totalGrow += child.Grow;
-        }
+        (float used, _, float totalGrow) = MeasureChildren(finalMain, finalCross);
 
         float extra = totalGrow > 0f && !float.IsInfinity(finalMain) ? Math.Max(0f, finalMain - used) : 0f;
         float pos = Horizontal ? r.X : r.Y;
-        first = true;
+        bool first = true;
         foreach (var child in Children)
         {
             if (!child.IsVisible) continue;
@@ -83,6 +59,33 @@ public abstract class LinearPanel : Widget
                 : new Rect(r.X, pos, r.Width, length));
             pos += length;
         }
+    }
+
+    // Growing children are measured last, with what the others leave: a child that fills the length it
+    // is offered (a text field) would otherwise starve the children after it.
+    private (float Main, float Cross, float TotalGrow) MeasureChildren(float availMain, float availCross)
+    {
+        float main = 0f, cross = 0f, totalGrow = 0f;
+        int visible = 0;
+        foreach (var child in Children)
+        {
+            if (child.IsVisible) visible++;
+        }
+
+        if (visible > 1) main = Spacing * (visible - 1);
+        for (int pass = 0; pass < 2; pass++)
+        {
+            foreach (var child in Children)
+            {
+                if (!child.IsVisible || (child.Grow > 0f) != (pass == 1)) continue;
+                child.Measure(Oriented(Math.Max(0f, availMain - main), availCross));
+                main += MainOf(child.DesiredSize);
+                cross = Math.Max(cross, CrossOf(child.DesiredSize));
+                totalGrow += child.Grow;
+            }
+        }
+
+        return (main, cross, totalGrow);
     }
 
     private Size  Oriented(float main, float cross) => Horizontal ? new Size(main, cross) : new Size(cross, main);

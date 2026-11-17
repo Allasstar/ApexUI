@@ -175,6 +175,128 @@ public class NumberFieldTests
         Assert.Equal("42.5", ((TextInput)input).Value);
         Assert.Equal([42.5f], completed);
     }
+
+    private static (NumberField Field, TextInput Input, UiHost Host, TestPlatform Platform) ShowWithUnits(float value = 10f)
+    {
+        var field = new NumberField("W", value) { Width = 200 }.WithUnits("px", "%");
+        var (host, platform) = TestPlatform.Show(new Column(field, new Button("Other")));
+        platform.Render().Dispose();
+        return (field, (TextInput)field.Children[0].Children[1], host, platform);
+    }
+
+    private static void TypeAndSubmit(TestPlatform platform, TextInput input, string text)
+    {
+        input.Focus();
+        platform.Key(Key.A, KeyModifiers.Control);
+        platform.Type(text);
+        platform.Key(Key.Enter);
+    }
+
+    [Fact]
+    public void Typing_a_unit_suffix_switches_the_unit_before_the_value()
+    {
+        var (field, input, _, platform) = ShowWithUnits();
+        var events = new List<string>();
+        field.UnitChanged += unit => events.Add(unit);
+        field.ValueChanged += value => events.Add(value.ToString(System.Globalization.CultureInfo.InvariantCulture));
+        field.EditCompleted += _ => events.Add("done");
+
+        TypeAndSubmit(platform, input, "50 %");
+
+        Assert.Equal(["%", "50", "done"], events);
+        Assert.Equal("%", field.Unit);
+        Assert.Equal("50", input.Value);
+    }
+
+    [Fact]
+    public void Typing_the_same_number_in_another_unit_still_completes_an_edit()
+    {
+        var (field, input, _, platform) = ShowWithUnits(50f);
+        int completed = 0;
+        field.EditCompleted += _ => completed++;
+
+        TypeAndSubmit(platform, input, "50%");
+
+        Assert.Equal(1, completed);
+    }
+
+    [Fact]
+    public void An_unknown_suffix_keeps_the_value_and_unit()
+    {
+        var (field, input, _, platform) = ShowWithUnits();
+
+        TypeAndSubmit(platform, input, "30em");
+
+        Assert.Equal(10f, field.Value);
+        Assert.Equal("px", field.Unit);
+        Assert.Equal("10", input.Value);
+    }
+
+    [Fact]
+    public void Clicking_the_unit_label_cycles_units_and_converts_the_value()
+    {
+        var (field, _, _, platform) = ShowWithUnits(200f);
+        field.ConvertUnit = (value, from, to) => from == "px" && to == "%" ? value / 4f : value * 4f;
+        var completed = new List<float>();
+        field.EditCompleted += completed.Add;
+        Rect unit = field.Children[0].Children[2].LayoutBounds;
+
+        platform.Click(unit.CenterX, unit.CenterY);
+        Assert.Equal("%", field.Unit);
+        Assert.Equal(50f, field.Value);
+
+        platform.Click(unit.CenterX, unit.CenterY);
+        Assert.Equal("px", field.Unit);
+        Assert.Equal(200f, field.Value);
+        Assert.Equal([50f, 200f], completed);
+    }
+
+    [Fact]
+    public void A_mixed_field_shows_no_number_until_an_edit_clears_it()
+    {
+        var (field, input, _, platform) = ShowWithUnits(10f);
+        int completed = 0;
+        field.EditCompleted += _ => completed++;
+
+        field.IsMixed = true;
+        Assert.Equal("", input.Value);
+
+        TypeAndSubmit(platform, input, "10");
+        Assert.False(field.IsMixed);
+        Assert.Equal("10", input.Value);
+        Assert.Equal(1, completed);
+    }
+
+    [Fact]
+    public void Edits_clear_mixed_before_the_value_changes()
+    {
+        var (field, input, _, platform) = ShowWithUnits(10f);
+        var mixedAtChange = new List<bool>();
+        field.ValueChanged += _ => mixedAtChange.Add(field.IsMixed);
+
+        field.IsMixed = true;
+        Scrub(platform, 4);
+        field.IsMixed = true;
+        TypeAndSubmit(platform, input, "3");
+
+        Assert.NotEmpty(mixedAtChange);
+        Assert.All(mixedAtChange, Assert.False);
+    }
+
+    [Fact]
+    public void Leaving_a_mixed_field_untouched_completes_nothing()
+    {
+        var (field, input, host, _) = ShowWithUnits(10f);
+        int completed = 0;
+        field.EditCompleted += _ => completed++;
+        field.IsMixed = true;
+
+        input.Focus();
+        host.ClearFocus();
+
+        Assert.True(field.IsMixed);
+        Assert.Equal(0, completed);
+    }
 }
 
 public class ColorPickerTests

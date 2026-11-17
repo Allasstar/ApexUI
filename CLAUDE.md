@@ -663,6 +663,29 @@ bool IsDragging
 ListView<T> WithReorder(bool = true) / OnSelectionChange / OnReorder   // WithItems/WithTemplate/WithRowHeight return ListView<T>
 ```
 
+### `TreeView<T>` · `lib/ApexUI/Widgets/TreeView.cs`
+
+```csharp
+// VirtualList of hierarchical items: indent per depth (theme TreeIndent), expand arrow, multi-select, drag to move.
+TreeView<T>(Func<T, IReadOnlyList<T>> childrenOf, IEqualityComparer<T>? comparer = null)   // comparer: selection and expansion
+TreeView<T> WithRoots(IReadOnlyList<T>) / WithTemplate(Func<T, Widget> content) / WithRowHeight / WithReverseChildren / WithExpandByDefault / WithDrag
+void Refresh()   // re-reads the items; rows rebuilt only when visible items or depths changed
+bool ReverseChildren, ExpandByDefault, AllowDrag, IsDragging;  IReadOnlyList<T> VisibleItems;  int IndexOf(T);  void ScrollIntoView(T)
+bool IsExpanded(T);  void SetExpanded(T, bool)
+bool IsSelected(T);  void Select(T);  void SetSelection(IReadOnlyList<T>);  void ClearSelection();  void GetSelection(List<T>);  int SelectionCount
+event Action? SelectionChanged
+Func<IReadOnlyList<T>, TreeDrop<T>, bool>? CanDrop;  event Action<IReadOnlyList<T>, TreeDrop<T>>? Dropped
+readonly record struct TreeDrop<T>(T? Parent, int Index, bool Into)   // Index in accessor order, before the items leave
+```
+
+### `MenuButton` · `lib/ApexUI/Widgets/MenuButton.cs`
+
+```csharp
+MenuButton(Widget face) / MenuButton(string text)   // ghost button + chevron; click, Space, Enter, Down open the menu below
+MenuButton AddItem(label, action, enabled = true) / AddCheckItem(label, Bindable<bool>, closeOnClick = false) / AddSeparator() / AddHeader(text)
+bool IsOpen;  void Open(), Close();  Widget Face
+```
+
 ### `EditableLabel`, `NumberField` · `lib/ApexUI/Widgets/`
 
 ```csharp
@@ -674,6 +697,10 @@ float Value, Min, Max, Step; string Format = "0.##"; string Caption; bool IsScru
 event Action<float>? ValueChanged;   // every change
 event Action<float>? EditCompleted;  // once per finished scrub or typed edit that changed the value
 NumberField WithRange / WithStep / WithFormat / WithValue / OnChange / OnEditCompleted / Bind(Bindable<float>)
+IReadOnlyList<string> Units; string Unit; event Action<string>? UnitChanged   // typed "50%" switches unit; unit label click cycles
+Func<float, string, string, float>? ConvertUnit   // (value, from, to), used by the unit label
+bool IsMixed; string MixedText = "Mixed"          // shows MixedText instead of the number; a user edit clears it
+NumberField WithUnits(params string[]) / WithUnitConversion / OnUnitChange
 ```
 
 ### `ColorPicker`, `ColorSwatch`, `Toast` · `lib/ApexUI/Widgets/`

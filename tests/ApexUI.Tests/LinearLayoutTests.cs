@@ -62,4 +62,18 @@ public class LinearLayoutTests
 
         Assert.Equal(new Rect(40, 20, 20, 10), box.LayoutBounds);
     }
+
+    [Fact]
+    public void A_growing_child_that_fills_its_space_leaves_room_for_the_children_after_it()
+    {
+        var fill = new TextInput { Grow = 1 };
+        var tail = new FixedBox(30, 20);
+        var row = new Row(new FixedBox(20, 20), fill, tail) { Spacing = 0 };
+
+        row.Measure(new Size(200, 50));
+        row.Arrange(new Rect(0, 0, 200, 50));
+
+        Assert.Equal(150, fill.LayoutBounds.Width, 3);
+        Assert.Equal(200, tail.LayoutBounds.Right, 3);
+    }
 }

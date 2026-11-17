@@ -1,6 +1,6 @@
 namespace ApexUI.Gallery.Examples;
 
-/// Demonstrates Dropdown, Tooltip, Dialog, and ContextMenu.
+/// Demonstrates Dropdown, Tooltip, Dialog, ContextMenu and MenuButton.
 public class CompositeExample : Widget
 {
     public CompositeExample()
@@ -89,6 +89,17 @@ public class CompositeExample : Widget
 
         ContextMenu.Attach(contextPanel, menu);
 
+        // ── MenuButton ────────────────────────────────────────────────────────
+        var menuLog = new Label { Text = "Nothing picked yet", VAlign = VAlign.Center, ColorSource = t => t.OnSurfaceMuted };
+        var shapes = new MenuButton(new Icon("M4 4h16v16H4z", IconStyle.Stroke))
+            .AddItem("Rectangle", () => menuLog.Text = "Rectangle")
+            .AddItem("Ellipse",   () => menuLog.Text = "Ellipse")
+            .AddSeparator()
+            .AddItem("Star",      () => { }, enabled: false);
+        var file = new MenuButton("File")
+            .AddItem("New",  () => menuLog.Text = "New")
+            .AddItem("Open", () => menuLog.Text = "Open");
+
         // ── Main layout ───────────────────────────────────────────────────────
         AddChild(new PaddingBox(
             new Column(
@@ -117,7 +128,13 @@ public class CompositeExample : Widget
 
                 new Label { Text = "ContextMenu", Bold = true, Role = TextRole.Heading },
                 new Label { Text = "Right-click the box below. Toggle items stay checked across opens." },
-                contextPanel
+                contextPanel,
+
+                new Separator { Margin = new Thickness(0, 4f) },
+
+                new Label { Text = "MenuButton", Bold = true, Role = TextRole.Heading },
+                new Label { Text = "Click a button, or focus it and press Down, to open its menu." },
+                new Row(new Tooltip(shapes, "Shapes"), file, menuLog) { Spacing = 8f }
 
             ).WithSpacing(16f),
             new Thickness(24f)

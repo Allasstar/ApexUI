@@ -209,6 +209,8 @@ public sealed record Theme
     public float IconSize          { get; init; } = 16f;
     /// Thickness of a split panel's draggable divider (its grab area; the drawn line is one unit).
     public float SplitterSize      { get; init; } = 6f;
+    /// Indent per tree level; the expand arrow sits in one indent's width.
+    public float TreeIndent        { get; init; } = 16f;
     /// Width and height of a color swatch button.
     public float SwatchSize        { get; init; } = 18f;
     /// Side of a color picker's saturation/brightness square; its strips are as wide.
