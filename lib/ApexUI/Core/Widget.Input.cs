@@ -26,6 +26,9 @@ public abstract partial class Widget
         }
     }
 
+    /// True for widgets that take typed text (TextInput). App-wide single-key shortcuts stay quiet while one has focus.
+    public virtual bool EditsText => false;
+
     /// Pointer shape while the pointer is over this widget (or while it has capture).
     /// Null uses the parent's cursor; the root default is an arrow.
     public CursorShape? Cursor

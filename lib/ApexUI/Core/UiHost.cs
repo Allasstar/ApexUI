@@ -206,6 +206,17 @@ public sealed partial class UiHost : IPlatformListener
 
     internal int OpenOverlayCount => _overlays.Count;
 
+    /// True while an open overlay is modal (a dialog): app-wide shortcuts should wait until it closes.
+    public bool HasModalOverlay
+    {
+        get
+        {
+            foreach (var overlay in _overlays)
+                if (overlay.IsModal) return true;
+            return false;
+        }
+    }
+
     private Widget? HitTestAll(float x, float y)
     {
         for (int i = _overlays.Count - 1; i >= 0; i--)

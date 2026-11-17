@@ -84,7 +84,10 @@ internal sealed class TestPlatform(int pixelWidth = 800, int pixelHeight = 600, 
         _timers.RemoveAll(t => t.IsStopped);
     }
 
+    public string Title { get; private set; } = "";
+
     public void RequestFrame() => FramesRequested++;
+    public void SetTitle(string title) => Title = title;
     public string? GetClipboardText() => _clipboard;
     public void SetClipboardText(string text) => _clipboard = text;
     public void SetCursor(CursorShape cursor) => Cursor = cursor;

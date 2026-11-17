@@ -20,6 +20,7 @@ public sealed class DesktopPlatform : IPlatform
     private readonly List<DesktopTimer> _timers = [];
     // Wakes the event wait when the next timer is due; GLFW has no timers of its own.
     private readonly Timer _wakeTimer;
+    private readonly LoopSynchronizationContext _context;
 
     private IPlatformListener? _listener;
     private GL?                _gl;
@@ -68,6 +69,7 @@ public sealed class DesktopPlatform : IPlatform
         _window.Closing += OnClosing;
 
         _wakeTimer = new Timer(_ => _window.ContinueEvents());
+        _context   = new LoopSynchronizationContext(Wake);
     }
 
     /// Window icon from a raster or SVG file (by extension). Call before Run.
@@ -80,14 +82,17 @@ public sealed class DesktopPlatform : IPlatform
     public void Run(IPlatformListener listener)
     {
         _listener = listener;
+        var previousContext = SynchronizationContext.Current;
+        SynchronizationContext.SetSynchronizationContext(_context);
         _window.Initialize();
         while (!_window.IsClosing)
         {
-            // Wait for events only when there is nothing to draw; otherwise just collect them.
-            _window.IsEventDriven = !_frameRequested;
+            // Wait for events only when there is nothing to draw or run; otherwise just collect them.
+            _window.IsEventDriven = !_frameRequested && !_context.HasWork;
             _window.DoEvents();
             if (_window.IsClosing) break;
             _window.DoUpdate();
+            _context.RunPending();
             RunDueTimers();
             if (_frameRequested)
             {
@@ -102,6 +107,7 @@ public sealed class DesktopPlatform : IPlatform
         using (var stopped = new ManualResetEvent(false))
             if (_wakeTimer.Dispose(stopped)) stopped.WaitOne();
         _window.Dispose();
+        SynchronizationContext.SetSynchronizationContext(previousContext);
     }
 
     public void RequestFrame()
@@ -121,6 +127,8 @@ public sealed class DesktopPlatform : IPlatform
         ResizeFrameRate = Math.Max(0f, framesPerSecond);
         return this;
     }
+
+    public void SetTitle(string title) => _window.Title = title;
 
     public string? GetClipboardText() => _keyboard?.ClipboardText;
 
@@ -144,11 +152,17 @@ public sealed class DesktopPlatform : IPlatform
         return timer;
     }
 
-    public Task<string?> OpenFileAsync(FileDialogOptions options)
-        => Task.FromException<string?>(new NotSupportedException("File dialogs are not implemented on desktop yet."));
+    public Task<string?> OpenFileAsync(FileDialogOptions options) => FileDialogs.OpenAsync(options, OwnerHandle());
 
-    public Task<string?> SaveFileAsync(FileDialogOptions options)
-        => Task.FromException<string?>(new NotSupportedException("File dialogs are not implemented on desktop yet."));
+    public Task<string?> SaveFileAsync(FileDialogOptions options) => FileDialogs.SaveAsync(options, OwnerHandle());
+
+    // The dialog belongs to the window (stays on top of it and blocks its input) where the OS supports that.
+    private nint OwnerHandle() => _window.Native?.Win32?.Hwnd ?? 0;
+
+    private void Wake()
+    {
+        if (_window.IsInitialized) _window.ContinueEvents();
+    }
 
     // ── Window lifecycle ──────────────────────────────────────────────────────
 

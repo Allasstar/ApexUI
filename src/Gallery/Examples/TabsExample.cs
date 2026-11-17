@@ -32,6 +32,7 @@ public class TabsExample : Widget
             .AddTab("Collections", new Scroll(new CollectionExample()))
             .AddTab("Lists",       new Scroll(new ListsExample()))
             .AddTab("Colors",      new Scroll(new ColorsExample()))
+            .AddTab("Commands",    new Scroll(new CommandsExample()))
             .AddTab("Settings",    new Scroll(settings));
 
         AddChild(tabs);

@@ -205,6 +205,26 @@ bool    MoveFocus(bool forward);   // Tab order; stays inside the topmost modal 
 void    ClearFocus();
 event Action<KeyEventArgs>? UnhandledKeyDown;   // keys no widget handled (app shortcuts); runs before Tab navigation
 event Action<KeyEventArgs>? UnhandledKeyUp;     // releases no widget handled, also with nothing focused (end held-key modes)
+bool    HasModalOverlay { get; }   // a dialog is open; app-wide shortcuts wait
+```
+
+### `CommandManager`, `Command`, `KeyGesture` · `lib/ApexUI/Core/`
+
+```csharp
+CommandManager()
+Command Add(string name, string label, Action execute, params string[] gestures)   // "Mod+Shift+Z", "F", "Equal"
+Command? Find(string name);  Command this[string name];  bool Execute(string name);  event Action<Command>? Executed
+void Attach(UiHost host) / Detach()   // runs the first enabled command matching an unhandled key press
+bool SuspendWhileEditingText = true   // ignore shortcuts while FocusedWidget.EditsText; always ignored while HasModalOverlay
+bool HandleKey(KeyEventArgs e)
+
+Command: string Name, Label, Tooltip ("Undo (Ctrl+Z)"); ReadOnlySpan<KeyGesture> Gestures
+         Bindable<bool> Enabled; bool IsEnabled; bool Execute()   // no-op while disabled
+Button.WithCommand(command) / IconButton.WithCommand(command)    // press runs it; IsEnabled follows it
+
+readonly record struct KeyGesture(Key Key, KeyModifiers Modifiers = None)
+static KeyGesture Parse(string) / bool TryParse(string, out KeyGesture)   // Mod = Cmd on macOS, Ctrl elsewhere
+static KeyModifiers PrimaryModifier;  bool Matches(KeyEventArgs);  string ToString()   // "Ctrl+Shift+Z"
 ```
 
 ### `IPlatform` · `lib/ApexUI/Core/IPlatform.cs`
@@ -216,10 +236,13 @@ void Run(IPlatformListener listener)   // call listener.Resize before the first 
 void RequestFrame()            // render once, soon; render only when asked (and after Resize)
 TimeSpan Now { get; }          // monotonic clock (same as Render's frameTime); used for double-click timing
 float ResizeFrameRate { get; set; }   // redraws/s during a user resize, 0 = after it ends; desktop draws from the size callbacks
+void SetTitle(string title)
 string? GetClipboardText(); void SetClipboardText(string)
 void SetCursor(CursorShape)
 IDisposable StartTimer(TimeSpan interval, Action tick)   // UI thread; dispose to stop
-Task<string?> OpenFileAsync(FileDialogOptions) / SaveFileAsync(FileDialogOptions)   // not implemented on desktop yet
+Task<string?> OpenFileAsync(FileDialogOptions) / SaveFileAsync(FileDialogOptions)   // null = cancelled; awaiting code resumes on the UI thread
+// FileDialogOptions(string Title, IReadOnlyList<FileFilter> Filters, string? SuggestedFileName); FileFilter(string Name, IReadOnlyList<string> Extensions) without dots
+// Desktop: Win32 common dialogs (STA thread, owned by the window), osascript on macOS, zenity/kdialog on Linux.
 
 // IPlatformListener: Resize, Render(SKCanvas, TimeSpan frameTime), PointerMove/Down/Up(…, KeyModifiers), Wheel(dx, dy, KeyModifiers),
 //                    KeyDown/KeyUp(Key, KeyModifiers) (repeat KeyDown while held), TextEntered(string), Close
@@ -435,6 +458,17 @@ void DrawPicture(SKPicture picture, Rect dest, float naturalW, float naturalH)
 ClipScope PushClip(Rect r)              // rectangular clip
 ClipScope PushClip(Rect r, float radius) // rounded-rect clip
 // ClipScope is IDisposable — use with `using` to auto-restore canvas state
+```
+
+### `Dialog` · `lib/ApexUI/Widgets/Dialog.cs`
+
+```csharp
+Dialog(string title, Widget content)   // modal; Show(host), Close(), IsOpen, event Closed
+Dialog AddButton(text, action, variant = Secondary) / AddPrimaryButton(text, action) / AddCancelButton(text, action)
+Widget? InitialFocus   // focused on Show; default: the primary button
+// Enter runs the primary button, Escape the cancel button (or Close) — also when nothing in the dialog has focus.
+static Dialog Alert(title, message, btnText = "OK", onClose = null)
+static Dialog Confirm(title, message, onConfirm = null, onCancel = null, confirmText = "OK", cancelText = "Cancel")
 ```
 
 ### `Checkbox` · `lib/ApexUI/Widgets/Checkbox.cs`

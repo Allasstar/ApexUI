@@ -4,6 +4,19 @@ Newest first. **Breaking** marks changes that need edits in apps using ApexUI.
 
 ## Unreleased
 
+### Commands, dialog keys, file dialogs, window title
+- New `CommandManager`: named `Command`s with keyboard shortcuts. `Add(name, label, execute, "Mod+Shift+Z", ...)`, `Find`, indexer, `Execute(name)`, `Executed` event. `Attach(host)` runs the first enabled command whose gesture matches a key press no focused widget handled; shortcuts wait while a modal overlay is open and, with `SuspendWhileEditingText` (default on), while the focused widget edits text. `HandleKey(e)` routes keys from elsewhere.
+- New `Command`: `Name`, `Label`, `Gestures`, `Enabled` (`Bindable<bool>`) / `IsEnabled`, `Execute()` (does nothing while disabled), `Tooltip` ("Undo (Ctrl+Z)").
+- New `KeyGesture(Key, KeyModifiers)`: `Parse`/`TryParse` ("Ctrl+Shift+Z", "Alt+F4", "Equal", "1"; `Mod` is Cmd on macOS and Ctrl elsewhere, `KeyGesture.PrimaryModifier`), `Matches(KeyEventArgs)`, readable `ToString()`.
+- New `Button.WithCommand(command)` and `IconButton.WithCommand(command)`: pressing runs the command, and the button follows its enabled state while on screen.
+- New `UiHost.HasModalOverlay` and `Widget.EditsText` (true for `TextInput`).
+- `Dialog`: focuses `InitialFocus` or the primary button when shown; Enter runs the primary button and Escape runs the cancel button (or closes), also when nothing in the dialog has focus. New `AddCancelButton`, `InitialFocus`, `IsOpen`. `Confirm` marks its cancel button; `Alert` and `Confirm` wrap long messages. `Close` on a closed dialog no longer raises `Closed` again. `BuildPanel` no longer uses LINQ.
+- Desktop file dialogs: `OpenFileAsync` and `SaveFileAsync` now work. Windows uses the system common dialogs on their own STA thread, owned by the window so it stays responsive and blocked for input; macOS uses AppleScript (`osascript`); Linux uses `zenity`, then `kdialog`. Save asks before replacing a file and adds the first filter's extension to a bare name. No new packages.
+- `DesktopPlatform` installs a synchronization context on the UI thread, so code after an `await` (a file dialog, file I/O) continues on the UI thread between loop iterations.
+- **Breaking:** `IPlatform` gains `void SetTitle(string title)`. Custom backends add it.
+- Gallery: new Commands tab (shortcuts with bound buttons and an enable switch, a text field that keeps typed letters, Open and Save dialogs, window title).
+- 25 new tests (300 in total).
+
 ### Dashed strokes
 - New `DrawContext.StrokeDashedPath(path, color, thickness, dash, gap)`: strokes a path as dashes. Lengths are in the current canvas units, so inside a `Viewport` divide them by `Zoom` to keep them a fixed size on screen; thickness 0 draws hairline dashes. The context keeps one dash pattern and rebuilds it only when the lengths change.
 - Gallery: the Viewport tab draws a dashed frame around the area Fit shows.

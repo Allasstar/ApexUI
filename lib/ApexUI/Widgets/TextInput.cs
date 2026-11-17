@@ -66,6 +66,8 @@ public class TextInput : Widget
     private int  SelectionEnd   => Math.Max(_cursorPos, _selAnchor);
     private bool HasSelection   => _cursorPos != _selAnchor;
 
+    public override bool EditsText => true;
+
     public TextInput(string placeholder = "")
     {
         Placeholder  = placeholder;

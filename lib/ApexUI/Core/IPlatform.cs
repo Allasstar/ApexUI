@@ -21,6 +21,9 @@ public interface IPlatform
     /// (the OS runs its own resize loop); a browser backend throttles its resize-driven layout the same way.
     float ResizeFrameRate { get; set; }
 
+    /// Sets the window title (the tab title in a browser).
+    void SetTitle(string title);
+
     string? GetClipboardText();
     void SetClipboardText(string text);
 
@@ -30,10 +33,12 @@ public interface IPlatform
     /// A tick does not render by itself; widgets it changes invalidate as usual.
     IDisposable StartTimer(TimeSpan interval, Action tick);
 
-    /// Asks the user for a file to open. Completes with null when cancelled.
+    /// Asks the user for a file to open. Completes with null when cancelled. Code awaiting it
+    /// continues on the UI thread.
     Task<string?> OpenFileAsync(FileDialogOptions options);
 
-    /// Asks the user where to save a file. Completes with null when cancelled.
+    /// Asks the user where to save a file, confirming before replacing one. Completes with null when
+    /// cancelled. A chosen name without an extension gets the first filter's first extension.
     Task<string?> SaveFileAsync(FileDialogOptions options);
 }
 

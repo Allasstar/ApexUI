@@ -22,6 +22,15 @@ public class IconButton : Widget
 
     public IconButton OnPress(Action action) { Pressed += action; return this; }
 
+    /// Runs command when pressed and follows its enabled state while on screen.
+    public IconButton WithCommand(Command command)
+    {
+        Pressed += () => command.Execute();
+        IsEnabled = command.IsEnabled;
+        Observe(command.Enabled, enabled => IsEnabled = enabled);
+        return this;
+    }
+
     protected override Thickness DefaultPadding(Theme theme) => theme.IconButtonPadding;
     protected override float DefaultCornerRadius(Theme theme) => theme.CornerRadiusControl;
 

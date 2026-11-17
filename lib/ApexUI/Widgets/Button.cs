@@ -42,6 +42,15 @@ public class Button : Widget
     public Button WithVariant(ButtonVariant v) { Variant = v; return this; }
     public Button OnPress(Action action)   { Pressed += action; return this; }
 
+    /// Runs command when pressed and follows its enabled state while on screen.
+    public Button WithCommand(Command command)
+    {
+        Pressed += () => command.Execute();
+        IsEnabled = command.IsEnabled;
+        Observe(command.Enabled, enabled => IsEnabled = enabled);
+        return this;
+    }
+
     protected override void OnClick(PointerEventArgs e)
     {
         e.Handled = true;
