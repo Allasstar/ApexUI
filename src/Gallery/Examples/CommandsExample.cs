@@ -44,6 +44,12 @@ public class CommandsExample : Widget
             path.Text = chosen ?? "Cancelled";
         }
 
+        async void PickFolder()
+        {
+            string? chosen = await Host!.Platform.PickFolderAsync("Choose a folder");
+            path.Text = chosen ?? "Cancelled";
+        }
+
         var title = new TextInput().WithValue("ApexUI Demo");
         title.Grow = 1f;
 
@@ -68,7 +74,8 @@ public class CommandsExample : Widget
                 new Label { Text = "File dialogs", Bold = true, Role = TextRole.Heading },
                 new Row(
                     new Button("Open…", Open),
-                    new Button("Save as…", Save).WithVariant(ButtonVariant.Secondary)
+                    new Button("Save as…", Save).WithVariant(ButtonVariant.Secondary),
+                    new Button("Folder…", PickFolder).WithVariant(ButtonVariant.Secondary)
                 ).WithSpacing(8f),
                 path,
                 new Separator { Margin = new Thickness(0, 4f) },

@@ -108,16 +108,16 @@ public class MenuButton : Widget
 
     protected override void OnDetached() => _overlay.Detach();
 
-    private SKColor FaceColor(Theme t) => IsSelected ? t.OnPrimary : IsEnabled ? t.OnSurface : t.OnSurfaceMuted;
+    private SKColor FaceColor(Theme t) => IsSelected ? t.OnPrimary : IsEnabledInTree ? t.OnSurface : t.OnSurfaceMuted;
 
     protected override void DrawCore(DrawContext ctx)
     {
         Theme t = ctx.Theme;
         if (IsSelected)
         {
-            ctx.FillRoundRect(LayoutBounds, CornerRadius, (IsHovered || IsOpen) && IsEnabled ? t.PrimaryHover : t.Primary);
+            ctx.FillRoundRect(LayoutBounds, CornerRadius, (IsHovered || IsOpen) && IsEnabledInTree ? t.PrimaryHover : t.Primary);
         }
-        else if (IsEnabled)
+        else if (IsEnabledInTree)
         {
             if (IsPressed || IsOpen) ctx.FillRoundRect(LayoutBounds, CornerRadius, t.SurfacePressed);
             else if (IsHovered) ctx.FillRoundRect(LayoutBounds, CornerRadius, t.SurfaceHover);
@@ -126,8 +126,7 @@ public class MenuButton : Widget
         Rect b = LayoutBounds;
         float cx = b.Right - t.IconButtonPadding.Right - ChevronSize;
         float cy = b.CenterY + ChevronSize * 0.25f;
-        SKColor color = IsSelected ? t.OnPrimary : IsEnabled ? t.OnSurfaceMuted : t.OnSurfaceMuted.WithAlpha(0.5f);
-        ctx.DrawLine(cx - ChevronSize, cy - ChevronSize * 0.5f, cx, cy + ChevronSize * 0.5f, color, ChevronLineWidth, SKStrokeCap.Round);
-        ctx.DrawLine(cx, cy + ChevronSize * 0.5f, cx + ChevronSize, cy - ChevronSize * 0.5f, color, ChevronLineWidth, SKStrokeCap.Round);
+        SKColor color = IsSelected ? t.OnPrimary : IsEnabledInTree ? t.OnSurfaceMuted : t.OnSurfaceMuted.WithAlpha(0.5f);
+        ctx.DrawChevron(cx, cy, ChevronSize, pointUp: false, color, ChevronLineWidth);
     }
 }

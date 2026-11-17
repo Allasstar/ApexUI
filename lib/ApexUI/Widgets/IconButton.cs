@@ -8,7 +8,7 @@ public class IconButton : Widget
     public IconButton(Icon icon, Action? onPressed = null)
     {
         Icon             = icon;
-        icon.ColorSource = t => IsSelected ? t.OnPrimary : IsEnabled ? t.OnSurface : t.OnSurfaceMuted;
+        icon.ColorSource = t => IsSelected ? t.OnPrimary : IsEnabledInTree ? t.OnSurface : t.OnSurfaceMuted;
         icon.HAlign      = HAlign.Center;
         icon.VAlign      = VAlign.Center;
         AddChild(icon);
@@ -52,8 +52,8 @@ public class IconButton : Widget
 
     protected override void DrawCore(DrawContext ctx)
     {
-        if (IsSelected)     ctx.FillRoundRect(LayoutBounds, CornerRadius, IsHovered && IsEnabled ? ctx.Theme.PrimaryHover : ctx.Theme.Primary);
-        else if (!IsEnabled) return;
+        if (IsSelected)     ctx.FillRoundRect(LayoutBounds, CornerRadius, IsHovered && IsEnabledInTree ? ctx.Theme.PrimaryHover : ctx.Theme.Primary);
+        else if (!IsEnabledInTree) return;
         else if (IsPressed) ctx.FillRoundRect(LayoutBounds, CornerRadius, ctx.Theme.SurfacePressed);
         else if (IsHovered) ctx.FillRoundRect(LayoutBounds, CornerRadius, ctx.Theme.SurfaceHover);
     }

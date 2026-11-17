@@ -74,7 +74,7 @@ public sealed class Icon : Widget
         if (path is null || ViewBox <= 0f) return;
 
         var   t     = ctx.Theme;
-        var   color = ColorSource?.Invoke(t) ?? Color ?? (IsEnabled ? t.OnSurface : t.OnSurfaceMuted);
+        var   color = ColorSource?.Invoke(t) ?? Color ?? (IsEnabledInTree ? t.OnSurface : t.OnSurfaceMuted);
         float size  = Size;
         var   area  = ContentBounds;
 

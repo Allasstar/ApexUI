@@ -132,6 +132,23 @@ public class FocusTraversalTests
     }
 
     [Fact]
+    public void IsEnabledInTree_follows_the_nearest_disabled_ancestor()
+    {
+        var input = new TextInput();
+        var inner = new Column(input);
+        var outer = new Column(inner);
+
+        Assert.True(input.IsEnabledInTree);
+        outer.IsEnabled = false;
+        Assert.False(input.IsEnabledInTree);
+        Assert.True(input.IsEnabled);
+        outer.IsEnabled = true;
+        inner.IsEnabled = false;
+        Assert.False(input.IsEnabledInTree);
+        Assert.True(outer.IsEnabledInTree);
+    }
+
+    [Fact]
     public void Focus_moves_raise_lost_then_got_focus()
     {
         var a = new Button("A");

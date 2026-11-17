@@ -127,6 +127,7 @@ float Opacity;   // 0..1
 bool  IsVisible;
 
 bool IsEnabled, IsHitTestVisible;
+bool IsEnabledInTree;   // false when this or an ancestor is disabled; draw disabled looks with it
 bool IsHovered;   // pointer over this widget or a descendant
 bool IsPressed;   // pressed here, until all buttons are released
 bool IsFocused;
@@ -241,8 +242,9 @@ string? GetClipboardText(); void SetClipboardText(string)
 void SetCursor(CursorShape)
 IDisposable StartTimer(TimeSpan interval, Action tick)   // UI thread; dispose to stop
 Task<string?> OpenFileAsync(FileDialogOptions) / SaveFileAsync(FileDialogOptions)   // null = cancelled; awaiting code resumes on the UI thread
+Task<string?> PickFolderAsync(string title)   // null = cancelled
 // FileDialogOptions(string Title, IReadOnlyList<FileFilter> Filters, string? SuggestedFileName); FileFilter(string Name, IReadOnlyList<string> Extensions) without dots
-// Desktop: Win32 common dialogs (STA thread, owned by the window), osascript on macOS, zenity/kdialog on Linux.
+// Desktop: Win32 common dialogs and the COM folder picker (STA thread, owned by the window), osascript on macOS, zenity/kdialog on Linux.
 
 // IPlatformListener: Resize, Render(SKCanvas, TimeSpan frameTime), PointerMove/Down/Up(…, KeyModifiers), Wheel(dx, dy, KeyModifiers),
 //                    KeyDown/KeyUp(Key, KeyModifiers) (repeat KeyDown while held), TextEntered(string), Close
@@ -531,6 +533,7 @@ float Size                        // theme IconSize until set
 SKColor? Color; Func<Theme, SKColor>? ColorSource   // default OnSurface (OnSurfaceMuted when disabled)
 IconButton(Icon icon, Action? onPressed = null) / IconButton(string pathData, Action? onPressed = null)
 event Action? Pressed;  IconButton OnPress(Action)   // ghost look, IconButtonPadding; wrap in Tooltip to name it
+bool IsSelected   // latched tool look (Primary fill); MenuButton has the same
 ```
 
 ### `ToggleGroup<T>` · `lib/ApexUI/Widgets/ToggleGroup.cs`

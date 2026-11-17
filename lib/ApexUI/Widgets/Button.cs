@@ -28,7 +28,7 @@ public class Button : Widget
             HAlign           = HAlign.Center,
             VAlign           = VAlign.Center,
             IsHitTestVisible = false,
-            ColorSource      = t => !IsEnabled ? t.OnSurfaceMuted : Variant == ButtonVariant.Primary ? t.OnPrimary : t.OnSurface,
+            ColorSource      = t => !IsEnabledInTree ? t.OnSurfaceMuted : Variant == ButtonVariant.Primary ? t.OnPrimary : t.OnSurface,
         };
         AddChild(_label);
         Pressed   += onPressed;
@@ -66,7 +66,7 @@ public class Button : Widget
 
     protected override void DrawCore(DrawContext ctx)
     {
-        var bg = !IsEnabled
+        var bg = !IsEnabledInTree
             ? (Variant == ButtonVariant.Ghost ? SKColor.Empty : ctx.Theme.Surface)
             : Variant switch
         {
@@ -86,7 +86,7 @@ public class Button : Widget
         if (bg != SKColor.Empty)
             ctx.FillRoundRect(LayoutBounds, radius, bg);
 
-        if (Variant != ButtonVariant.Primary || !IsEnabled)
+        if (Variant != ButtonVariant.Primary || !IsEnabledInTree)
             ctx.StrokeRoundRect(LayoutBounds, radius, ctx.Theme.Border);
     }
 }

@@ -4,6 +4,14 @@ Newest first. **Breaking** marks changes that need edits in apps using ApexUI.
 
 ## Unreleased
 
+### Folder picker, disabled look of composites
+- New `IPlatform.PickFolderAsync(title)`: asks for a folder, null when cancelled. Desktop: the system folder picker on Windows (the common file dialog in folder mode, through generated COM interop, on its own STA thread and owned by the window), `choose folder` through `osascript` on macOS, `zenity --directory` or `kdialog --getexistingdirectory` on Linux. No new packages.
+- **Breaking:** `IPlatform` gains `PickFolderAsync`. Custom backends add it.
+- New `Widget.IsEnabledInTree`: false when the widget or any ancestor is disabled. `TextInput`, `Button`, `Checkbox`, `Icon`, `IconButton` and `MenuButton` draw with it, so a disabled composite (a `NumberField`, a panel of controls) looks disabled all through. A disabled `TextInput` draws on `Surface` with muted text.
+- `MenuButton` draws its chevron with `DrawContext.DrawChevron`. The desktop file dialogs share one STA helper and one process runner.
+- Gallery: a Folder button next to Open and Save on the Commands tab.
+- 1 new test (335 in total).
+
 ### Selected tool buttons
 - New `IconButton.IsSelected` and `MenuButton.IsSelected`: a latched look (Primary fill, the face and chevron in `OnPrimary`) for a tool that stays chosen until another one is picked. A `MenuButton` face that is a `Label` now follows the enabled and selected state like an `Icon` face.
 - Gallery: the MenuButton demo on the Composite tab adds a pen button; the pen, or the shape menu once a shape is picked, stays selected.

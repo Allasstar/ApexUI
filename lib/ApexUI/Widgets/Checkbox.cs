@@ -76,7 +76,7 @@ public class Checkbox : Widget
         var   boxRect = new Rect(LayoutBounds.X, cy - size * 0.5f, size, size);
         float r       = t.CornerRadiusSmall;
 
-        if (IsChecked && IsEnabled)
+        if (IsChecked && IsEnabledInTree)
         {
             ctx.FillRoundRect(boxRect, r, t.Primary);
             ctx.DrawCheckmark(cx, cy, size * 0.35f, t.OnPrimary);
@@ -84,12 +84,12 @@ public class Checkbox : Widget
         else
         {
             ctx.FillRoundRect(boxRect, r, t.Surface);
-            ctx.StrokeRoundRect(boxRect, r, IsEnabled ? t.Border : t.SurfaceHover, 1.5f);
+            ctx.StrokeRoundRect(boxRect, r, IsEnabledInTree ? t.Border : t.SurfaceHover, 1.5f);
             if (IsChecked) // disabled + checked
                 ctx.DrawCheckmark(cx, cy, size * 0.35f, t.Border);
         }
 
-        if ((IsHovered || IsPressed) && IsEnabled)
+        if ((IsHovered || IsPressed) && IsEnabledInTree)
             ctx.FillRoundRect(boxRect, r, t.PrimaryHoverGhost);
 
         if (!string.IsNullOrEmpty(Label))
@@ -97,7 +97,7 @@ public class Checkbox : Widget
             float offset = size + t.SpacingSm;
             ctx.DrawText(Label,
                 new Rect(LayoutBounds.X + offset, LayoutBounds.Y, LayoutBounds.Width - offset, LayoutBounds.Height),
-                IsEnabled ? t.OnSurface : t.OnSurfaceMuted, t.FontSizeBody);
+                IsEnabledInTree ? t.OnSurface : t.OnSurfaceMuted, t.FontSizeBody);
         }
     }
 

@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using System.Runtime.InteropServices;
+using System.Runtime.InteropServices.Marshalling;
 using System.Runtime.Versioning;
 
 namespace ApexUI.Desktop;
@@ -11,27 +12,43 @@ internal static partial class FileDialogs
 {
     public static Task<string?> OpenAsync(FileDialogOptions options, nint owner)
     {
-        if (OperatingSystem.IsWindows()) return ShowOnStaThread(options, owner, save: false);
-        if (OperatingSystem.IsMacOS())   return RunProcessAsync("osascript", ["-e", AppleScript(options, save: false)], options, save: false);
-        return LinuxAsync(options, save: false);
+        if (OperatingSystem.IsWindows()) return FileOnStaThread(options, owner, save: false);
+        if (OperatingSystem.IsMacOS())   return RunProcessAsync("osascript", ["-e", AppleScript(options, save: false)]);
+        return LinuxAsync(ZenityArgs(options, save: false), KDialogArgs(options, save: false));
     }
 
-    public static Task<string?> SaveAsync(FileDialogOptions options, nint owner)
+    public static async Task<string?> SaveAsync(FileDialogOptions options, nint owner)
     {
-        if (OperatingSystem.IsWindows()) return ShowOnStaThread(options, owner, save: true);
-        if (OperatingSystem.IsMacOS())   return RunProcessAsync("osascript", ["-e", AppleScript(options, save: true)], options, save: true);
-        return LinuxAsync(options, save: true);
+        if (OperatingSystem.IsWindows()) return await FileOnStaThread(options, owner, save: true);
+        string? path = OperatingSystem.IsMacOS()
+            ? await RunProcessAsync("osascript", ["-e", AppleScript(options, save: true)])
+            : await LinuxAsync(ZenityArgs(options, save: true), KDialogArgs(options, save: true));
+        return path is null ? null : WithDefaultExtension(path, options);
     }
+
+    public static Task<string?> PickFolderAsync(string title, nint owner)
+    {
+        if (OperatingSystem.IsWindows()) return FolderOnStaThread(title, owner);
+        if (OperatingSystem.IsMacOS())   return RunProcessAsync("osascript", ["-e", $"POSIX path of (choose folder with prompt {Quote(title)})"]);
+        return LinuxAsync(["--file-selection", "--directory", $"--title={title}"], ["--title", title, "--getexistingdirectory", "."]);
+    }
+
+    [SupportedOSPlatform("windows")]
+    private static Task<string?> FileOnStaThread(FileDialogOptions options, nint owner, bool save) =>
+        OnStaThread(() => Win32FileDialog.Show(options, owner, save));
+
+    [SupportedOSPlatform("windows")]
+    private static Task<string?> FolderOnStaThread(string title, nint owner) => OnStaThread(() => Win32FolderDialog.Show(title, owner));
 
     // The shell parts of the common dialogs need a single-threaded apartment, which the UI thread is not.
     // A separate thread also keeps the window drawing while the dialog is open; the dialog disables it for input.
     [SupportedOSPlatform("windows")]
-    private static Task<string?> ShowOnStaThread(FileDialogOptions options, nint owner, bool save)
+    private static Task<string?> OnStaThread(Func<string?> show)
     {
         var result = new TaskCompletionSource<string?>(TaskCreationOptions.RunContinuationsAsynchronously);
         var thread = new Thread(() =>
         {
-            try   { result.SetResult(Win32FileDialog.Show(options, owner, save)); }
+            try   { result.SetResult(show()); }
             catch (Exception e) { result.SetException(e); }
         }) { IsBackground = true, Name = "File dialog" };
         thread.SetApartmentState(ApartmentState.STA);
@@ -39,10 +56,10 @@ internal static partial class FileDialogs
         return result.Task;
     }
 
-    private static async Task<string?> LinuxAsync(FileDialogOptions options, bool save)
+    private static async Task<string?> LinuxAsync(List<string> zenityArgs, List<string> kdialogArgs)
     {
-        if (await HasCommandAsync("zenity")) return await RunProcessAsync("zenity", ZenityArgs(options, save), options, save);
-        if (await HasCommandAsync("kdialog")) return await RunProcessAsync("kdialog", KDialogArgs(options, save), options, save);
+        if (await HasCommandAsync("zenity")) return await RunProcessAsync("zenity", zenityArgs);
+        if (await HasCommandAsync("kdialog")) return await RunProcessAsync("kdialog", kdialogArgs);
         throw new NotSupportedException("File dialogs need zenity or kdialog on Linux.");
     }
 
@@ -62,7 +79,7 @@ internal static partial class FileDialogs
     }
 
     // Exit code 0 with a path is a choice; anything else (1 for cancel in all three tools) is no choice.
-    private static async Task<string?> RunProcessAsync(string fileName, List<string> args, FileDialogOptions options, bool save)
+    private static async Task<string?> RunProcessAsync(string fileName, List<string> args)
     {
         var info = new ProcessStartInfo(fileName) { RedirectStandardOutput = true, RedirectStandardError = true, UseShellExecute = false };
         foreach (var arg in args) info.ArgumentList.Add(arg);
@@ -72,8 +89,7 @@ internal static partial class FileDialogs
         await process.WaitForExitAsync();
 
         string path = output.Trim();
-        if (process.ExitCode != 0 || path.Length == 0) return null;
-        return save ? WithDefaultExtension(path, options) : path;
+        return process.ExitCode != 0 || path.Length == 0 ? null : path;
     }
 
     private static string WithDefaultExtension(string path, FileDialogOptions options)
@@ -220,6 +236,77 @@ internal static partial class FileDialogs
             public nint  Reserved;
             public int   ReservedInt;
             public int   FlagsEx;
+        }
+    }
+    // The folder picker of Vista and later: the common file open dialog in folder mode, through COM.
+    [SupportedOSPlatform("windows")]
+    internal static partial class Win32FolderDialog
+    {
+        private const int  ClsctxInprocServer = 1;
+        private const uint FosNoChangeDir     = 0x8;
+        private const uint FosPickFolders     = 0x20;
+        private const uint FosForceFileSystem = 0x40;
+        private const uint SigdnFileSysPath   = 0x80058000;
+        private const int  ErrorCancelled     = unchecked((int)0x800704C7);
+
+        private static readonly Guid FileOpenDialog = new("DC1C5A9C-E88A-4DDE-A5A1-60F82A20AEF7");
+        private static readonly Guid FileDialogIid  = new("42F85136-DB7E-439C-85F1-E4075D135FC8");
+
+        public static string? Show(string title, nint owner)
+        {
+            Marshal.ThrowExceptionForHR(CoCreateInstance(in FileOpenDialog, 0, ClsctxInprocServer, in FileDialogIid, out nint unknown));
+            IFileDialog dialog;
+            try     { dialog = (IFileDialog)new StrategyBasedComWrappers().GetOrCreateObjectForComInstance(unknown, CreateObjectFlags.None); }
+            finally { Marshal.Release(unknown); }
+
+            dialog.GetOptions(out uint options);
+            dialog.SetOptions(options | FosPickFolders | FosForceFileSystem | FosNoChangeDir);
+            dialog.SetTitle(title);
+            int shown = dialog.Show(owner);
+            if (shown == ErrorCancelled) return null;
+            Marshal.ThrowExceptionForHR(shown);
+
+            dialog.GetResult(out IShellItem item);
+            item.GetDisplayName(SigdnFileSysPath, out nint name);
+            try     { return Marshal.PtrToStringUni(name); }
+            finally { Marshal.FreeCoTaskMem(name); }
+        }
+
+        [LibraryImport("ole32.dll")]
+        private static partial int CoCreateInstance(in Guid clsid, nint outer, int context, in Guid iid, out nint instance);
+
+        // Methods up to the last one used, in vtable order; Show comes from IModalWindow.
+        [GeneratedComInterface(StringMarshalling = StringMarshalling.Utf16)]
+        [Guid("42F85136-DB7E-439C-85F1-E4075D135FC8")]
+        internal partial interface IFileDialog
+        {
+            [PreserveSig] int Show(nint owner);
+            void SetFileTypes(uint count, nint filterSpec);
+            void SetFileTypeIndex(uint index);
+            void GetFileTypeIndex(out uint index);
+            void Advise(nint events, out uint cookie);
+            void Unadvise(uint cookie);
+            void SetOptions(uint options);
+            void GetOptions(out uint options);
+            void SetDefaultFolder(nint item);
+            void SetFolder(nint item);
+            void GetFolder(out nint item);
+            void GetCurrentSelection(out nint item);
+            void SetFileName(string name);
+            void GetFileName(out nint name);
+            void SetTitle(string title);
+            void SetOkButtonLabel(string text);
+            void SetFileNameLabel(string label);
+            void GetResult(out IShellItem item);
+        }
+
+        [GeneratedComInterface]
+        [Guid("43826D1E-E718-42EE-BC55-A1E261C37BFE")]
+        internal partial interface IShellItem
+        {
+            void BindToHandler(nint context, in Guid handler, in Guid iid, out nint result);
+            void GetParent(out nint parent);
+            void GetDisplayName(uint form, out nint name);
         }
     }
 }

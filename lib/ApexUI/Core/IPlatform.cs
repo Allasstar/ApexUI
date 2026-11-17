@@ -40,6 +40,9 @@ public interface IPlatform
     /// Asks the user where to save a file, confirming before replacing one. Completes with null when
     /// cancelled. A chosen name without an extension gets the first filter's first extension.
     Task<string?> SaveFileAsync(FileDialogOptions options);
+
+    /// Asks the user for a folder. Completes with null when cancelled. Code awaiting it continues on the UI thread.
+    Task<string?> PickFolderAsync(string title);
 }
 
 /// Receives events from an IPlatform. Sizes and pointer positions are in surface pixels:

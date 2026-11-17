@@ -114,6 +114,18 @@ public abstract partial class Widget
     // ── Interaction ────────────────────────────────────────────────────────
 
     public bool IsEnabled        { get; set => SetRenderProperty(ref field, value); } = true;
+
+    /// False when this widget or any ancestor is disabled: the state a composite's parts draw with.
+    public bool IsEnabledInTree
+    {
+        get
+        {
+            for (var w = this; w is not null; w = w.Parent)
+                if (!w.IsEnabled) return false;
+            return true;
+        }
+    }
+
     public bool IsHitTestVisible { get; set; } = true;
 
     // ── Child transform ───────────────────────────────────────────────────

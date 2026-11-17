@@ -131,8 +131,10 @@ public class TextInput : Widget
             ? (valid ? ctx.Theme.Primary : ctx.Theme.Danger)
             : (valid ? ctx.Theme.Border  : ctx.Theme.Danger);
 
+        // A disabled field reads as a value, not as a place to type.
+        bool enabled = IsEnabledInTree;
         float radius = CornerRadius;
-        ctx.FillRoundRect(LayoutBounds, radius, ctx.Theme.Background);
+        ctx.FillRoundRect(LayoutBounds, radius, enabled ? ctx.Theme.Background : ctx.Theme.Surface);
         ctx.StrokeRoundRect(LayoutBounds, radius, borderColor, IsFocused ? 2f : 1f);
 
         var    inner   = ContentBounds;
@@ -151,7 +153,7 @@ public class TextInput : Widget
             }
 
             if (!string.IsNullOrEmpty(display))
-                ctx.DrawText(display, new Rect(textX, inner.Y, inner.Width + _scrollX, inner.Height), ctx.Theme.OnSurface, sz);
+                ctx.DrawText(display, new Rect(textX, inner.Y, inner.Width + _scrollX, inner.Height), enabled ? ctx.Theme.OnSurface : ctx.Theme.OnSurfaceMuted, sz);
             else if (!string.IsNullOrEmpty(Placeholder) && !IsFocused)
                 ctx.DrawText(Placeholder, inner, ctx.Theme.OnSurfaceMuted, sz);
 

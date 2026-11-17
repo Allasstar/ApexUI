@@ -166,6 +166,8 @@ public sealed class DesktopPlatform : IPlatform
 
     public Task<string?> SaveFileAsync(FileDialogOptions options) => FileDialogs.SaveAsync(options, OwnerHandle());
 
+    public Task<string?> PickFolderAsync(string title) => FileDialogs.PickFolderAsync(title, OwnerHandle());
+
     // The dialog belongs to the window (stays on top of it and blocks its input) where the OS supports that.
     private nint OwnerHandle() => _window.Native?.Win32?.Hwnd ?? 0;
 
