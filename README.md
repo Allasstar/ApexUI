@@ -162,6 +162,7 @@ Subclasses override `OnClick`, `OnPointerPressed`, `OnKeyDown` and the rest inst
 | `Dialog` | Modal panel with title, content area, and configurable button row |
 | `Tooltip` | Hover-delay popup; wraps any widget: `new Tooltip(child, "hint")` |
 | `Scroll` | Scrollable viewport; direction: `Vertical`, `Horizontal`, `Both` |
+| `Viewport` | Pan and zoom camera: custom drawing in content space, hosted widgets, wheel zoom, drag pan, `Fit` |
 | `VirtualList<T>` | Scrolling list that builds only the rows near the viewport |
 
 ---

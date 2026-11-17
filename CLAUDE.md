@@ -449,6 +449,24 @@ Fluent methods (`OnChange`, `OnPress`, `WithSubmit`) subscribe with `+=`; constr
 | `Tabs` | `SelectionChanged(int)` |
 | `Dialog`, `Overlay` | `Closed` |
 
+### `Viewport` · `lib/ApexUI/Widgets/Viewport.cs`
+
+```csharp
+// Pan and zoom camera. A content point c appears at ViewRect origin + Pan + c × Zoom. Fills the space it is given.
+Viewport(Widget? content = null)   // children: natural size at the content origin, moved by ChildTransform
+protected virtual void DrawContent(DrawContext ctx)   // content space; stroke width 0 = one device pixel at any zoom
+float PanX, PanY, Zoom;  Rect ViewRect;  Transform2D ViewTransform;  bool IsPanning
+float MinZoom = 0.1, MaxZoom = 10, WheelZoomStep = 1.15
+PointerButtons PanButtons = Middle | Right   // [Flags] None, Left, Right, Middle
+CursorShape PanCursor = Move                 // while a drag pans; Cursor comes back after
+void SetView(float panX, float panY, float zoom);  void PanBy(float dx, float dy)
+void ZoomAt(float viewX, float viewY, float factor);  void ZoomAtCenter(float factor)
+void Fit(Rect content, float padding)   // refits on resize until the view is changed another way
+(float X, float Y) ContentToView(float x, float y);  (float X, float Y) ViewToContent(float x, float y)   // view = layout space
+event Action? ViewChanged
+Viewport WithZoomRange(float min, float max);  Viewport WithPanButtons(PointerButtons)
+```
+
 ### `Wrap` · `lib/ApexUI/Layout/Wrap.cs`
 
 ```csharp

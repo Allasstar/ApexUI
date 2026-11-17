@@ -4,6 +4,11 @@ Newest first. **Breaking** marks changes that need edits in apps using ApexUI.
 
 ## Unreleased
 
+### Viewport
+- New `Viewport` widget: a pan and zoom camera over an unbounded content space. Subclasses draw in content space by overriding `DrawContent`; child widgets are laid out once at their natural size and moved by the view transform. Wheel zooms around the pointer (`WheelZoomStep`), a drag with one of `PanButtons` pans (default middle and right; add `Left` for a pan tool) and shows `PanCursor`. Code API: `SetView`, `PanBy`, `ZoomAt`, `ZoomAtCenter`, `Fit(rect, padding)` (refits on resize until the view is changed another way), `ContentToView` / `ViewToContent`, `ViewTransform`, `MinZoom` / `MaxZoom`, `IsPanning` and the `ViewChanged` event.
+- New `PointerButtons` flags enum.
+- Gallery: the Transform tab becomes the Viewport tab and uses `Viewport` instead of its own zoom view.
+
 ### Change events
 - **Breaking:** value-change callbacks are now `event`s instead of public delegate fields, like the input events. Before, assigning one replaced every other handler: `slider.Bind(volume).OnChange(...)` silently dropped the binding, because `Bind` subscribed and `OnChange` overwrote. Migrate `x.OnChanged = h` to `x.ValueChanged += h` (or keep using the fluent method):
   | Widget | Before | After |
