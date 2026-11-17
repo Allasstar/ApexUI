@@ -16,9 +16,10 @@ Newest first. **Breaking** marks changes that need edits in apps using ApexUI.
 - New `DrawContext.FillCheckerboard`.
 - `VirtualList<T>`: `Count`, `Refresh()` (rebuild rows after changing a plain list), `ScrollIntoView(index)`, and for subclasses `ScrollOffset`, `RowWidth`, `RowRect(index)`, `RowIndexAt(y)`. A change notification from its `ObservableList` now keeps the scroll position (clamped to the new length); before, every change scrolled back to the top. `WithItems` still starts at the top.
 - `TextInput.SelectAll()` is public.
+- Fix: a `TextInput` offered unlimited width (a `Row` measuring with no width limit, an overlay) asked for infinite width. It now asks for its `MinWidth` and `Grow` decides the rest.
 - New theme tokens: `SwatchSize`, `ColorAreaSize`, `ColorStripHeight`.
 - Gallery: new Lists tab (reorderable, renamable list and a 2,000-row list) and Colors tab (swatches, inline picker, toasts); the Inputs tab shows `NumberField`.
-- 39 new tests (269 in total).
+- 40 new tests (270 in total).
 
 ### M2 retro
 - `Separator` asks for no length along its line, so a vertical separator no longer makes a toolbar row as tall as the window (before, it asked for all the height it was offered). Stretch alignment, the default, still fills the slot.

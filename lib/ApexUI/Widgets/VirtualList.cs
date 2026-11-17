@@ -131,12 +131,12 @@ public class VirtualList<T> : Widget
         InvalidateLayout();
     }
 
-    /// Scrolls the least distance that shows the whole row.
+    /// Scrolls the least distance that shows the whole row. Does nothing before the list is laid out.
     public void ScrollIntoView(int index)
     {
-        if (index < 0 || index >= Count) return;
-        float top = index * RowHeight;
         float viewportHeight = LayoutBounds.Height;
+        if (index < 0 || index >= Count || viewportHeight <= 0f) return;
+        float top = index * RowHeight;
         if (top < _scrollOff) ScrollTo(top);
         else if (top + RowHeight > _scrollOff + viewportHeight) ScrollTo(top + RowHeight - viewportHeight);
     }

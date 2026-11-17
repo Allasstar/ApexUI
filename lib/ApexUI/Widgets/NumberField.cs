@@ -83,6 +83,10 @@ public class NumberField : Widget
         return this;
     }
 
+    // Asks for the caption and the field's MinWidth only, so two fields share a row; Grow or Width widens it.
+    protected override Size MeasureCore(Size available)
+        => base.MeasureCore(new Size(float.PositiveInfinity, available.Height));
+
     // ── Scrubbing ─────────────────────────────────────────────────────────────
 
     protected override void OnPointerPressed(PointerEventArgs e)

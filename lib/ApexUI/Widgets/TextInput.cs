@@ -113,8 +113,10 @@ public class TextInput : Widget
     protected override Thickness DefaultPadding(Theme theme) => theme.InputPadding;
     protected override float DefaultCornerRadius(Theme theme) => theme.CornerRadiusControl;
 
+    // Fills the width it is given; offered unlimited width (a Row measuring its children) it asks for
+    // only MinWidth, and Grow decides how much more it gets.
     protected override Size MeasureCore(Size available)
-        => new(available.Width, Theme.FontSizeBody * Theme.LineHeight);
+        => new(float.IsInfinity(available.Width) ? 0f : available.Width, Theme.FontSizeBody * Theme.LineHeight);
 
     protected override void ArrangeCore(Rect finalRect) => ScrollToCaret();
 

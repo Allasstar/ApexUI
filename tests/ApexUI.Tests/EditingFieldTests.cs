@@ -361,3 +361,31 @@ public class SpacingSourceTests
         Assert.Equal(22, row.DesiredSize.Width);
     }
 }
+
+public class FieldWidthTests
+{
+    [Fact]
+    public void Text_input_offered_unlimited_width_asks_for_its_min_width()
+    {
+        var input = new TextInput { MinWidth = 60 };
+
+        input.Measure(new Size(float.PositiveInfinity, 100));
+
+        Assert.Equal(60, input.DesiredSize.Width, 3);
+    }
+
+    [Fact]
+    public void Two_growing_number_fields_share_a_row()
+    {
+        var a = new NumberField("A") { Grow = 1 };
+        var b = new NumberField("B") { Grow = 1 };
+        var row = new Row(a, b);
+
+        row.Measure(new Size(400, 100));
+        row.Arrange(new Rect(0, 0, 400, 100));
+
+        Assert.InRange(a.LayoutBounds.Width, 190, 210);
+        Assert.Equal(a.LayoutBounds.Right, b.LayoutBounds.X, 3);
+        Assert.Equal(400, b.LayoutBounds.Right, 3);
+    }
+}
