@@ -23,6 +23,8 @@ public class TabsExample : Widget
             .AddTab("Primitives", new Scroll(new PrimitivesExample()))
             .AddTab("Layout",     new Scroll(new LayoutExample()))
             .AddTab("Viewport",   new ViewportExample())
+            .AddTab("Icons",      new Scroll(new IconsExample()))
+            .AddTab("Panels",     new PanelsExample())
             .AddTab("Inputs",     new Scroll(new InputsExample()))
             .AddTab("Composite",   new Scroll(new CompositeExample()))
             .AddTab("Collections", new Scroll(new CollectionExample()))

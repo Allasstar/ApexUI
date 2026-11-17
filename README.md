@@ -136,6 +136,7 @@ Subclasses override `OnClick`, `OnPointerPressed`, `OnKeyDown` and the rest inst
 |--------|-------------|
 | `Label` | Text with configurable size, color, bold |
 | `Image` | Raster (PNG/JPG) and SVG; stretch modes: `None`, `Fill`, `Uniform`, `UniformToFill` |
+| `Icon` | Vector icon from SVG path data (24-unit box by default), filled or stroked, sized by the theme's `IconSize` |
 | `ProgressBar` | Filled track; variants: `Primary`, `Success`, `Warning`, `Danger` |
 | `Separator` | 1 px horizontal or vertical line |
 | `Spacer` | Flexible empty space that fills available room |
@@ -145,12 +146,14 @@ Subclasses override `OnClick`, `OnPointerPressed`, `OnKeyDown` and the rest inst
 | Widget | Description |
 |--------|-------------|
 | `Button` | Variants: `Primary`, `Secondary`, `Ghost` |
+| `IconButton` | Borderless button showing an `Icon`; wrap in a `Tooltip` to name it |
 | `TextInput` | Single-line text with placeholder, modes, validation, password masking |
 | `NumberInput` | `[−] [input] [+]` with step, min/max, and format string |
 | `Checkbox` | Checked/unchecked with optional label |
 | `Toggle` | On/off switch with optional label |
 | `Slider` | Draggable track — float or integer, optional step snapping |
 | `RadioGroup` | Mutually exclusive option set |
+| `ToggleGroup<T>` | Segmented control: one selected option out of text or icon options |
 | `Dropdown<T>` | Select-one list that opens a popup menu |
 
 ### Navigation & overlay
@@ -178,6 +181,8 @@ Subclasses override `OnClick`, `OnPointerPressed`, `OnKeyDown` and the rest inst
 | `Wrap` | Flows children left to right, wrapping to a new line on overflow |
 | `Grid` | Columns and rows sized `Auto`, `Fixed(px)` or `Star(factor)`, with cell spans |
 | `Canvas` | Children at explicit positions, with natural or explicit size |
+| `SplitPanel` | Two panes with a draggable divider; the fixed pane keeps its size, min/max sizes, collapsible |
+| `Section` | Titled group whose body collapses when the header is clicked |
 
 Every widget also has `Margin`, `Padding`, `Width`/`Height`, `Min…`/`Max…`, `HAlign`/`VAlign` and `AspectRatio`. Layout is cached: a change lays out only its own branch again.
 
@@ -268,8 +273,8 @@ Built-in widgets take every color, size, radius, padding and font from the theme
 | Typography | `FontFamily`, `FontSizeSmall` / `Body` / `Subheading` / `Heading` / `Title`, `LineHeight` |
 | Corner radii | `CornerRadiusSmall`, `CornerRadiusControl`, `CornerRadiusPopup`, `CornerRadiusDialog` |
 | Spacing | `SpacingXs` / `Sm` / `Md` / `Lg` |
-| Paddings | `ButtonPadding`, `InputPadding`, `MenuItemPadding`, `PopupPadding`, `TooltipPadding`, `DialogPadding`, `TabPadding` |
-| Control sizes | `CheckboxSize`, `RadioSize`, `ToggleWidth`, `ToggleHeight`, `SliderThumbSize`, `SliderTrackHeight`, `ProgressBarHeight`, `TabBarSize` |
+| Paddings | `ButtonPadding`, `InputPadding`, `MenuItemPadding`, `PopupPadding`, `TooltipPadding`, `DialogPadding`, `TabPadding`, `IconButtonPadding`, `SegmentPadding`, `SectionHeaderPadding` |
+| Control sizes | `CheckboxSize`, `RadioSize`, `ToggleWidth`, `ToggleHeight`, `SliderThumbSize`, `SliderTrackHeight`, `ProgressBarHeight`, `TabBarSize`, `IconSize`, `SplitterSize` |
 
 \* Derived: follows another token (e.g. `Selection` is `Primary` at 30%) unless set.
 

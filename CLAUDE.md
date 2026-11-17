@@ -348,8 +348,10 @@ float  FontSizeSmall, FontSizeBody, FontSizeSubheading, FontSizeHeading, FontSiz
 float  FontSize(TextRole role)   // enum TextRole { Body, Small, Subheading, Heading, Title }; Label.Role
 float  CornerRadiusSmall, CornerRadiusControl, CornerRadiusPopup, CornerRadiusDialog
 float  SpacingXs, SpacingSm, SpacingMd, SpacingLg
-Thickness ButtonPadding, InputPadding, MenuItemPadding, PopupPadding, TooltipPadding, DialogPadding, TabPadding
-float  CheckboxSize, RadioSize, ToggleWidth, ToggleHeight, SliderThumbSize, SliderTrackHeight, ProgressBarHeight, TabBarSize
+Thickness ButtonPadding, InputPadding, MenuItemPadding, PopupPadding, TooltipPadding, DialogPadding, TabPadding,
+          IconButtonPadding, SegmentPadding, SectionHeaderPadding
+float  CheckboxSize, RadioSize, ToggleWidth, ToggleHeight, SliderThumbSize, SliderTrackHeight, ProgressBarHeight, TabBarSize,
+       IconSize, SplitterSize
 ```
 
 ### `ThemeRegistry`, `BuiltInThemes` · `lib/ApexUI/Core/`
@@ -392,6 +394,13 @@ void DrawShadow(Rect r, float cornerRadius, float blur, SKColor color)
 void DrawChevron(float cx, float cy, float size, bool pointUp, SKColor color, float thickness = 1.5f)
 void DrawCheckmark(float cx, float cy, float size, SKColor color, float thickness = 2f)
 void DrawCross(float cx, float cy, float size, SKColor color, float thickness = 2f)
+```
+
+### `DrawContext` paths · `lib/ApexUI/Core/DrawContext.Paths.cs`
+
+```csharp
+void FillPath(SKPath path, SKColor color)
+void StrokePath(SKPath path, SKColor color, float thickness = 1f, SKStrokeCap cap = Butt, SKStrokeJoin join = Miter)   // 0 = hairline
 ```
 
 ### `DrawContext` text · `lib/ApexUI/Core/DrawContext.Text.cs`
@@ -445,7 +454,10 @@ Fluent methods (`OnChange`, `OnPress`, `WithSubmit`) subscribe with `+=`; constr
 | `Checkbox`, `Toggle` | `CheckedChanged(bool)` |
 | `Slider`, `NumberInput` | `ValueChanged(float)` |
 | `TextInput` | `ValueChanged(string)`, `Submitted(string)` (Enter) |
-| `Dropdown<T>`, `RadioGroup<T>` | `SelectionChanged(T?)` |
+| `Dropdown<T>`, `RadioGroup<T>`, `ToggleGroup<T>` | `SelectionChanged(T?)` |
+| `IconButton` | `Pressed` |
+| `SplitPanel` | `SplitSizeChanged(float)`, `CollapsedChanged(bool)` |
+| `Section` | `ExpandedChanged(bool)` |
 | `Tabs` | `SelectionChanged(int)` |
 | `Dialog`, `Overlay` | `Closed` |
 
@@ -465,6 +477,49 @@ void Fit(Rect content, float padding)   // refits on resize until the view is ch
 (float X, float Y) ContentToView(float x, float y);  (float X, float Y) ViewToContent(float x, float y)   // view = layout space
 event Action? ViewChanged
 Viewport WithZoomRange(float min, float max);  Viewport WithPanButtons(PointerButtons)
+```
+
+### `Icon`, `IconButton` · `lib/ApexUI/Widgets/`
+
+```csharp
+Icon(string pathData, IconStyle style = Fill)   // SVG path data in a ViewBox × ViewBox square; parsed on first draw, released on detach
+string PathData; IconStyle Style (Fill | Stroke); float ViewBox = 24; float StrokeWidth = 2 (view-box units)
+float Size                        // theme IconSize until set
+SKColor? Color; Func<Theme, SKColor>? ColorSource   // default OnSurface (OnSurfaceMuted when disabled)
+IconButton(Icon icon, Action? onPressed = null) / IconButton(string pathData, Action? onPressed = null)
+event Action? Pressed;  IconButton OnPress(Action)   // ghost look, IconButtonPadding; wrap in Tooltip to name it
+```
+
+### `ToggleGroup<T>` · `lib/ApexUI/Widgets/ToggleGroup.cs`
+
+```csharp
+// Segmented control (a LinearPanel): exactly one option selected; SelectionChanged fires once per change.
+ToggleGroup<T>(Orientation orientation = Horizontal)
+ToggleGroup<T> AddOption(T value, string text)
+ToggleGroup<T> AddOption(T value, Icon icon, string? tooltip = null)
+T? SelectedValue;  event Action<T?>? SelectionChanged
+ToggleGroup<T> WithSelected(T) / OnChange(Action<T?>) / Bind(Bindable<T>)
+```
+
+### `SplitPanel` · `lib/ApexUI/Layout/SplitPanel.cs`
+
+```csharp
+SplitPanel(Widget first, Widget second, Orientation orientation = Horizontal)   // draggable divider between them
+SplitSide FixedSide = First      // that pane is SplitSize long and keeps it on resize; the other takes the rest
+float SplitSize = 240            // clamped to MinSplitSize..MaxSplitSize; a small panel shrinks the pane, not the value
+float MinSplitSize, MaxSplitSize, MinOtherSize
+bool  Collapsible = true, IsCollapsed   // double-click the divider, or drag below MinSplitSize / 2
+float ActualSplitSize;  bool IsDragging
+event Action<float>? SplitSizeChanged;  event Action<bool>? CollapsedChanged
+SplitPanel WithSplitSize / WithFixedSide / WithSplitRange(min, max) / WithMinOtherSize
+```
+
+### `Section` · `lib/ApexUI/Widgets/Section.cs`
+
+```csharp
+Section(string title, Widget content, bool expanded = true)   // header toggles on click, Space or Enter
+string Title;  Widget Content;  bool IsExpanded;  event Action<bool>? ExpandedChanged
+Section WithExpanded(bool) / OnExpandedChange(Action<bool>)
 ```
 
 ### `Wrap` · `lib/ApexUI/Layout/Wrap.cs`

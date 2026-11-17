@@ -186,6 +186,11 @@ public sealed record Theme
     public Thickness TooltipPadding  { get; init; } = new(8f, 4f);
     public Thickness DialogPadding   { get; init; } = new(20f);
     public Thickness TabPadding      { get; init; } = new(16f, 10f);
+    /// Around the icon of an icon button or an icon-only toggle group option.
+    public Thickness IconButtonPadding { get; init; } = new(6f);
+    /// Around the text of a toggle group option.
+    public Thickness SegmentPadding  { get; init; } = new(10f, 4f);
+    public Thickness SectionHeaderPadding { get; init; } = new(12f, 8f);
 
     // ── Control sizes ─────────────────────────────────────────────────────
 
@@ -200,6 +205,10 @@ public sealed record Theme
     public float ProgressBarHeight { get; init; } = 8f;
     /// Height of a top or bottom tab bar, width of a side one.
     public float TabBarSize        { get; init; } = 40f;
+    /// Width and height of an Icon unless its Size is set.
+    public float IconSize          { get; init; } = 16f;
+    /// Thickness of a split panel's draggable divider (its grab area; the drawn line is one unit).
+    public float SplitterSize      { get; init; } = 6f;
 }
 
 /// The font size a Label takes from the theme.
