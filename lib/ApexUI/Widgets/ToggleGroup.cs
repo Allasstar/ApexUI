@@ -8,20 +8,28 @@ public class ToggleGroup<T> : LinearPanel
     {
         private readonly Action _onSelect;
 
-        public Segment(Widget content, bool iconOnly, Action onSelect)
+        public Segment(bool iconOnly, Action onSelect)
         {
             _onSelect = onSelect;
             IconOnly  = iconOnly;
             Focusable = true;
-            content.HAlign           = HAlign.Center;
-            content.VAlign           = VAlign.Center;
-            content.IsHitTestVisible = false;
-            AddChild(content);
         }
 
         public bool IconOnly { get; }
 
         public bool IsSelected { get; set => SetRenderProperty(ref field, value); }
+
+        public Widget With(Widget content)
+        {
+            content.HAlign           = HAlign.Center;
+            content.VAlign           = VAlign.Center;
+            content.IsHitTestVisible = false;
+            AddChild(content);
+            return this;
+        }
+
+        public SKColor ContentColor(Theme t)
+            => IsSelected ? t.OnPrimary : IsEnabled ? t.OnSurface : t.OnSurfaceMuted;
 
         protected override Thickness DefaultPadding(Theme theme)
             => IconOnly ? theme.IconButtonPadding : theme.SegmentPadding;
@@ -77,23 +85,17 @@ public class ToggleGroup<T> : LinearPanel
 
     public ToggleGroup<T> AddOption(T value, string text)
     {
-        Segment? segment = null;
-        var label = new Label
-        {
-            Text        = text,
-            ColorSource = t => segment!.IsSelected ? t.OnPrimary : segment.IsEnabled ? t.OnSurface : t.OnSurfaceMuted,
-        };
-        segment = Add(value, label, iconOnly: false);
-        AddChild(segment);
+        var segment = NewSegment(value, iconOnly: false);
+        AddChild(segment.With(new Label { Text = text, ColorSource = segment.ContentColor }));
         return this;
     }
 
     /// tooltip: shown on hover, since an icon alone may not say what the option does.
     public ToggleGroup<T> AddOption(T value, Icon icon, string? tooltip = null)
     {
-        Segment? segment = null;
-        icon.ColorSource = t => segment!.IsSelected ? t.OnPrimary : segment.IsEnabled ? t.OnSurface : t.OnSurfaceMuted;
-        segment = Add(value, icon, iconOnly: true);
+        var segment = NewSegment(value, iconOnly: true);
+        icon.ColorSource = segment.ContentColor;
+        segment.With(icon);
         AddChild(tooltip is null ? segment : new Tooltip(segment, tooltip));
         return this;
     }
@@ -109,9 +111,9 @@ public class ToggleGroup<T> : LinearPanel
         return this;
     }
 
-    private Segment Add(T value, Widget content, bool iconOnly)
+    private Segment NewSegment(T value, bool iconOnly)
     {
-        var segment = new Segment(content, iconOnly, () => SelectedValue = value);
+        var segment = new Segment(iconOnly, () => SelectedValue = value);
         segment.IsSelected = _hasSelection && EqualityComparer<T>.Default.Equals(SelectedValue, value);
         _options.Add((value, segment));
         return segment;

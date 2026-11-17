@@ -320,3 +320,46 @@ public class ButtonTests
         Assert.Equal(theme.Surface, disabled.GetPixel(4, 20));
     }
 }
+
+public class SeparatorTests
+{
+    [Fact]
+    public void Vertical_separator_does_not_make_its_row_taller_but_fills_its_height()
+    {
+        var separator = new Separator().AsVertical();
+        var row = new Row(new FixedBox(40, 24), separator) { VAlign = VAlign.Top };
+        row.Measure(new Size(400, 600));
+        row.Arrange(new Rect(0, 0, 400, row.DesiredSize.Height));
+
+        Assert.Equal(24, row.DesiredSize.Height);
+        Assert.Equal(24, separator.LayoutBounds.Height);
+    }
+
+    [Fact]
+    public void Horizontal_separator_fills_its_column_width()
+    {
+        var separator = new Separator();
+        var column = new Column(new FixedBox(120, 10), separator);
+        column.Measure(new Size(400, 600));
+        column.Arrange(new Rect(0, 0, 300, column.DesiredSize.Height));
+
+        Assert.Equal(120, column.DesiredSize.Width);
+        Assert.Equal(300, separator.LayoutBounds.Width);
+    }
+}
+
+public class RadioGroupTests
+{
+    [Fact]
+    public void Setting_the_selected_value_again_raises_nothing()
+    {
+        var group = new RadioGroup<int>().AddOption(1, "One").AddOption(2, "Two").WithSelected(2);
+        int raised = 0;
+        group.SelectionChanged += _ => raised++;
+
+        group.SelectedValue = 2;
+        group.SelectedValue = 1;
+
+        Assert.Equal(1, raised);
+    }
+}

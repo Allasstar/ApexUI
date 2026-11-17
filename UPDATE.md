@@ -4,6 +4,12 @@ Newest first. **Breaking** marks changes that need edits in apps using ApexUI.
 
 ## Unreleased
 
+### M2 retro
+- `Separator` asks for no length along its line, so a vertical separator no longer makes a toolbar row as tall as the window (before, it asked for all the height it was offered). Stretch alignment, the default, still fills the slot.
+- `RadioGroup<T>` raises `SelectionChanged` only when the selection changes; setting the current value again raised it before.
+- `ToggleGroup<T>` builds both option kinds through one path, so text and icon options share their colors.
+- 3 new tests (230 in total).
+
 ### Icons, toggle groups, split panels, sections
 - New `Icon`: a vector icon from SVG path data laid out in a `ViewBox` square (24 by default), filled (nonzero) or stroked with round caps (`IconStyle`, `StrokeWidth` in view-box units). Sized by the new theme token `IconSize` until `Size` is set; color from `Color` / `ColorSource`, default `OnSurface` (`OnSurfaceMuted` when disabled). The path is parsed on first draw and released when the icon leaves the screen; invalid path data draws nothing.
 - New `IconButton`: a borderless, focusable button showing an `Icon`, with hover and pressed fills and the `Pressed` event. Wrap it in a `Tooltip` to name it.

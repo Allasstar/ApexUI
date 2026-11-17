@@ -73,14 +73,17 @@ public class RadioGroup<T> : LinearPanel
 
     private readonly List<(T Value, RadioItem Item)> _options = [];
 
-    private T? _selected;
+    private T?   _selected;
+    private bool _hasSelection;
 
     public T? SelectedValue
     {
         get => _selected;
         set
         {
-            _selected = value;
+            if (_hasSelection && EqualityComparer<T>.Default.Equals(_selected, value)) return;
+            _selected     = value;
+            _hasSelection = true;
             foreach (var (v, item) in _options)
                 item.IsSelected = EqualityComparer<T>.Default.Equals(v, value);
             SelectionChanged?.Invoke(value);

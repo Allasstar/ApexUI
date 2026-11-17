@@ -21,11 +21,10 @@ public class Separator : Widget
     public Separator AsVertical()   { Orientation = SeparatorOrientation.Vertical;   return this; }
     public Separator WithColor(SKColor color) { Color = color; return this; }
 
-    // Takes no length when unconstrained (e.g. in a menu that sizes to its items); stretching fills the slot.
+    // Asks for no length, so it never makes its panel longer (a menu wider, a toolbar taller);
+    // stretch alignment, the default, fills the slot it is given.
     protected override Size MeasureCore(Size available)
-        => Orientation == SeparatorOrientation.Horizontal
-            ? new Size(float.IsInfinity(available.Width) ? 0f : available.Width, 1f)
-            : new Size(1f, float.IsInfinity(available.Height) ? 0f : available.Height);
+        => Orientation == SeparatorOrientation.Horizontal ? new Size(0f, 1f) : new Size(1f, 0f);
 
     protected override void DrawCore(DrawContext ctx)
     {
