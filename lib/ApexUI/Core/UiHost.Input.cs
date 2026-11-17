@@ -48,6 +48,10 @@ public sealed partial class UiHost
     /// the default handling that follows (Tab / Shift+Tab move focus).
     public event Action<KeyEventArgs>? UnhandledKeyDown;
 
+    /// Key releases no focused widget handled, so a key held for an app-wide mode (for example
+    /// Space to pan) can end it even when nothing has focus.
+    public event Action<KeyEventArgs>? UnhandledKeyUp;
+
     // ── Focus ─────────────────────────────────────────────────────────────────
 
     internal bool SetFocus(Widget widget)
@@ -385,9 +389,11 @@ public sealed partial class UiHost
     {
         _modifiers = modifiers;
         if (key != Key.Unknown) _keysDown[(int)key] = false;
-        if (_focused is null) return;
         FillKey(key, modifiers, repeat: false);
-        Route(_focused, InputKind.KeyUp, _keyArgs);
+        if (_focused is not null)
+            Route(_focused, InputKind.KeyUp, _keyArgs);
+        if (!_keyArgs.Handled)
+            UnhandledKeyUp?.Invoke(_keyArgs);
     }
 
     void IPlatformListener.TextEntered(string text)

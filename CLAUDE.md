@@ -201,6 +201,7 @@ bool    IsFocusVisible { get; }    // focus came from the keyboard → focus rin
 bool    MoveFocus(bool forward);   // Tab order; stays inside the topmost modal overlay
 void    ClearFocus();
 event Action<KeyEventArgs>? UnhandledKeyDown;   // keys no widget handled (app shortcuts); runs before Tab navigation
+event Action<KeyEventArgs>? UnhandledKeyUp;     // releases no widget handled, also with nothing focused (end held-key modes)
 ```
 
 ### `IPlatform` · `lib/ApexUI/Core/IPlatform.cs`

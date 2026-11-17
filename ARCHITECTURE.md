@@ -69,7 +69,7 @@ handles `Wheel` only when it actually scrolled, a `TextInput` leaves Tab, Up/Dow
 - **Focus**: a press focuses the nearest `Focusable` widget under the pointer, or clears focus. Tab / Shift+Tab
   move through focusable widgets in tree order (inside the topmost modal overlay, if one is open). A focus ring
   is drawn only when focus came from the keyboard (`UiHost.IsFocusVisible`).
-- Key presses no widget handled reach `UiHost.UnhandledKeyDown` (app-wide shortcuts), then Tab navigation.
+- Key presses no widget handled reach `UiHost.UnhandledKeyDown` (app-wide shortcuts), then Tab navigation. Releases no widget handled reach `UiHost.UnhandledKeyUp`, also when nothing has focus, so held-key modes can end.
 - Pointer events carry modifiers and a `ClickCount` (2 for a double press). `Widget.Cursor` sets the pointer
   shape; the captured widget's cursor wins, then the hovered chain's, deepest first.
 - One event-argument object per kind is reused for every event, so routing allocates nothing. Handlers must

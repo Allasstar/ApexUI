@@ -11,9 +11,10 @@ Newest first. **Breaking** marks changes that need edits in apps using ApexUI.
 - New `SplitPanel`: two panes with a draggable divider, horizontal or vertical. The `FixedSide` pane is `SplitSize` long and keeps it when the panel resizes; the other takes the rest, at least `MinOtherSize`. `MinSplitSize` / `MaxSplitSize` clamp the size. When `Collapsible`, double-clicking the divider or dragging it below half of `MinSplitSize` hides the fixed pane (`IsCollapsed`). Events `SplitSizeChanged`, `CollapsedChanged`. The divider shows a resize cursor.
 - New `Section`: a titled group whose body collapses when the header is clicked (or Space/Enter on the focused header), with `IsExpanded` and `ExpandedChanged`. Stacked sections are divided by a `BorderSubtle` line.
 - New `DrawContext.FillPath` and `StrokePath` (thickness 0 draws a hairline).
+- New `UiHost.UnhandledKeyUp`: key releases no focused widget handled, raised also when nothing has focus (before, a release with no focus went nowhere), so an app can end a held-key mode such as Space to pan.
 - New theme tokens: `IconSize`, `SplitterSize`, `IconButtonPadding`, `SegmentPadding`, `SectionHeaderPadding`.
 - Gallery: new Icons tab (icons, icon buttons, toggle groups) and Panels tab (a three-pane split layout with an inspector of sections).
-- 26 new tests (225 in total).
+- 27 new tests (226 in total).
 
 ### Viewport
 - New `Viewport` widget: a pan and zoom camera over an unbounded content space. Subclasses draw in content space by overriding `DrawContent`; child widgets are laid out once at their natural size and moved by the view transform. Wheel zooms around the pointer (`WheelZoomStep`), a drag with one of `PanButtons` pans (default middle and right; add `Left` for a pan tool) and shows `PanCursor`. Code API: `SetView`, `PanBy`, `ZoomAt`, `ZoomAtCenter`, `Fit(rect, padding)` (refits on resize until the view is changed another way), `ContentToView` / `ViewToContent`, `ViewTransform`, `MinZoom` / `MaxZoom`, `IsPanning` and the `ViewChanged` event.

@@ -283,6 +283,23 @@ public class FocusTests
     }
 
     [Fact]
+    public void Key_releases_reach_the_host_with_or_without_focus()
+    {
+        var box = new FixedBox(100, 100) { Focusable = true };
+        var released = new List<Key>();
+        box.KeyUp += e => { if (e.Key == Key.Escape) e.Handled = true; };
+        var (host, platform) = TestPlatform.Show(box);
+        host.UnhandledKeyUp += e => released.Add(e.Key);
+
+        platform.Key(Key.Space);
+        platform.Click(10, 10);
+        platform.Key(Key.Space);
+        platform.Key(Key.Escape);
+
+        Assert.Equal([Key.Space, Key.Space], released);
+    }
+
+    [Fact]
     public void Held_keys_are_marked_as_repeats()
     {
         var box = new FixedBox(100, 100) { Focusable = true };

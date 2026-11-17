@@ -116,6 +116,7 @@ button.Click        += e => Save();
 canvas.PointerMoved += e => Hover(e.X, e.Y);        // X/Y in the widget's layout space
 panel.KeyDown       += e => { if (e.Ctrl && e.Key == Key.Z) { Undo(); e.Handled = true; } };
 host.UnhandledKeyDown += e => RunShortcut(e);       // keys no widget handled
+host.UnhandledKeyUp   += e => EndHeldMode(e);       // releases no widget handled, even with nothing focused
 ```
 
 - Pointer, wheel, key and text events **bubble** from the widget under the pointer (or the focused widget) to the root until a handler sets `e.Handled`.
