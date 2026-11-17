@@ -3,6 +3,7 @@ using Silk.NET.Input;
 using Silk.NET.Maths;
 using Silk.NET.OpenGL;
 using Silk.NET.Windowing;
+using Silk.NET.Windowing.Glfw;
 using SilkKey = Silk.NET.Input.Key;
 
 namespace ApexUI.Desktop;
@@ -36,8 +37,6 @@ public sealed class DesktopPlatform : IPlatform
     private float _pixelRatio = 1f;
     // Framebuffer pixels per logical unit, as last reported to the listener.
     private float _dpiScale = 1f;
-    // Window coordinates per logical unit that the current window size was chosen for.
-    private float _windowUnitsPerLogical = 1f;
     private Vector2D<int> _surfaceSize;
 
     private string?     _iconPath;
@@ -55,7 +54,7 @@ public sealed class DesktopPlatform : IPlatform
             PreferredDepthBufferBits   = 0,
             PreferredStencilBufferBits = 8,  // Skia needs stencil
             Samples                    = 4,  // 4x MSAA — driver clamps if unsupported
-            IsVisible                  = false, // shown once sized for the display's scale
+            IsVisible                  = false, // shown once the surface is set up
         };
         _window = Window.Create(options);
 
@@ -84,6 +83,7 @@ public sealed class DesktopPlatform : IPlatform
         _listener = listener;
         var previousContext = SynchronizationContext.Current;
         SynchronizationContext.SetSynchronizationContext(_context);
+        RequestScaleToMonitor();
         _window.Initialize();
         while (!_window.IsClosing)
         {
@@ -108,6 +108,16 @@ public sealed class DesktopPlatform : IPlatform
             if (_wakeTimer.Dispose(stopped)) stopped.WaitOne();
         _window.Dispose();
         SynchronizationContext.SetSynchronizationContext(previousContext);
+    }
+
+    // GLFW sizes the window for the display's scale on creation and, on Windows, resizes it to the rectangle
+    // WM_DPICHANGED suggests when it moves to a display with another scale. Resizing it here instead loops
+    // while the window straddles two displays: the resize moves most of it back onto the other display.
+    // Silk.NET 2.23 has no name for GLFW_SCALE_TO_MONITOR and sets its own hints without resetting the rest.
+    private void RequestScaleToMonitor()
+    {
+        const int scaleToMonitor = 0x0002200C;
+        GlfwWindowing.GetExistingApi(_window)?.WindowHint((Silk.NET.GLFW.WindowHintBool)scaleToMonitor, true);
     }
 
     public void RequestFrame()
@@ -221,7 +231,7 @@ public sealed class DesktopPlatform : IPlatform
         return true;
     }
 
-    // Brings the window size, the surface and the listener in line with the display's scale.
+    // Brings the surface and the listener in line with the window size and the display's scale.
     // Called on every size, framebuffer, position and frame change, because a scale change
     // (moving to another display, changing display settings) has no event of its own here.
     // Returns whether the surface changed size or scale.
@@ -234,15 +244,6 @@ public sealed class DesktopPlatform : IPlatform
 
         _pixelRatio = fb.X / (float)size.X;
         float dpiScale = _contentScale?.Read() ?? _pixelRatio;
-
-        float units = dpiScale / _pixelRatio;
-        if (MathF.Abs(units - _windowUnitsPerLogical) > 0.01f)
-        {
-            float k = units / _windowUnitsPerLogical;
-            _windowUnitsPerLogical = units;
-            _window.Size = new Vector2D<int>((int)MathF.Round(size.X * k), (int)MathF.Round(size.Y * k));
-            return false; // the resize comes back here with the new size
-        }
 
         if (fb == _surfaceSize && dpiScale == _dpiScale) return false;
         _surfaceSize = fb;

@@ -4,6 +4,11 @@ Newest first. **Breaking** marks changes that need edits in apps using ApexUI.
 
 ## Unreleased
 
+### Moving between displays with different scales
+- Fixed: dragging the desktop window from a scaled display (150% 4K) toward an unscaled one froze it on the border, flickering and loading the CPU. `DesktopPlatform` resized the window itself whenever most of it crossed onto the other display; the smaller window then sat mostly on the first display again, so it grew back, and so on without end.
+- The window is now scaled by GLFW (`GLFW_SCALE_TO_MONITOR`): sized for the display's scale on creation and, on Windows, resized to the rectangle the system suggests when the window's DPI changes. `DesktopPlatform` no longer resizes the window.
+- On Windows the display scale comes from the window's own DPI (`GetDpiForWindow`), so the drawing scale changes together with the window size instead of ahead of it mid-drag.
+
 ### Commands, dialog keys, file dialogs, window title
 - New `CommandManager`: named `Command`s with keyboard shortcuts. `Add(name, label, execute, "Mod+Shift+Z", ...)`, `Find`, indexer, `Execute(name)`, `Executed` event. `Attach(host)` runs the first enabled command whose gesture matches a key press no focused widget handled; shortcuts wait while a modal overlay is open and, with `SuspendWhileEditingText` (default on), while the focused widget edits text. `HandleKey(e)` routes keys from elsewhere.
 - New `Command`: `Name`, `Label`, `Gestures`, `Enabled` (`Bindable<bool>`) / `IsEnabled`, `Execute()` (does nothing while disabled), `Tooltip` ("Undo (Ctrl+Z)").
