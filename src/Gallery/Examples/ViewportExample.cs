@@ -2,7 +2,7 @@ namespace ApexUI.Gallery.Examples;
 
 /// Demonstrates Viewport: a pan and zoom camera that draws its own content (the grid) and hosts
 /// widgets that are laid out once and then only redrawn, hit-tested and sent pointer positions
-/// through the view transform.
+/// through the view transform. A dashed frame marks the area Fit shows.
 public class ViewportExample : Widget
 {
     private static readonly Rect ContentArea = new(0f, 0f, 260f, 300f);
@@ -68,6 +68,8 @@ public class ViewportExample : Widget
         private const float Step   = 20f;
         private const float Extent = 1000f;
 
+        private SKPath? _frame;
+
         protected override void DrawContent(DrawContext ctx)
         {
             var color = ctx.Theme.BorderSubtle;
@@ -76,6 +78,23 @@ public class ViewportExample : Widget
                 ctx.DrawLine(v, -Extent, v, Extent, color, 0f, SKStrokeCap.Butt);
                 ctx.DrawLine(-Extent, v, Extent, v, color, 0f, SKStrokeCap.Butt);
             }
+
+            // Dash lengths are in content units, so dividing by the zoom keeps them 6 px on screen.
+            _frame ??= MakeFrame();
+            ctx.StrokeDashedPath(_frame, ctx.Theme.Primary, 0f, 6f / Zoom, 4f / Zoom);
+        }
+
+        protected override void OnDetached()
+        {
+            _frame?.Dispose();
+            _frame = null;
+        }
+
+        private static SKPath MakeFrame()
+        {
+            var path = new SKPath();
+            path.AddRect(new SKRect(ContentArea.X - 8f, ContentArea.Y - 8f, ContentArea.Right + 8f, ContentArea.Bottom + 8f));
+            return path;
         }
     }
 }

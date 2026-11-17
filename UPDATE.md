@@ -4,6 +4,11 @@ Newest first. **Breaking** marks changes that need edits in apps using ApexUI.
 
 ## Unreleased
 
+### Dashed strokes
+- New `DrawContext.StrokeDashedPath(path, color, thickness, dash, gap)`: strokes a path as dashes. Lengths are in the current canvas units, so inside a `Viewport` divide them by `Zoom` to keep them a fixed size on screen; thickness 0 draws hairline dashes. The context keeps one dash pattern and rebuilds it only when the lengths change.
+- Gallery: the Viewport tab draws a dashed frame around the area Fit shows.
+- 2 new tests (275 in total).
+
 ### Live window resize
 - The desktop window now redraws while you drag its edge, instead of freezing until the drag ends. Windows and macOS run their own resize loop during the drag, which blocked ApexUI's loop; `DesktopPlatform` now draws from inside the size callbacks.
 - New `UiHost.ResizeFrameRate` (default 60) and `BindResizeFrameRate(Bindable<float>)`: redraws per second while resizing, 0 for the old behaviour (one redraw when the resize ends). `DesktopPlatform.WithResizeFrameRate(fps)` sets it before the host exists.

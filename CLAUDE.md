@@ -409,6 +409,7 @@ void DrawCross(float cx, float cy, float size, SKColor color, float thickness = 
 ```csharp
 void FillPath(SKPath path, SKColor color)
 void StrokePath(SKPath path, SKColor color, float thickness = 1f, SKStrokeCap cap = Butt, SKStrokeJoin join = Miter)   // 0 = hairline
+void StrokeDashedPath(SKPath path, SKColor color, float thickness, float dash, float gap)   // canvas units; in a Viewport divide by Zoom
 ```
 
 ### `DrawContext` text · `lib/ApexUI/Core/DrawContext.Text.cs`

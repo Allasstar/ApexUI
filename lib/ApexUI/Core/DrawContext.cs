@@ -12,12 +12,16 @@ public sealed partial class DrawContext : IDisposable
 
     private readonly SKPaint _fill   = new() { IsAntialias = true };
     private readonly SKPaint _stroke = new() { IsAntialias = true, IsStroke = true };
+    private readonly SKPaint _dashed = new() { IsAntialias = true, IsStroke = true };
     private readonly SKPaint _text   = new() { IsAntialias = true };
     private readonly SKPaint _shadow = new() { IsAntialias = true };
     private readonly SKPaint _layer  = new();
     private readonly SKPath  _path   = new();
     private readonly SKRoundRect _roundRect = new();
     private readonly Dictionary<float, SKMaskFilter> _blurs = new();
+    private SKPathEffect? _dashEffect;
+    private float _dash;
+    private float _gap;
 
     /// pixelScale: canvas pixels per logical unit, already applied to the canvas transform.
     /// fonts: shared cache to use; when null the context creates and disposes its own.
@@ -91,6 +95,22 @@ public sealed partial class DrawContext : IDisposable
         return _stroke;
     }
 
+    // One dash pattern is kept: a Viewport recreates it only when the zoom changes.
+    internal SKPaint DashedPaint(SKColor color, float width, float dash, float gap)
+    {
+        if (_dashEffect is null || _dash != dash || _gap != gap)
+        {
+            _dashEffect?.Dispose();
+            _dashEffect = SKPathEffect.CreateDash([dash, gap], 0f);
+            _dash = dash;
+            _gap  = gap;
+            _dashed.PathEffect = _dashEffect;
+        }
+        _dashed.Color       = color;
+        _dashed.StrokeWidth = width;
+        return _dashed;
+    }
+
     internal SKPaint TextPaint(SKColor color)
     {
         _text.Color = color;
@@ -126,6 +146,8 @@ public sealed partial class DrawContext : IDisposable
     {
         _fill.Dispose();
         _stroke.Dispose();
+        _dashed.Dispose();
+        _dashEffect?.Dispose();
         _text.Dispose();
         _shadow.Dispose();
         _layer.Dispose();
