@@ -110,3 +110,32 @@ public class UiHostTests
         platform.Listener.Close();
     }
 }
+
+public class ResizeFrameRateTests
+{
+    [Fact]
+    public void Host_reads_and_writes_the_platform_rate_and_never_goes_negative()
+    {
+        var (host, platform) = TestPlatform.Show(new Column());
+        Assert.Equal(60f, host.ResizeFrameRate);
+
+        host.ResizeFrameRate = 24f;
+        Assert.Equal(24f, platform.ResizeFrameRate);
+
+        host.ResizeFrameRate = -5f;
+        Assert.Equal(0f, platform.ResizeFrameRate);
+    }
+
+    [Fact]
+    public void Binding_follows_the_source()
+    {
+        var (host, platform) = TestPlatform.Show(new Column());
+        var rate = new Bindable<float>(30f);
+
+        host.BindResizeFrameRate(rate);
+        Assert.Equal(30f, platform.ResizeFrameRate);
+
+        rate.Value = 0f;
+        Assert.Equal(0f, platform.ResizeFrameRate);
+    }
+}

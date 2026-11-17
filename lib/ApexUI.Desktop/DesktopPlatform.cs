@@ -43,6 +43,7 @@ public sealed class DesktopPlatform : IPlatform
     private CursorShape _cursor = CursorShape.Arrow;
     // The first frame is drawn once the window is sized, before anything asks for one.
     private bool        _frameRequested = true;
+    private TimeSpan    _lastResizeFrame;
 
     public DesktopPlatform(string title = "ApexUI App", int width = 900, int height = 600)
     {
@@ -112,6 +113,15 @@ public sealed class DesktopPlatform : IPlatform
 
     public TimeSpan Now => _clock.Elapsed;
 
+    public float ResizeFrameRate { get; set; } = 60f;
+
+    /// Redraws per second while the user drags a window edge; 0 redraws only when the drag ends.
+    public DesktopPlatform WithResizeFrameRate(float framesPerSecond)
+    {
+        ResizeFrameRate = Math.Max(0f, framesPerSecond);
+        return this;
+    }
+
     public string? GetClipboardText() => _keyboard?.ClipboardText;
 
     public void SetClipboardText(string text)
@@ -176,19 +186,37 @@ public sealed class DesktopPlatform : IPlatform
     // A restored, uncovered or re-focused window may show stale content, and the scale may have changed.
     private void OnWindowChanged()
     {
-        SyncSize();
+        if (SyncSize() && TryRenderDuringResize()) return;
         RequestFrame();
+    }
+
+    // While the user drags a window edge, Windows and macOS run their own modal resize loop and DoEvents does
+    // not return until the drag ends, so the main loop cannot draw. The size callbacks still arrive inside that
+    // loop, so the frame is drawn right here, at most ResizeFrameRate times per second. A skipped size is drawn
+    // by the next callback or by the main loop once the drag ends.
+    private bool TryRenderDuringResize()
+    {
+        if (ResizeFrameRate <= 0f) return false;
+
+        var now = _clock.Elapsed;
+        if (now - _lastResizeFrame < TimeSpan.FromSeconds(1.0 / ResizeFrameRate)) return false;
+
+        _lastResizeFrame = now;
+        _frameRequested  = false;
+        _window.DoRender();
+        return true;
     }
 
     // Brings the window size, the surface and the listener in line with the display's scale.
     // Called on every size, framebuffer, position and frame change, because a scale change
     // (moving to another display, changing display settings) has no event of its own here.
-    private void SyncSize()
+    // Returns whether the surface changed size or scale.
+    private bool SyncSize()
     {
-        if (_gl is null) return; // events can arrive before Load
+        if (_gl is null) return false; // events can arrive before Load
         var size = _window.Size;
         var fb   = _window.FramebufferSize;
-        if (size.X <= 0 || size.Y <= 0 || fb.X <= 0 || fb.Y <= 0) return; // minimized
+        if (size.X <= 0 || size.Y <= 0 || fb.X <= 0 || fb.Y <= 0) return false; // minimized
 
         _pixelRatio = fb.X / (float)size.X;
         float dpiScale = _contentScale?.Read() ?? _pixelRatio;
@@ -199,14 +227,15 @@ public sealed class DesktopPlatform : IPlatform
             float k = units / _windowUnitsPerLogical;
             _windowUnitsPerLogical = units;
             _window.Size = new Vector2D<int>((int)MathF.Round(size.X * k), (int)MathF.Round(size.Y * k));
-            return; // the resize comes back here with the new size
+            return false; // the resize comes back here with the new size
         }
 
-        if (fb == _surfaceSize && dpiScale == _dpiScale) return;
+        if (fb == _surfaceSize && dpiScale == _dpiScale) return false;
         _surfaceSize = fb;
         _dpiScale    = dpiScale;
         SetupSurface(fb.X, fb.Y);
         _listener!.Resize(fb.X, fb.Y, dpiScale);
+        return true;
     }
 
     private void SetupSurface(int w, int h)

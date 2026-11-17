@@ -9,6 +9,7 @@ SolAndLunaTheme.Register(host.Themes);
 var example = new TabsExample(host.Themes);
 host.BindFontFamily(example.FontFamily)
     .BindUiScale(example.Scale)
+    .BindResizeFrameRate(example.ResizeFrameRate)
     .BindTheme(example.Preset)
     .BindDarkMode(example.DarkMode)
     .Run(example);

@@ -6,6 +6,7 @@ public class TabsExample : Widget
     public Bindable<bool>   DarkMode   { get; }
     public Bindable<string> FontFamily { get; }
     public Bindable<string> Preset     { get; }
+    public Bindable<float>  ResizeFrameRate { get; }
 
     public TabsExample(ThemeRegistry themes)
     {
@@ -14,6 +15,7 @@ public class TabsExample : Widget
         DarkMode   = settings.DarkMode;
         FontFamily = settings.FontFamily;
         Preset     = settings.Preset;
+        ResizeFrameRate = settings.ResizeFrameRate;
 
         var tabs = new Tabs(TabPosition.Top)
             .AddTab("Counter",    new Scroll(new CounterExample()))

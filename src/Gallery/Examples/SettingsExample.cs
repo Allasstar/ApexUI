@@ -8,6 +8,7 @@ public class SettingsExample : Widget
     public Bindable<bool>   DarkMode   { get; } = new(false);
     public Bindable<string> FontFamily { get; } = new("Segoe UI");
     public Bindable<string> Preset     { get; }
+    public Bindable<float>  ResizeFrameRate { get; } = new(60f);
 
     private static readonly string[] Fonts =
     [
@@ -33,6 +34,14 @@ public class SettingsExample : Widget
                                 .WithValidation(s => string.IsNullOrEmpty(s) || InRange(s, 0.5f, 2f))
                                 .BindFloat(Scale, "F2"),
                             new Slider().WithMin(0.5f).WithMax(2f).WithStep(0.05f).Bind(Scale)
+                        ).WithSpacing(8f))
+                ),
+
+                Section("Window",
+                    Row("Redraws per second while resizing  (0 = only when the resize ends)",
+                        new Row(
+                            new NumberField("FPS") { Width = 110f }.WithRange(0f, 240f).WithFormat("0").Bind(ResizeFrameRate),
+                            new Slider().WithMin(0f).WithMax(120f).WithStep(5f).Bind(ResizeFrameRate)
                         ).WithSpacing(8f))
                 )
             ).WithSpacing(20f),

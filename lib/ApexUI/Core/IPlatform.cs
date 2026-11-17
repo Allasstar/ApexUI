@@ -16,6 +16,11 @@ public interface IPlatform
     /// Monotonic clock, the same one Render's frameTime comes from.
     TimeSpan Now { get; }
 
+    /// How many times per second the window is redrawn while the user is resizing it; 0 redraws only once
+    /// the resize ends. Set through UiHost.ResizeFrameRate. Desktop windows otherwise freeze during a drag
+    /// (the OS runs its own resize loop); a browser backend throttles its resize-driven layout the same way.
+    float ResizeFrameRate { get; set; }
+
     string? GetClipboardText();
     void SetClipboardText(string text);
 

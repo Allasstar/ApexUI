@@ -12,6 +12,7 @@ internal sealed class TestPlatform(int pixelWidth = 800, int pixelHeight = 600, 
     public CursorShape Cursor { get; private set; }
     public int FramesRequested { get; private set; }
     public TimeSpan Now { get; private set; }
+    public float ResizeFrameRate { get; set; } = 60f;
     public int ActiveTimers => _timers.Count(t => !t.IsStopped);
 
     public static (UiHost Host, TestPlatform Platform) Show(

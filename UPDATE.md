@@ -4,6 +4,13 @@ Newest first. **Breaking** marks changes that need edits in apps using ApexUI.
 
 ## Unreleased
 
+### Live window resize
+- The desktop window now redraws while you drag its edge, instead of freezing until the drag ends. Windows and macOS run their own resize loop during the drag, which blocked ApexUI's loop; `DesktopPlatform` now draws from inside the size callbacks.
+- New `UiHost.ResizeFrameRate` (default 60) and `BindResizeFrameRate(Bindable<float>)`: redraws per second while resizing, 0 for the old behaviour (one redraw when the resize ends). `DesktopPlatform.WithResizeFrameRate(fps)` sets it before the host exists.
+- **Breaking:** `IPlatform` gains `float ResizeFrameRate { get; set; }`. Custom backends add it; a browser backend uses it to throttle resize-driven layout.
+- Gallery: Settings has a Window section with a rate field and slider.
+- 2 new tests (273 in total).
+
 ### M3 retro
 - `Tooltip`, `Toast` and `ColorSwatch` share one internal `PopupPanel` (Surface fill, themed padding and radius) instead of three private copies.
 - `Toast` lifts itself off the bottom edge in arrange, so the gap follows theme changes; before, it was set once when the toast first opened.

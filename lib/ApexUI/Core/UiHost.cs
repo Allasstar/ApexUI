@@ -98,10 +98,25 @@ public sealed partial class UiHost : IPlatformListener
         Platform.Run(this);
     }
 
+    /// Redraws per second while the window is being resized (default 60); 0 redraws only when the resize ends.
+    /// Each redraw lays the whole tree out at the new size, so heavy UIs may want a lower rate.
+    public float ResizeFrameRate
+    {
+        get => Platform.ResizeFrameRate;
+        set => Platform.ResizeFrameRate = Math.Max(0f, value);
+    }
+
     public UiHost BindUiScale(Bindable<float> source)
     {
         UiScale = source.Value;
         source.Changed += v => UiScale = v;
+        return this;
+    }
+
+    public UiHost BindResizeFrameRate(Bindable<float> source)
+    {
+        ResizeFrameRate = source.Value;
+        source.Changed += v => ResizeFrameRate = v;
         return this;
     }
 

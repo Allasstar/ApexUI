@@ -187,6 +187,8 @@ ThemeRegistry Themes { get; }       // per host; starts with BuiltInThemes; regi
 float     DpiScale   { get; }       // display scaling reported by the platform
 float     PixelScale { get; }       // DpiScale × UiScale, applied once as the canvas transform
 float     UiScale    { get; set; }   // clamped 0.1–10; scales entire tree uniformly
+float     ResizeFrameRate { get; set; }   // redraws/s while the window is resized (default 60); 0 = only when it ends
+UiHost BindResizeFrameRate(Bindable<float>)
 
 UiHost BindUiScale(Bindable<float>)
 UiHost BindTheme(Bindable<string>)      // name in Themes
@@ -213,6 +215,7 @@ The only seam to the OS. Nothing outside `lib/ApexUI.Desktop/` may reference Sil
 void Run(IPlatformListener listener)   // call listener.Resize before the first Render
 void RequestFrame()            // render once, soon; render only when asked (and after Resize)
 TimeSpan Now { get; }          // monotonic clock (same as Render's frameTime); used for double-click timing
+float ResizeFrameRate { get; set; }   // redraws/s during a user resize, 0 = after it ends; desktop draws from the size callbacks
 string? GetClipboardText(); void SetClipboardText(string)
 void SetCursor(CursorShape)
 IDisposable StartTimer(TimeSpan interval, Action tick)   // UI thread; dispose to stop
@@ -229,6 +232,7 @@ Task<string?> OpenFileAsync(FileDialogOptions) / SaveFileAsync(FileDialogOptions
 ```csharp
 DesktopPlatform(string title = "ApexUI App", int width = 900, int height = 600)
 DesktopPlatform WithIcon(string path)   // .svg / .ico / raster; call before Run()
+DesktopPlatform WithResizeFrameRate(float fps)   // same as UiHost.ResizeFrameRate
 ```
 
 ---
