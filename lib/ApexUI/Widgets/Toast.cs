@@ -15,7 +15,7 @@ public sealed class Toast : Overlay
     public Toast()
     {
         _message = new Label { IsHitTestVisible = false };
-        Content = new Panel(_message);
+        Content = new PopupPanel(_message, t => t.PopupPadding, t => t.CornerRadiusPopup);
         ContentHAlign = HAlign.Center;
         ContentVAlign = VAlign.Bottom;
         DismissOnClickOutside = false;
@@ -42,25 +42,13 @@ public sealed class Toast : Overlay
         if (IsVisible) Close();
     }
 
+    // Lifts the message off the window's bottom edge, where Overlay would place it.
+    protected override void ArrangeCore(Rect screen)
+        => base.ArrangeCore(screen with { Height = Math.Max(0f, screen.Height - Theme.SpacingLg) });
+
     protected override void OnDetached()
     {
         _timer?.Dispose();
         _timer = null;
-    }
-
-    private sealed class Panel : Widget
-    {
-        public Panel(Widget content)
-        {
-            BackgroundSource = t => t.Surface;
-            AddChild(content);
-        }
-
-        protected override Thickness DefaultPadding(Theme theme) => theme.PopupPadding;
-
-        protected override float DefaultCornerRadius(Theme theme) => theme.CornerRadiusPopup;
-
-        // Overlay places content flush with the window edge; the margin lifts the toast off it.
-        protected override void OnAttached(UiHost host) => Margin = new Thickness(0, 0, 0, host.Theme.SpacingLg);
     }
 }

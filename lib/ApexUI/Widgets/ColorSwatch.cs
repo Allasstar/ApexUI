@@ -62,7 +62,7 @@ public class ColorSwatch : Widget
             _picker = new ColorPicker(_color);
             _picker.ColorChanged += c => Color = c;
             _picker.EditCompleted += c => EditCompleted?.Invoke(c);
-            _popup.Content = new Panel(_picker);
+            _popup.Content = new PopupPanel(_picker, t => new Thickness(t.SpacingSm), t => t.CornerRadiusPopup);
         }
 
         _picker.Color = _color;
@@ -104,18 +104,5 @@ public class ColorSwatch : Widget
         }
 
         ctx.StrokeRoundRect(b, CornerRadius, IsHovered && !IsReadOnly ? t.OnSurfaceMuted : t.Border);
-    }
-
-    private sealed class Panel : Widget
-    {
-        public Panel(Widget content)
-        {
-            BackgroundSource = t => t.Surface;
-            AddChild(content);
-        }
-
-        protected override Thickness DefaultPadding(Theme theme) => new(theme.SpacingSm);
-
-        protected override float DefaultCornerRadius(Theme theme) => theme.CornerRadiusPopup;
     }
 }

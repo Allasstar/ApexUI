@@ -27,7 +27,7 @@ public sealed class Tooltip : Widget
             // Never under the pointer, so showing the tooltip does not end the hover that opened it.
             IsHitTestVisible = false,
         };
-        _overlay.Content = new Panel(label);
+        _overlay.Content = new PopupPanel(label, t => t.TooltipPadding, t => t.CornerRadiusSmall);
 
         _show = Show;
     }
@@ -76,18 +76,6 @@ public sealed class Tooltip : Widget
         if (!_tooltipVisible) return;
         _tooltipVisible = false;
         _overlay.Close();
-    }
-
-    private sealed class Panel : Widget
-    {
-        public Panel(Widget content)
-        {
-            BackgroundSource = t => t.Surface;
-            AddChild(content);
-        }
-
-        protected override Thickness DefaultPadding(Theme theme) => theme.TooltipPadding;
-        protected override float DefaultCornerRadius(Theme theme) => theme.CornerRadiusSmall;
     }
 
     // ── Transparent layout ────────────────────────────────────────────────────

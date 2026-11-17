@@ -4,6 +4,11 @@ Newest first. **Breaking** marks changes that need edits in apps using ApexUI.
 
 ## Unreleased
 
+### M3 retro
+- `Tooltip`, `Toast` and `ColorSwatch` share one internal `PopupPanel` (Surface fill, themed padding and radius) instead of three private copies.
+- `Toast` lifts itself off the bottom edge in arrange, so the gap follows theme changes; before, it was set once when the toast first opened.
+- 1 new test (271 in total).
+
 ### Lists, number fields, colors, toasts
 - New `ListView<T>`: a `VirtualList` with one selected row (`SelectedIndex`, `SelectionChanged`), a hover highlight, Up/Down/Home/End while focused, and with `AllowReorder` drag reordering: a drop line follows the pointer and release raises `Reordered(from, to)` with the row's final index. The list never moves items itself. A press that a widget inside the row handles does not select. Its fluent setters return `ListView<T>`.
 - New `EditableLabel`: text that turns into a text field on double-click or `BeginEdit()`. Enter or losing focus commits (`TextCommitted`), Escape cancels; blank or unchanged text is not committed.

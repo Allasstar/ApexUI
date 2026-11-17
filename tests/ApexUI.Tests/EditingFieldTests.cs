@@ -389,3 +389,21 @@ public class FieldWidthTests
         Assert.Equal(400, b.LayoutBounds.Right, 3);
     }
 }
+
+public class ToastThemeTests
+{
+    [Fact]
+    public void The_gap_below_the_toast_follows_the_theme()
+    {
+        var toast = new Toast();
+        var (host, platform) = TestPlatform.Show(new Column());
+        toast.Show(host, "Saved");
+        platform.Render().Dispose();
+        Assert.Equal(600 - Theme.Light.SpacingLg, toast.Content!.LayoutBounds.Bottom, 3);
+
+        host.Theme = Theme.Light with { SpacingLg = 50 };
+        platform.Render().Dispose();
+
+        Assert.Equal(550, toast.Content!.LayoutBounds.Bottom, 3);
+    }
+}
