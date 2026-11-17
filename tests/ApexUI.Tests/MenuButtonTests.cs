@@ -74,6 +74,23 @@ public class MenuButtonTests
     }
 
     [Fact]
+    public void Selected_menu_button_shows_its_face_in_the_on_primary_color()
+    {
+        var t     = Theme.Light;
+        var icon  = new Icon("M0 0H24V24Z");
+        var label = new Label { Text = "File" };
+        var withIcon  = new MenuButton(icon);
+        var withLabel = new MenuButton(label);
+        Assert.Equal(t.OnSurface, icon.ColorSource!(t));
+
+        withIcon.IsSelected  = true;
+        withLabel.IsSelected = true;
+
+        Assert.Equal(t.OnPrimary, icon.ColorSource!(t));
+        Assert.Equal(t.OnPrimary, label.ColorSource!(t));
+    }
+
+    [Fact]
     public void Items_added_after_the_first_open_appear_on_the_next_open()
     {
         int ellipses = 0;

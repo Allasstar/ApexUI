@@ -8,7 +8,7 @@ public class IconButton : Widget
     public IconButton(Icon icon, Action? onPressed = null)
     {
         Icon             = icon;
-        icon.ColorSource = t => IsEnabled ? t.OnSurface : t.OnSurfaceMuted;
+        icon.ColorSource = t => IsSelected ? t.OnPrimary : IsEnabled ? t.OnSurface : t.OnSurfaceMuted;
         icon.HAlign      = HAlign.Center;
         icon.VAlign      = VAlign.Center;
         AddChild(icon);
@@ -19,6 +19,9 @@ public class IconButton : Widget
     public IconButton(string pathData, Action? onPressed = null) : this(new Icon(pathData), onPressed) { }
 
     public Icon Icon { get; }
+
+    /// Latched look (Primary fill) for a tool that stays chosen until another one is picked.
+    public bool IsSelected { get; set => SetRenderProperty(ref field, value); }
 
     public IconButton OnPress(Action action) { Pressed += action; return this; }
 
@@ -49,8 +52,9 @@ public class IconButton : Widget
 
     protected override void DrawCore(DrawContext ctx)
     {
-        if (!IsEnabled) return;
-        if (IsPressed)      ctx.FillRoundRect(LayoutBounds, CornerRadius, ctx.Theme.SurfacePressed);
+        if (IsSelected)     ctx.FillRoundRect(LayoutBounds, CornerRadius, IsHovered && IsEnabled ? ctx.Theme.PrimaryHover : ctx.Theme.Primary);
+        else if (!IsEnabled) return;
+        else if (IsPressed) ctx.FillRoundRect(LayoutBounds, CornerRadius, ctx.Theme.SurfacePressed);
         else if (IsHovered) ctx.FillRoundRect(LayoutBounds, CornerRadius, ctx.Theme.SurfaceHover);
     }
 }

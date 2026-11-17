@@ -24,7 +24,8 @@ public class MenuButton : Widget
         face.IsHitTestVisible = false;
         face.HAlign = HAlign.Center;
         face.VAlign = VAlign.Center;
-        if (face is Icon icon) icon.ColorSource ??= t => IsEnabled ? t.OnSurface : t.OnSurfaceMuted;
+        if (face is Icon icon) icon.ColorSource ??= FaceColor;
+        else if (face is Label label) label.ColorSource ??= FaceColor;
         AddChild(face);
         Focusable = true;
         _overlay.Closed += Invalidate;
@@ -35,6 +36,9 @@ public class MenuButton : Widget
     public Widget Face { get; }
 
     public bool IsOpen => _overlay.IsVisible;
+
+    /// Latched look (Primary fill), for a menu of tools whose chosen tool stays active.
+    public bool IsSelected { get; set => SetRenderProperty(ref field, value); }
 
     public MenuButton AddItem(string label, Action action, bool enabled = true)
     {
@@ -104,10 +108,16 @@ public class MenuButton : Widget
 
     protected override void OnDetached() => _overlay.Detach();
 
+    private SKColor FaceColor(Theme t) => IsSelected ? t.OnPrimary : IsEnabled ? t.OnSurface : t.OnSurfaceMuted;
+
     protected override void DrawCore(DrawContext ctx)
     {
         Theme t = ctx.Theme;
-        if (IsEnabled)
+        if (IsSelected)
+        {
+            ctx.FillRoundRect(LayoutBounds, CornerRadius, (IsHovered || IsOpen) && IsEnabled ? t.PrimaryHover : t.Primary);
+        }
+        else if (IsEnabled)
         {
             if (IsPressed || IsOpen) ctx.FillRoundRect(LayoutBounds, CornerRadius, t.SurfacePressed);
             else if (IsHovered) ctx.FillRoundRect(LayoutBounds, CornerRadius, t.SurfaceHover);
@@ -116,7 +126,7 @@ public class MenuButton : Widget
         Rect b = LayoutBounds;
         float cx = b.Right - t.IconButtonPadding.Right - ChevronSize;
         float cy = b.CenterY + ChevronSize * 0.25f;
-        SKColor color = IsEnabled ? t.OnSurfaceMuted : t.OnSurfaceMuted.WithAlpha(0.5f);
+        SKColor color = IsSelected ? t.OnPrimary : IsEnabled ? t.OnSurfaceMuted : t.OnSurfaceMuted.WithAlpha(0.5f);
         ctx.DrawLine(cx - ChevronSize, cy - ChevronSize * 0.5f, cx, cy + ChevronSize * 0.5f, color, ChevronLineWidth, SKStrokeCap.Round);
         ctx.DrawLine(cx, cy + ChevronSize * 0.5f, cx + ChevronSize, cy - ChevronSize * 0.5f, color, ChevronLineWidth, SKStrokeCap.Round);
     }

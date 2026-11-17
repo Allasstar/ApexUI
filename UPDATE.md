@@ -4,6 +4,11 @@ Newest first. **Breaking** marks changes that need edits in apps using ApexUI.
 
 ## Unreleased
 
+### Selected tool buttons
+- New `IconButton.IsSelected` and `MenuButton.IsSelected`: a latched look (Primary fill, the face and chevron in `OnPrimary`) for a tool that stays chosen until another one is picked. A `MenuButton` face that is a `Label` now follows the enabled and selected state like an `Icon` face.
+- Gallery: the MenuButton demo on the Composite tab adds a pen button; the pen, or the shape menu once a shape is picked, stays selected.
+- 2 new tests (334 in total).
+
 ### Tree view, menu button, units in number fields
 - New `TreeView<T>`: a virtual list of hierarchical items. `new TreeView<T>(childrenOf, comparer)`, `WithRoots`, `WithTemplate(content)` (the tree adds the indent and the expand arrow), `Refresh()` (rebuilds rows only when the visible items or their depths changed). `ReverseChildren` lists each child list last item first, as layer stacks do. `ExpandByDefault`, `IsExpanded`/`SetExpanded`, `VisibleItems`, `IndexOf`, `ScrollIntoView(item)`.
 - Tree selection: click selects one row, Ctrl (Cmd on macOS) toggles, Shift selects a range; Up/Down/Home/End move it (Shift extends), Left collapses or goes to the parent, Right expands or goes to the first child. `IsSelected`, `Select`, `SetSelection`, `ClearSelection`, `GetSelection(list)`, `SelectionCount`, `SelectionChanged`. Selection and expansion use the comparer, so they survive items replaced by equal copies.

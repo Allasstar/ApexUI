@@ -91,9 +91,19 @@ public class CompositeExample : Widget
 
         // ── MenuButton ────────────────────────────────────────────────────────
         var menuLog = new Label { Text = "Nothing picked yet", VAlign = VAlign.Center, ColorSource = t => t.OnSurfaceMuted };
-        var shapes = new MenuButton(new Icon("M4 4h16v16H4z", IconStyle.Stroke))
-            .AddItem("Rectangle", () => menuLog.Text = "Rectangle")
-            .AddItem("Ellipse",   () => menuLog.Text = "Ellipse")
+        // IsSelected latches the tool that stays chosen: the pen, or the shape menu once a shape is picked.
+        var pen    = new IconButton(new Icon("M4 20l3.5-1L19 7.5 16.5 5 5 16.5z", IconStyle.Stroke));
+        var shapes = new MenuButton(new Icon("M4 4h16v16H4z", IconStyle.Stroke));
+        void Pick(string tool)
+        {
+            pen.IsSelected    = tool == "Pen";
+            shapes.IsSelected = tool != "Pen";
+            menuLog.Text      = tool;
+        }
+        pen.OnPress(() => Pick("Pen"));
+        shapes
+            .AddItem("Rectangle", () => Pick("Rectangle"))
+            .AddItem("Ellipse",   () => Pick("Ellipse"))
             .AddSeparator()
             .AddItem("Star",      () => { }, enabled: false);
         var file = new MenuButton("File")
@@ -133,8 +143,8 @@ public class CompositeExample : Widget
                 new Separator { Margin = new Thickness(0, 4f) },
 
                 new Label { Text = "MenuButton", Bold = true, Role = TextRole.Heading },
-                new Label { Text = "Click a button, or focus it and press Down, to open its menu." },
-                new Row(new Tooltip(shapes, "Shapes"), file, menuLog) { Spacing = 8f }
+                new Label { Text = "Click a button, or focus it and press Down, to open its menu. The pen and a picked shape stay selected." },
+                new Row(new Tooltip(pen, "Pen"), new Tooltip(shapes, "Shapes"), file, menuLog) { Spacing = 8f }
 
             ).WithSpacing(16f),
             new Thickness(24f)

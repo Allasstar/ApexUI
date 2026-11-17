@@ -76,4 +76,19 @@ public class IconTests
 
         Assert.Equal(0, presses);
     }
+
+    [Fact]
+    public void Selected_icon_button_shows_its_icon_in_the_on_primary_color_and_redraws()
+    {
+        var t      = Theme.Light;
+        var button = new IconButton("M0 0H24V24Z");
+        var (_, platform) = TestPlatform.Show(new Row(button));
+        platform.Render().Dispose();
+        int frames = platform.FramesRequested;
+
+        button.IsSelected = true;
+
+        Assert.Equal(t.OnPrimary, button.Icon.ColorSource!(t));
+        Assert.True(platform.FramesRequested > frames);
+    }
 }
