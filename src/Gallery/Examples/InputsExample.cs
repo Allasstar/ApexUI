@@ -136,6 +136,24 @@ public class InputsExample : Widget
 
                 new Separator { Margin = new Thickness(0, 4f) },
 
+                // ── NumberField ────────────────────────────────────────────────
+                new Label { Text = "NumberField", Bold = true, Role = TextRole.Heading },
+
+                MakeCard(new Column(
+                    new Label { Text = "Drag a caption sideways to scrub (Shift: faster), or type and press Enter:", WordWrap = true },
+                    new Row(
+                        new NumberField("X", 120f) { Width = 120f },
+                        new NumberField("Y", 80f) { Width = 120f },
+                        new NumberField("°", 0f) { Width = 120f }.WithRange(-180f, 180f)
+                    ).WithSpacing(8f),
+                    new Row(
+                        new NumberField("Opacity", 1f) { Width = 180f }.WithRange(0f, 1f).WithStep(0.01f).Bind(opacity),
+                        new Label { Text = "shares its value with the NumberInput and Slider above", VAlign = VAlign.Center, ColorSource = t => t.OnSurfaceMuted }
+                    ).WithSpacing(8f)
+                ).WithSpacing(12f)),
+
+                new Separator { Margin = new Thickness(0, 4f) },
+
                 // ── Combined form ──────────────────────────────────────────────
                 new Label { Text = "Combined — RadioGroup + NumberInput", Bold = true, Role = TextRole.Heading },
 

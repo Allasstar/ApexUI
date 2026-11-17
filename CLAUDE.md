@@ -74,6 +74,7 @@ Development: `dotnet build`, `dotnet test`, `dotnet run --project src/Gallery`.
 protected virtual Size MeasureCore(Size available);
 protected virtual void ArrangeCore(Rect finalRect);
 protected virtual void DrawCore(DrawContext ctx);
+protected virtual void DrawOverChildren(DrawContext ctx);   // after the children, before the focus ring
 // Measure/Arrange are cached: same constraint / rect and not invalidated → return at once.
 
 Widget? HitTest(float x, float y);   // (x, y) in this widget's layout space
@@ -282,7 +283,8 @@ bool IsIdentity
 
 ```csharp
 enum Orientation { Horizontal, Vertical }
-abstract class LinearPanel : Widget { Orientation Orientation { get; }  float Spacing; }   // Spacing: DefaultSpacing(Theme) until set
+abstract class LinearPanel : Widget { Orientation Orientation { get; }  float Spacing; Func<Theme, float>? SpacingSource; }
+// Spacing: SpacingSource(theme), else DefaultSpacing(Theme), until set
 // Children get their desired length along the line and the full thickness across it; leftover length goes
 // to children with Grow > 0 in proportion. Subclasses: Row, Column, RadioGroup<T>, Tabs' bar.
 Row(params Widget[] children)    Row Add(Widget)    Row WithSpacing(float)
@@ -352,7 +354,7 @@ float  SpacingXs, SpacingSm, SpacingMd, SpacingLg
 Thickness ButtonPadding, InputPadding, MenuItemPadding, PopupPadding, TooltipPadding, DialogPadding, TabPadding,
           IconButtonPadding, SegmentPadding, SectionHeaderPadding
 float  CheckboxSize, RadioSize, ToggleWidth, ToggleHeight, SliderThumbSize, SliderTrackHeight, ProgressBarHeight, TabBarSize,
-       IconSize, SplitterSize
+       IconSize, SplitterSize, SwatchSize, ColorAreaSize, ColorStripHeight
 ```
 
 ### `ThemeRegistry`, `BuiltInThemes` · `lib/ApexUI/Core/`
@@ -384,6 +386,7 @@ SKColor color.WithAlpha(float alpha)         // 0..1
 ```csharp
 void FillRect(Rect r, SKColor color)
 void FillRoundRect(Rect r, float radius, SKColor color)
+void FillCheckerboard(Rect r, float cell, SKColor light, SKColor dark)
 void StrokeRoundRect(Rect r, float radius, SKColor color, float thickness = 1f)  // inset stroke
 void FillCircle(float cx, float cy, float radius, SKColor color)
 void StrokeCircle(float cx, float cy, float radius, SKColor color, float thickness = 1f)  // inset stroke
@@ -605,6 +608,49 @@ VirtualList<T> WithItems(IReadOnlyList<T> source)
 VirtualList<T> WithTemplate(Func<T, Widget> t)
 VirtualList<T> WithTemplate(Func<T, int, Widget> t)  // (item, rowIndex) → Widget
 VirtualList<T> WithRowHeight(float h)
+int  Count;  void Refresh()   // rebuild rows after changing a plain list; keeps the scroll position
+void ScrollIntoView(int index)
+// Subclasses: float ScrollOffset, RowWidth; Rect RowRect(int index); int RowIndexAt(float y)   (-1 = no row)
+// An ObservableList change keeps the scroll position; WithItems starts at the top.
+```
+
+### `ListView<T>` · `lib/ApexUI/Widgets/ListView.cs`
+
+```csharp
+// VirtualList + selection, hover highlight, Up/Down/Home/End, optional drag reorder. Never moves items itself.
+int  SelectedIndex;  event Action<int>? SelectionChanged   // -1 = none
+bool AllowReorder;   event Action<int, int>? Reordered     // (from, to) = final index of the dragged row
+bool IsDragging
+ListView<T> WithReorder(bool = true) / OnSelectionChange / OnReorder   // WithItems/WithTemplate/WithRowHeight return ListView<T>
+```
+
+### `EditableLabel`, `NumberField` · `lib/ApexUI/Widgets/`
+
+```csharp
+EditableLabel(string text = "")   // double-click or BeginEdit(); Enter/blur commits, Escape cancels; blank/unchanged not committed
+string Text; Label Label; bool IsEditing; event Action<string>? TextCommitted; EditableLabel OnCommit(Action<string>)
+
+NumberField(string caption = "", float value = 0)   // drag caption: Step per px (Shift ×10); type + Enter/blur commits
+float Value, Min, Max, Step; string Format = "0.##"; string Caption; bool IsScrubbing
+event Action<float>? ValueChanged;   // every change
+event Action<float>? EditCompleted;  // once per finished scrub or typed edit that changed the value
+NumberField WithRange / WithStep / WithFormat / WithValue / OnChange / OnEditCompleted / Bind(Bindable<float>)
+```
+
+### `ColorPicker`, `ColorSwatch`, `Toast` · `lib/ApexUI/Widgets/`
+
+```csharp
+ColorPicker(SKColor? color = null)   // SV square, hue strip, alpha strip, hex field; ColorAreaSize wide
+SKColor Color; bool ShowAlpha; event Action<SKColor>? ColorChanged, EditCompleted
+static string ToHex(SKColor)                     // #RRGGBB, or #RRGGBBAA when not opaque
+static bool   TryParseHex(string, out SKColor)   // RRGGBB or RRGGBBAA, # optional
+
+ColorSwatch(SKColor color)   // SwatchSize square; click / Space / Enter opens a ColorPicker popup below it
+SKColor Color; bool ShowAlpha = true, IsReadOnly, IsOpen; void Open(), Close()
+event Action<SKColor>? ColorChanged, EditCompleted;  WithAlpha(bool) / AsReadOnly() / OnChange / OnEditCompleted
+
+Toast : Overlay   // bottom center, never hit-testable; a new Show replaces the message and restarts the timer
+TimeSpan Duration = 2.5 s; string Message; void Show(UiHost host, string message); void Hide()
 ```
 
 ### `Dropdown<T>` — live collection overloads

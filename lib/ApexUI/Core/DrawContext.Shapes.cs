@@ -21,6 +21,20 @@ public sealed partial class DrawContext
     public void FillRoundRect(Rect r, float radius, SKColor color)
         => Canvas.DrawRoundRect(r.ToSKRect(), radius, radius, FillPaint(color));
 
+    /// Two-tone squares of side cell, the usual backdrop that shows a color's transparency.
+    public void FillCheckerboard(Rect r, float cell, SKColor light, SKColor dark)
+    {
+        FillRect(r, light);
+        var paint = FillPaint(dark);
+        int row = 0;
+        for (float y = r.Y; y < r.Bottom; y += cell, row++)
+        {
+            float h = Math.Min(cell, r.Bottom - y);
+            for (float x = r.X + (row % 2) * cell; x < r.Right; x += 2f * cell)
+                Canvas.DrawRect(SKRect.Create(x, y, Math.Min(cell, r.Right - x), h), paint);
+        }
+    }
+
     public void StrokeRoundRect(Rect r, float radius, SKColor color, float thickness = 1f)
     {
         // Inset by half stroke width so the outer edge of the stroke aligns with the

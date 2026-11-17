@@ -12,13 +12,16 @@ public abstract class LinearPanel : Widget
 
     public Orientation Orientation { get; }
 
-    /// Gap between neighbouring children. Until set, DefaultSpacing (0 unless a subclass takes it from the theme).
+    /// Gap between neighbouring children. Until set, SpacingSource, else DefaultSpacing (0 unless a subclass takes it from the theme).
     public float Spacing
     {
-        get => float.IsNaN(_spacing) ? DefaultSpacing(Theme) : _spacing;
+        get => !float.IsNaN(_spacing) ? _spacing : SpacingSource?.Invoke(Theme) ?? DefaultSpacing(Theme);
         set => SetLayoutProperty(ref _spacing, value);
     }
     private float _spacing = float.NaN;
+
+    /// Takes the gap from the current theme, e.g. t => t.SpacingSm, so it follows theme changes.
+    public Func<Theme, float>? SpacingSource { get; set => SetLayoutProperty(ref field, value); }
 
     protected virtual float DefaultSpacing(Theme theme) => 0f;
 

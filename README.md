@@ -150,6 +150,10 @@ Subclasses override `OnClick`, `OnPointerPressed`, `OnKeyDown` and the rest inst
 | `IconButton` | Borderless button showing an `Icon`; wrap in a `Tooltip` to name it |
 | `TextInput` | Single-line text with placeholder, modes, validation, password masking |
 | `NumberInput` | `[−] [input] [+]` with step, min/max, and format string |
+| `NumberField` | Caption plus number: drag the caption to scrub, or type and press Enter |
+| `EditableLabel` | Text that becomes a text field on double-click, for renaming in place |
+| `ColorSwatch` | Color square that opens a `ColorPicker` popup when clicked |
+| `ColorPicker` | Saturation/brightness square, hue and alpha strips, hex field |
 | `Checkbox` | Checked/unchecked with optional label |
 | `Toggle` | On/off switch with optional label |
 | `Slider` | Draggable track — float or integer, optional step snapping |
@@ -168,6 +172,8 @@ Subclasses override `OnClick`, `OnPointerPressed`, `OnKeyDown` and the rest inst
 | `Scroll` | Scrollable viewport; direction: `Vertical`, `Horizontal`, `Both` |
 | `Viewport` | Pan and zoom camera: custom drawing in content space, hosted widgets, wheel zoom, drag pan, `Fit` |
 | `VirtualList<T>` | Scrolling list that builds only the rows near the viewport |
+| `ListView<T>` | `VirtualList` with a selected row, keyboard navigation and drag reordering |
+| `Toast` | Short message at the bottom of the window that hides itself |
 
 ---
 
@@ -175,7 +181,7 @@ Subclasses override `OnClick`, `OnPointerPressed`, `OnKeyDown` and the rest inst
 
 | Panel | Description |
 |-------|-------------|
-| `Column` | Vertical line of children with spacing; children with `Grow > 0` share leftover height |
+| `Column` | Vertical line of children with spacing (fixed, or from the theme via `SpacingSource`); children with `Grow > 0` share leftover height |
 | `Row` | Horizontal line of children with spacing; children with `Grow > 0` share leftover width |
 | `Stack` | Overlapping layers — last child on top |
 | `PaddingBox` | Shorthand for a widget with `Padding` set (every widget applies its own `Padding`) |
@@ -275,7 +281,7 @@ Built-in widgets take every color, size, radius, padding and font from the theme
 | Corner radii | `CornerRadiusSmall`, `CornerRadiusControl`, `CornerRadiusPopup`, `CornerRadiusDialog` |
 | Spacing | `SpacingXs` / `Sm` / `Md` / `Lg` |
 | Paddings | `ButtonPadding`, `InputPadding`, `MenuItemPadding`, `PopupPadding`, `TooltipPadding`, `DialogPadding`, `TabPadding`, `IconButtonPadding`, `SegmentPadding`, `SectionHeaderPadding` |
-| Control sizes | `CheckboxSize`, `RadioSize`, `ToggleWidth`, `ToggleHeight`, `SliderThumbSize`, `SliderTrackHeight`, `ProgressBarHeight`, `TabBarSize`, `IconSize`, `SplitterSize` |
+| Control sizes | `CheckboxSize`, `RadioSize`, `ToggleWidth`, `ToggleHeight`, `SliderThumbSize`, `SliderTrackHeight`, `ProgressBarHeight`, `TabBarSize`, `IconSize`, `SplitterSize`, `SwatchSize`, `ColorAreaSize`, `ColorStripHeight` |
 
 \* Derived: follows another token (e.g. `Selection` is `Primary` at 30%) unless set.
 

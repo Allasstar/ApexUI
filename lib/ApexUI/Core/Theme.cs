@@ -209,6 +209,12 @@ public sealed record Theme
     public float IconSize          { get; init; } = 16f;
     /// Thickness of a split panel's draggable divider (its grab area; the drawn line is one unit).
     public float SplitterSize      { get; init; } = 6f;
+    /// Width and height of a color swatch button.
+    public float SwatchSize        { get; init; } = 18f;
+    /// Side of a color picker's saturation/brightness square; its strips are as wide.
+    public float ColorAreaSize     { get; init; } = 180f;
+    /// Height of a color picker's hue and alpha strips.
+    public float ColorStripHeight  { get; init; } = 12f;
 }
 
 /// The font size a Label takes from the theme.

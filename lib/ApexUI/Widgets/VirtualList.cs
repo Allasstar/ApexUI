@@ -92,15 +92,18 @@ public class VirtualList<T> : Widget
         _sourceSubscription?.Dispose();
         _sourceSubscription = Observe(source, Refresh);
         _source = source;
+        _scrollOff = 0f;
         Refresh();
         return this;
     }
 
+    /// A plain list sends no change notifications: call Refresh after changing it.
     public VirtualList<T> WithItems(IReadOnlyList<T> source)
     {
         _sourceSubscription?.Dispose();
         _sourceSubscription = null;
         _source = source;
+        _scrollOff = 0f;
         Refresh();
         return this;
     }
@@ -117,6 +120,45 @@ public class VirtualList<T> : Widget
         _template = t;
         Refresh();
         return this;
+    }
+
+    public int Count => _source?.Count ?? 0;
+
+    /// Rebuilds every row from the items, keeping the scroll position (clamped to the new length).
+    public void Refresh()
+    {
+        ClearRows();
+        InvalidateLayout();
+    }
+
+    /// Scrolls the least distance that shows the whole row.
+    public void ScrollIntoView(int index)
+    {
+        if (index < 0 || index >= Count) return;
+        float top = index * RowHeight;
+        float viewportHeight = LayoutBounds.Height;
+        if (top < _scrollOff) ScrollTo(top);
+        else if (top + RowHeight > _scrollOff + viewportHeight) ScrollTo(top + RowHeight - viewportHeight);
+    }
+
+    // ── Row geometry for subclasses ───────────────────────────────────────────
+
+    protected float ScrollOffset => _scrollOff;
+
+    /// Width of the rows: the list minus the scrollbar when one is shown.
+    protected float RowWidth => TotalHeight > LayoutBounds.Height ? LayoutBounds.Width - SbWidth : LayoutBounds.Width;
+
+    /// Where row index appears now, in this widget's layout space (scroll applied).
+    protected Rect RowRect(int index)
+        => new(LayoutBounds.X, LayoutBounds.Y + index * RowHeight - _scrollOff, RowWidth, RowHeight);
+
+    /// The row under y (layout space), or -1 above the first or below the last row.
+    protected int RowIndexAt(float y)
+    {
+        float offset = y - LayoutBounds.Y + _scrollOff;
+        if (offset < 0f) return -1;
+        int index = (int)(offset / RowHeight);
+        return index < Count ? index : -1;
     }
 
     public VirtualList<T> WithRowHeight(float h) { RowHeight = h; return this; }
@@ -224,13 +266,6 @@ public class VirtualList<T> : Widget
     }
 
     private void ApplyScroll() => ChildTransform = Transform2D.Translation(0f, -_scrollOff);
-
-    private void Refresh()
-    {
-        ClearRows();
-        _scrollOff = 0f;
-        InvalidateLayout();
-    }
 
     private void ClearRows()
     {

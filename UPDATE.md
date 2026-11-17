@@ -4,6 +4,22 @@ Newest first. **Breaking** marks changes that need edits in apps using ApexUI.
 
 ## Unreleased
 
+### Lists, number fields, colors, toasts
+- New `ListView<T>`: a `VirtualList` with one selected row (`SelectedIndex`, `SelectionChanged`), a hover highlight, Up/Down/Home/End while focused, and with `AllowReorder` drag reordering: a drop line follows the pointer and release raises `Reordered(from, to)` with the row's final index. The list never moves items itself. A press that a widget inside the row handles does not select. Its fluent setters return `ListView<T>`.
+- New `EditableLabel`: text that turns into a text field on double-click or `BeginEdit()`. Enter or losing focus commits (`TextCommitted`), Escape cancels; blank or unchanged text is not committed.
+- New `NumberField`: a caption and a number in the style of design tools. Dragging the caption scrubs by `Step` per pixel (Shift: ten times); typing commits on Enter or focus loss, and invalid text reverts. `ValueChanged` on every change, `EditCompleted` once per finished scrub or typed edit that changed the value (for undo steps). `Min`, `Max`, `Format`, `Bind`.
+- New `ColorPicker`: saturation/brightness square, hue strip, alpha strip (`ShowAlpha`) and a hex field. Hue survives gray and black. `ColorChanged`, `EditCompleted`, and the helpers `ToHex` (`#RRGGBB`, or `#RRGGBBAA` when not opaque) and `TryParseHex`.
+- New `ColorSwatch`: a color square (checkerboard under transparent colors) that opens a `ColorPicker` popup below itself on click or Space/Enter. `Color`, `ColorChanged`, `EditCompleted`, `ShowAlpha`, `IsReadOnly`.
+- New `Toast`: an `Overlay` that shows a message at the bottom center and hides after `Duration`; a new message replaces the current one. It never takes pointer input.
+- New `LinearPanel.SpacingSource` (e.g. `t => t.SpacingSm`): spacing from the theme that follows theme changes, until `Spacing` is set.
+- New `Widget.DrawOverChildren` hook, drawn after the children and before the focus ring.
+- New `DrawContext.FillCheckerboard`.
+- `VirtualList<T>`: `Count`, `Refresh()` (rebuild rows after changing a plain list), `ScrollIntoView(index)`, and for subclasses `ScrollOffset`, `RowWidth`, `RowRect(index)`, `RowIndexAt(y)`. A change notification from its `ObservableList` now keeps the scroll position (clamped to the new length); before, every change scrolled back to the top. `WithItems` still starts at the top.
+- `TextInput.SelectAll()` is public.
+- New theme tokens: `SwatchSize`, `ColorAreaSize`, `ColorStripHeight`.
+- Gallery: new Lists tab (reorderable, renamable list and a 2,000-row list) and Colors tab (swatches, inline picker, toasts); the Inputs tab shows `NumberField`.
+- 39 new tests (269 in total).
+
 ### M2 retro
 - `Separator` asks for no length along its line, so a vertical separator no longer makes a toolbar row as tall as the window (before, it asked for all the height it was offered). Stretch alignment, the default, still fills the slot.
 - `RadioGroup<T>` raises `SelectionChanged` only when the selection changes; setting the current value again raised it before.

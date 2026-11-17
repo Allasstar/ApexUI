@@ -192,6 +192,8 @@ public abstract partial class Widget
             if (transformed) canvas.Restore();
         }
 
+        DrawOverChildren(ctx);
+
         if (IsFocused && Host is { IsFocusVisible: true })
             DrawFocusRing(ctx);
 
@@ -201,6 +203,9 @@ public abstract partial class Widget
 
     // Override to draw widget-specific content.
     protected virtual void DrawCore(DrawContext ctx) { }
+
+    /// Draws above the children (drop markers, selection outlines), in this widget's layout space.
+    protected virtual void DrawOverChildren(DrawContext ctx) { }
 
     // ── Hit-testing ────────────────────────────────────────────────────────
 

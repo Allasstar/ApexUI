@@ -408,7 +408,7 @@ public class TextInput : Widget
         Invalidate();
     }
 
-    private void SelectAll()
+    public void SelectAll()
     {
         _selAnchor = 0;
         _cursorPos = Value.Length;
