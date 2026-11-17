@@ -441,3 +441,7 @@ The Gallery is published **self-contained** (profiles live in `src/Gallery/Galle
 - [Silk.NET](https://github.com/dotnet/Silk.NET) — windowing and input (GLFW)
 - [SkiaSharp](https://github.com/mono/SkiaSharp) — 2D GPU rendering
 - .NET 10 / C# 14
+
+## License
+
+MIT. See [LICENSE](LICENSE).
