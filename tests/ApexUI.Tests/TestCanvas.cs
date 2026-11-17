@@ -12,6 +12,18 @@ internal static class TestCanvas
         widget.Draw(ctx);
     }
 
+    /// Lays out and draws a widget into a new bitmap the caller disposes, for checking pixels.
+    public static SKBitmap Render(Widget widget, int width, int height, Theme? theme = null)
+    {
+        var bitmap = new SKBitmap(width, height);
+        using var canvas = new SKCanvas(bitmap);
+        using var ctx    = new DrawContext(canvas, theme ?? Theme.Light, 1f);
+        widget.Measure(new Size(width, height));
+        widget.Arrange(new Rect(0, 0, width, height));
+        widget.Draw(ctx);
+        return bitmap;
+    }
+
     /// Fewest bytes allocated by any of several runs of action, after warming it up.
     /// Taking the minimum filters out one-off runtime allocations (tiering, first-call setup).
     public static long MinAllocatedBytes(Action action)

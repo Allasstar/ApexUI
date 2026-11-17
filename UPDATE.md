@@ -14,7 +14,8 @@ Newest first. **Breaking** marks changes that need edits in apps using ApexUI.
 - New `UiHost.UnhandledKeyUp`: key releases no focused widget handled, raised also when nothing has focus (before, a release with no focus went nowhere), so an app can end a held-key mode such as Space to pan.
 - New theme tokens: `IconSize`, `SplitterSize`, `IconButtonPadding`, `SegmentPadding`, `SectionHeaderPadding`.
 - Gallery: new Icons tab (icons, icon buttons, toggle groups) and Panels tab (a three-pane split layout with an inspector of sections).
-- 27 new tests (226 in total).
+- Fix: a disabled `Button` was drawn exactly like an enabled one. It now uses the `Surface` fill (none for `Ghost`), a `Border` outline and `OnSurfaceMuted` text.
+- 28 new tests (227 in total).
 
 ### Viewport
 - New `Viewport` widget: a pan and zoom camera over an unbounded content space. Subclasses draw in content space by overriding `DrawContent`; child widgets are laid out once at their natural size and moved by the view transform. Wheel zooms around the pointer (`WheelZoomStep`), a drag with one of `PanButtons` pans (default middle and right; add `Left` for a pan tool) and shows `PanCursor`. Code API: `SetView`, `PanBy`, `ZoomAt`, `ZoomAtCenter`, `Fit(rect, padding)` (refits on resize until the view is changed another way), `ContentToView` / `ViewToContent`, `ViewTransform`, `MinZoom` / `MaxZoom`, `IsPanning` and the `ViewChanged` event.

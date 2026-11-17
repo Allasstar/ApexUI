@@ -306,3 +306,17 @@ public class ChangeEventTests
         Assert.Equal(1f, last);
     }
 }
+
+public class ButtonTests
+{
+    [Fact]
+    public void Disabled_primary_button_is_not_drawn_in_the_primary_color()
+    {
+        var theme = Theme.Light;
+        using var enabled  = TestCanvas.Render(new Button("Save"), 120, 40, theme);
+        using var disabled = TestCanvas.Render(new Button("Save") { IsEnabled = false }, 120, 40, theme);
+
+        Assert.Equal(theme.Primary, enabled.GetPixel(4, 20));
+        Assert.Equal(theme.Surface, disabled.GetPixel(4, 20));
+    }
+}
