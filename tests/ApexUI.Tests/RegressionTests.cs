@@ -319,6 +319,20 @@ public class ButtonTests
         Assert.Equal(theme.Primary, enabled.GetPixel(4, 20));
         Assert.Equal(theme.Surface, disabled.GetPixel(4, 20));
     }
+
+    [Fact]
+    public void Compact_button_is_as_tall_as_an_icon_button()
+    {
+        var compact = new Button("Convert") { IsCompact = true };
+        var icon = new IconButton(new Icon("M4 4h16v16H4z"));
+        var regular = new Button("Convert");
+        compact.Measure(new Size(400, 100));
+        icon.Measure(new Size(400, 100));
+        regular.Measure(new Size(400, 100));
+
+        Assert.Equal(icon.DesiredSize.Height, compact.DesiredSize.Height, 0.01f);
+        Assert.True(regular.DesiredSize.Height > compact.DesiredSize.Height);
+    }
 }
 
 public class SeparatorTests

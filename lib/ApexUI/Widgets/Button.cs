@@ -16,6 +16,14 @@ public class Button : Widget
         set => SetRenderProperty(ref field, value);
     } = ButtonVariant.Primary;
 
+    /// As tall as an IconButton, with less side padding: for text buttons in a toolbar row of icon buttons,
+    /// which then keeps its height whether or not the text button is shown.
+    public bool IsCompact
+    {
+        get;
+        set => SetLayoutProperty(ref field, value);
+    }
+
     public event Action? Pressed;
 
     private readonly Label _label;
@@ -35,11 +43,18 @@ public class Button : Widget
         Focusable = true;
     }
 
-    protected override Thickness DefaultPadding(Theme theme) => theme.ButtonPadding;
+    protected override Thickness DefaultPadding(Theme theme)
+    {
+        if (!IsCompact) return theme.ButtonPadding;
+        float iconHeight = theme.IconSize + theme.IconButtonPadding.Vertical;
+        float vertical = Math.Max(0f, (iconHeight - theme.FontSizeBody * theme.LineHeight) / 2f);
+        return new Thickness(theme.SpacingSm, vertical);
+    }
     protected override float DefaultCornerRadius(Theme theme) => theme.CornerRadiusControl;
 
     public Button WithText(string text)    { Text = text; return this; }
     public Button WithVariant(ButtonVariant v) { Variant = v; return this; }
+    public Button AsCompact()              { IsCompact = true; return this; }
     public Button OnPress(Action action)   { Pressed += action; return this; }
 
     /// Runs command when pressed and follows its enabled state while on screen.

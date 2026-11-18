@@ -233,7 +233,7 @@ public class NumberFieldTests
     }
 
     [Fact]
-    public void Clicking_the_unit_label_cycles_units_and_converts_the_value()
+    public void Clicking_the_unit_button_cycles_units_and_converts_the_value()
     {
         var (field, _, _, platform) = ShowWithUnits(200f);
         field.ConvertUnit = (value, from, to) => from == "px" && to == "%" ? value / 4f : value * 4f;
@@ -249,6 +249,23 @@ public class NumberFieldTests
         Assert.Equal("px", field.Unit);
         Assert.Equal(200f, field.Value);
         Assert.Equal([50f, 200f], completed);
+    }
+
+    [Fact]
+    public void The_unit_button_keeps_its_size_and_the_field_its_place_when_the_unit_changes()
+    {
+        var (field, input, _, platform) = ShowWithUnits(200f);
+        Rect unit = field.Children[0].Children[2].LayoutBounds;
+        Rect text = input.LayoutBounds;
+
+        platform.Click(unit.CenterX, unit.CenterY);
+        platform.Render().Dispose();
+
+        Assert.Equal("%", field.Unit);
+        Assert.Equal(unit, field.Children[0].Children[2].LayoutBounds);
+        Assert.Equal(text, input.LayoutBounds);
+        Assert.True(unit.Height < text.Height);
+        Assert.Equal(text.CenterY, unit.CenterY, 0.5f);
     }
 
     [Fact]

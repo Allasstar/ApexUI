@@ -4,6 +4,11 @@ Newest first. **Breaking** marks changes that need edits in apps using ApexUI.
 
 ## Unreleased
 
+### Unit chip in number fields, compact buttons
+- `NumberField` units: the unit after the field is now a small chip in the small font (`Surface` fill, `Border` outline, `CornerRadiusSmall`, hover and pressed fills, text in `OnSurface`), centred beside the text field, when there is more than one unit to cycle through, and plain muted text when there is only one. It is as wide as the widest of `Units`, so switching units never shifts the field.
+- New `Button.IsCompact` (and `AsCompact()`): as tall as an `IconButton` (`IconSize` plus `IconButtonPadding`), with `SpacingSm` at the sides, for text buttons in a toolbar row of icon buttons, so showing one never changes the row's height.
+- 2 new tests (350 in total).
+
 ### Button groups, key hints, held modifiers, minimum window size
 - New `ButtonGroup`: a row (or column, `new ButtonGroup(Orientation.Vertical, ...)`) of related controls on one shared rounded background, for toolbars. Background `Background` with a `BorderSubtle` outline (`OutlineSource`, null for none), `CornerRadiusControl`, padding and spacing half of `SpacingXs`. `Add`, `WithChildrenCentered()` (centres the children across the group, so a label sits level with the buttons).
 - New `KeyHint`: a status bar hint, a key chip (rounded square) or mouse chip (capsule, `KeyHintKind.Mouse`) followed by a short text, both in the small font. `Key`, `Text`, `Kind` and `Set(key, text, kind, highlighted)` refill a live hint, so a bar can keep a fixed set and reuse it. `IsHighlighted` (chip in `Primary`, text in `OnSurface` instead of `OnSurfaceMuted`) only redraws. Not hit-testable.

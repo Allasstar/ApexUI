@@ -8,8 +8,9 @@ namespace ApexUI.Widgets;
 /// ValueChanged fires on every change (each scrub step); EditCompleted fires once when a scrub or
 /// typed edit that changed the value ends, which suits recording undo steps.
 ///
-/// Units (optional): WithUnits("px", "%") shows the current unit after the field. Typing a value with a
-/// unit suffix ("50%", "120 px") switches to that unit; clicking the unit label cycles to the next one,
+/// Units (optional): WithUnits("px", "%") shows the current unit after the field, on a small chip as wide as
+/// the widest unit so the field never shifts. Typing a value with a
+/// unit suffix ("50%", "120 px") switches to that unit; clicking the unit button cycles to the next one,
 /// converting the value through ConvertUnit when set. A unit change raises UnitChanged before the
 /// ValueChanged of the same edit, and the edit ends with EditCompleted.
 ///
@@ -22,7 +23,7 @@ public class NumberField : Widget
 
     private readonly Label _caption;
     private readonly TextInput _input;
-    private readonly Label _unitLabel;
+    private readonly UnitButton _unitButton;
     private float _value;
     private bool _scrubbing;
     private float _scrubStartX;
@@ -45,8 +46,8 @@ public class NumberField : Widget
         };
         _input.LostFocus += CommitText;
         _input.Placeholder = "Mixed";
-        _unitLabel = new Label { ColorSource = t => t.OnSurfaceMuted, VAlign = VAlign.Center, IsVisible = false };
-        AddChild(new Row(_caption, _input, _unitLabel) { SpacingSource = t => t.SpacingSm });
+        _unitButton = new UnitButton { IsVisible = false, VAlign = VAlign.Center };
+        AddChild(new Row(_caption, _input, _unitButton) { SpacingSource = t => t.SpacingSm });
 
         _value = value;
         SyncText();
@@ -91,8 +92,8 @@ public class NumberField : Widget
         {
             field = value;
             _input.InputMode = value.Count > 0 ? InputMode.Any : InputMode.Float;
-            _unitLabel.IsVisible = value.Count > 0;
-            _unitLabel.Cursor = value.Count > 1 ? CursorShape.Hand : null;
+            _unitButton.IsVisible = value.Count > 0;
+            _unitButton.Units = value;
             if (IndexOfUnit(Unit) < 0) Unit = value.Count > 0 ? value[0] : "";
         }
     } = [];
@@ -105,7 +106,7 @@ public class NumberField : Widget
         {
             if (field == value) return;
             field = value;
-            _unitLabel.Text = value;
+            _unitButton.Text = value;
             UnitChanged?.Invoke(value);
         }
     } = "";
@@ -162,7 +163,7 @@ public class NumberField : Widget
 
     protected override void OnPointerPressed(PointerEventArgs e)
     {
-        if (e.Source == _unitLabel && e.Button == PointerButton.Left && Units.Count > 1)
+        if (e.Source == _unitButton && e.Button == PointerButton.Left && Units.Count > 1)
         {
             e.Handled = true;
             CycleUnit();
@@ -275,4 +276,57 @@ public class NumberField : Widget
     }
 
     private void SyncText() => _input.Value = IsMixed ? "" : _value.ToString(Format, CultureInfo.InvariantCulture);
+    // The unit after the field, in the small font. With more than one unit it is a chip, since a click cycles them.
+    private sealed class UnitButton : Widget
+    {
+        private readonly Label _label = new() { Role = TextRole.Small, HAlign = HAlign.Center, VAlign = VAlign.Center, IsHitTestVisible = false };
+
+        public UnitButton()
+        {
+            _label.ColorSource = t => Cycles && IsEnabledInTree ? t.OnSurface : t.OnSurfaceMuted;
+            AddChild(_label);
+        }
+
+        public string Text
+        {
+            get => _label.Text;
+            set => _label.Text = value;
+        }
+
+        public IReadOnlyList<string> Units
+        {
+            get;
+            set
+            {
+                SetLayoutProperty(ref field, value);
+                Cursor = Cycles ? CursorShape.Hand : null;
+            }
+        } = [];
+
+        private bool Cycles => Units.Count > 1;
+
+        protected override Thickness DefaultPadding(Theme theme) => new(theme.SpacingXs * 1.25f, theme.SpacingXs * 0.5f);
+
+        protected override float DefaultCornerRadius(Theme theme) => theme.CornerRadiusSmall;
+
+        // As wide as the widest unit, so switching units never moves the field.
+        protected override Size MeasureCore(Size available)
+        {
+            Size label = base.MeasureCore(available);
+            float fontSize = Theme.FontSizeSmall;
+            using var font = LayoutFont.Get(Host, fontSize);
+            float width = label.Width;
+            foreach (string unit in Units) width = Math.Max(width, font.Font.MeasureText(unit) + 2f);
+            return new Size(width, label.Height);
+        }
+
+        protected override void DrawCore(DrawContext ctx)
+        {
+            if (!Cycles) return;
+            bool enabled = IsEnabledInTree;
+            var fill = !enabled ? ctx.Theme.Surface : IsPressed ? ctx.Theme.SurfacePressed : IsHovered ? ctx.Theme.SurfaceHover : ctx.Theme.Surface;
+            ctx.FillRoundRect(LayoutBounds, CornerRadius, fill);
+            ctx.StrokeRoundRect(LayoutBounds, CornerRadius, enabled ? ctx.Theme.Border : ctx.Theme.BorderSubtle);
+        }
+    }
 }
