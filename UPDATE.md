@@ -4,6 +4,15 @@ Newest first. **Breaking** marks changes that need edits in apps using ApexUI.
 
 ## Unreleased
 
+### Button groups, key hints, held modifiers, minimum window size
+- New `ButtonGroup`: a row (or column, `new ButtonGroup(Orientation.Vertical, ...)`) of related controls on one shared rounded background, for toolbars. Background `Background` with a `BorderSubtle` outline (`OutlineSource`, null for none), `CornerRadiusControl`, padding and spacing half of `SpacingXs`. `Add`, `WithChildrenCentered()` (centres the children across the group, so a label sits level with the buttons).
+- New `KeyHint`: a status bar hint, a key chip (rounded square) or mouse chip (capsule, `KeyHintKind.Mouse`) followed by a short text, both in the small font. `Key`, `Text`, `Kind` and `Set(key, text, kind, highlighted)` refill a live hint, so a bar can keep a fixed set and reuse it. `IsHighlighted` (chip in `Primary`, text in `OnSurface` instead of `OnSurfaceMuted`) only redraws. Not hit-testable.
+- New `UiHost.Modifiers` and `UiHost.ModifiersChanged`: the held Shift, Control, Alt and Super as of the latest input event, and an event when they change, also while a text field has focus. Raised before the event that carried the change.
+- New `IPlatform.SetMinimumSize(width, height)`: the smallest size the user can resize the window to, in logical units (0 = no limit on that side). Desktop: GLFW size limits, converted with the display's scale and applied again when the scale changes. It is applied from the main loop, never inside a frame, so it can be called during layout.
+- **Breaking:** `IPlatform` gains `SetMinimumSize`. Custom backends add it.
+- Gallery: new Toolbar tab (a toolbar of button groups with a zoom label and a File menu, a vertical group, a status bar of key hints that shows only the held modifier's hint, highlighted); the Gallery window has a minimum size.
+- 11 new tests (348 in total).
+
 ### Toast placement
 - New `Toast.Placement` (`ToastPlacement.Top` or `Bottom`, default `Bottom`) and `Toast.EdgeOffset`: the gap to that window edge, for example to clear a toolbar. Null keeps following the theme's `SpacingLg`.
 - Gallery: the Colors tab shows a toast at the bottom and one at the top.

@@ -52,6 +52,20 @@ public sealed partial class UiHost
     /// Space to pan) can end it even when nothing has focus.
     public event Action<KeyEventArgs>? UnhandledKeyUp;
 
+    /// Shift, Control, Alt and Super as of the latest input event.
+    public KeyModifiers Modifiers => _modifiers;
+
+    /// A modifier key went down or up, whichever widget has focus, so hints and previews that depend on a held
+    /// modifier can follow it without waiting for the pointer to move. Raised before the event that carried it.
+    public event Action<KeyModifiers>? ModifiersChanged;
+
+    private void SetModifiers(KeyModifiers modifiers)
+    {
+        if (modifiers == _modifiers) return;
+        _modifiers = modifiers;
+        ModifiersChanged?.Invoke(modifiers);
+    }
+
     // ── Focus ─────────────────────────────────────────────────────────────────
 
     internal bool SetFocus(Widget widget)
@@ -262,7 +276,7 @@ public sealed partial class UiHost
     void IPlatformListener.PointerMove(float px, float py, KeyModifiers modifiers)
     {
         EnsureLayout();
-        _modifiers = modifiers;
+        SetModifiers(modifiers);
         float x = _pointerX = px / PixelScale;
         float y = _pointerY = py / PixelScale;
 
@@ -279,7 +293,7 @@ public sealed partial class UiHost
     void IPlatformListener.PointerDown(float px, float py, PointerButton button, KeyModifiers modifiers)
     {
         EnsureLayout();
-        _modifiers = modifiers;
+        SetModifiers(modifiers);
         _lastInputWasKeyboard = false;
         float x = _pointerX = px / PixelScale;
         float y = _pointerY = py / PixelScale;
@@ -311,7 +325,7 @@ public sealed partial class UiHost
     void IPlatformListener.PointerUp(float px, float py, PointerButton button, KeyModifiers modifiers)
     {
         EnsureLayout();
-        _modifiers = modifiers;
+        SetModifiers(modifiers);
         float x = _pointerX = px / PixelScale;
         float y = _pointerY = py / PixelScale;
 
@@ -351,7 +365,7 @@ public sealed partial class UiHost
     {
         if (float.IsNaN(_pointerX)) return;
         EnsureLayout();
-        _modifiers = modifiers;
+        SetModifiers(modifiers);
 
         var hit = HitTestAll(_pointerX, _pointerY);
         if (hit is null) return;
@@ -368,7 +382,7 @@ public sealed partial class UiHost
 
     void IPlatformListener.KeyDown(Key key, KeyModifiers modifiers)
     {
-        _modifiers = modifiers;
+        SetModifiers(modifiers);
         _lastInputWasKeyboard = true;
         bool repeat = key != Key.Unknown && _keysDown[(int)key];
         if (key != Key.Unknown) _keysDown[(int)key] = true;
@@ -387,7 +401,7 @@ public sealed partial class UiHost
 
     void IPlatformListener.KeyUp(Key key, KeyModifiers modifiers)
     {
-        _modifiers = modifiers;
+        SetModifiers(modifiers);
         if (key != Key.Unknown) _keysDown[(int)key] = false;
         FillKey(key, modifiers, repeat: false);
         if (_focused is not null)

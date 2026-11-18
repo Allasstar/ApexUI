@@ -207,6 +207,8 @@ void    ClearFocus();
 event Action<KeyEventArgs>? UnhandledKeyDown;   // keys no widget handled (app shortcuts); runs before Tab navigation
 event Action<KeyEventArgs>? UnhandledKeyUp;     // releases no widget handled, also with nothing focused (end held-key modes)
 bool    HasModalOverlay { get; }   // a dialog is open; app-wide shortcuts wait
+KeyModifiers Modifiers { get; }    // held modifiers as of the latest input event
+event Action<KeyModifiers>? ModifiersChanged   // a modifier went down or up, whatever has focus
 ```
 
 ### `CommandManager`, `Command`, `KeyGesture` · `lib/ApexUI/Core/`
@@ -243,6 +245,7 @@ void SetCursor(CursorShape)
 IDisposable StartTimer(TimeSpan interval, Action tick)   // UI thread; dispose to stop
 Task<string?> OpenFileAsync(FileDialogOptions) / SaveFileAsync(FileDialogOptions)   // null = cancelled; awaiting code resumes on the UI thread
 Task<string?> PickFolderAsync(string title)   // null = cancelled
+void SetMinimumSize(float width, float height)   // logical units, 0 = no limit; desktop applies it from the main loop
 // FileDialogOptions(string Title, IReadOnlyList<FileFilter> Filters, string? SuggestedFileName); FileFilter(string Name, IReadOnlyList<string> Extensions) without dots
 // Desktop: Win32 common dialogs and the COM folder picker (STA thread, owned by the window), osascript on macOS, zenity/kdialog on Linux.
 
@@ -534,6 +537,15 @@ SKColor? Color; Func<Theme, SKColor>? ColorSource   // default OnSurface (OnSurf
 IconButton(Icon icon, Action? onPressed = null) / IconButton(string pathData, Action? onPressed = null)
 event Action? Pressed;  IconButton OnPress(Action)   // ghost look, IconButtonPadding; wrap in Tooltip to name it
 bool IsSelected   // latched tool look (Primary fill); MenuButton has the same
+```
+
+### `ButtonGroup`, `KeyHint` · `lib/ApexUI/Widgets/`
+
+```csharp
+ButtonGroup(params Widget[] children) / ButtonGroup(Orientation, params Widget[] children)   // one rounded background (Background, BorderSubtle outline)
+Func<Theme, SKColor>? OutlineSource;  ButtonGroup Add(Widget) / WithChildrenCentered()
+KeyHint(string key = "", string text = "", KeyHintKind kind = Key)   // chip + small text; Mouse = capsule chip
+string Key, Text; KeyHintKind Kind; bool IsHighlighted (render only); void Set(key, text, kind, highlighted)
 ```
 
 ### `ToggleGroup<T>` · `lib/ApexUI/Widgets/ToggleGroup.cs`

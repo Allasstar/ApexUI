@@ -103,6 +103,10 @@ internal sealed class TestPlatform(int pixelWidth = 800, int pixelHeight = 600, 
     public Task<string?> SaveFileAsync(FileDialogOptions options) => Task.FromResult<string?>(null);
     public Task<string?> PickFolderAsync(string title) => Task.FromResult<string?>(null);
 
+    public (float Width, float Height) MinimumSize { get; private set; }
+
+    public void SetMinimumSize(float width, float height) => MinimumSize = (width, height);
+
     private sealed class TestTimer(TimeSpan interval, Action tick, TimeSpan due) : IDisposable
     {
         public TimeSpan Interval  { get; } = interval;

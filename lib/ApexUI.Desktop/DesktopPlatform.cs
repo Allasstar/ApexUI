@@ -44,6 +44,9 @@ public sealed class DesktopPlatform : IPlatform
     // The first frame is drawn once the window is sized, before anything asks for one.
     private bool        _frameRequested = true;
     private TimeSpan    _lastResizeFrame;
+    // Logical units; converted to window coordinates with the current scale whenever it changes.
+    private (float Width, float Height) _minimumSize;
+    private bool        _sizeLimitsPending;
 
     public DesktopPlatform(string title = "ApexUI App", int width = 900, int height = 600)
     {
@@ -94,6 +97,7 @@ public sealed class DesktopPlatform : IPlatform
             _window.DoUpdate();
             _context.RunPending();
             RunDueTimers();
+            ApplySizeLimits();
             if (_frameRequested)
             {
                 _frameRequested = false;
@@ -167,6 +171,38 @@ public sealed class DesktopPlatform : IPlatform
     public Task<string?> SaveFileAsync(FileDialogOptions options) => FileDialogs.SaveAsync(options, OwnerHandle());
 
     public Task<string?> PickFolderAsync(string title) => FileDialogs.PickFolderAsync(title, OwnerHandle());
+
+    public void SetMinimumSize(float width, float height)
+    {
+        _minimumSize = (Math.Max(0f, width), Math.Max(0f, height));
+        _sizeLimitsPending = true;
+        if (_window.IsInitialized) _window.ContinueEvents();
+    }
+
+    // Applied from the main loop only: on Windows a smaller window is resized at once, and that resize must not
+    // reach the listener in the middle of a frame (a layout pass may be what asked for the limit).
+    // GLFW's limits are in its screen coordinates, which Silk's window size is not on a scaled Windows display, so
+    // the ratio comes from GLFW itself. Windows ignores a minimum unless both sides have one, hence 1 for "none".
+    private unsafe void ApplySizeLimits()
+    {
+        if (!_sizeLimitsPending || _window.Native?.Glfw is not { } native || GlfwWindowing.GetExistingApi(_window) is not { } glfw) return;
+        var handle = (Silk.NET.GLFW.WindowHandle*)native;
+        glfw.GetWindowSize(handle, out int windowWidth, out _);
+        glfw.GetFramebufferSize(handle, out int framebufferWidth, out _);
+        if (windowWidth <= 0 || framebufferWidth <= 0) return; // minimized: try again later
+        _sizeLimitsPending = false;
+
+        const int dontCare = -1;
+        (float w, float h) = _minimumSize;
+        if (w <= 0f && h <= 0f)
+        {
+            glfw.SetWindowSizeLimits(handle, dontCare, dontCare, dontCare, dontCare);
+            return;
+        }
+
+        float toWindow = _dpiScale * windowWidth / framebufferWidth;
+        glfw.SetWindowSizeLimits(handle, Math.Max(1, (int)MathF.Ceiling(w * toWindow)), Math.Max(1, (int)MathF.Ceiling(h * toWindow)), dontCare, dontCare);
+    }
 
     // The dialog belongs to the window (stays on top of it and blocks its input) where the OS supports that.
     private nint OwnerHandle() => _window.Native?.Win32?.Hwnd ?? 0;
@@ -248,6 +284,7 @@ public sealed class DesktopPlatform : IPlatform
         float dpiScale = _contentScale?.Read() ?? _pixelRatio;
 
         if (fb == _surfaceSize && dpiScale == _dpiScale) return false;
+        if (dpiScale != _dpiScale && _minimumSize != default) _sizeLimitsPending = true;
         _surfaceSize = fb;
         _dpiScale    = dpiScale;
         SetupSurface(fb.X, fb.Y);

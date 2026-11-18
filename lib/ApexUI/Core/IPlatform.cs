@@ -43,6 +43,10 @@ public interface IPlatform
 
     /// Asks the user for a folder. Completes with null when cancelled. Code awaiting it continues on the UI thread.
     Task<string?> PickFolderAsync(string title);
+
+    /// The smallest size the user can resize the window to, in logical units (0 = no limit on that side).
+    /// It follows the display's scale. Safe to call at any time, also before Run and during layout.
+    void SetMinimumSize(float width, float height);
 }
 
 /// Receives events from an IPlatform. Sizes and pointer positions are in surface pixels:
