@@ -4,6 +4,11 @@ Newest first. **Breaking** marks changes that need edits in apps using ApexUI.
 
 ## Unreleased
 
+### Toast placement
+- New `Toast.Placement` (`ToastPlacement.Top` or `Bottom`, default `Bottom`) and `Toast.EdgeOffset`: the gap to that window edge, for example to clear a toolbar. Null keeps following the theme's `SpacingLg`.
+- Gallery: the Colors tab shows a toast at the bottom and one at the top.
+- 2 new tests (337 in total).
+
 ### Folder picker, disabled look of composites
 - New `IPlatform.PickFolderAsync(title)`: asks for a folder, null when cancelled. Desktop: the system folder picker on Windows (the common file dialog in folder mode, through generated COM interop, on its own STA thread and owned by the window), `choose folder` through `osascript` on macOS, `zenity --directory` or `kdialog --getexistingdirectory` on Linux. No new packages.
 - **Breaking:** `IPlatform` gains `PickFolderAsync`. Custom backends add it.

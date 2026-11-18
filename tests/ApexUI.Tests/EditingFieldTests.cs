@@ -446,6 +446,32 @@ public class ToastTests
     }
 
     [Fact]
+    public void Top_placement_sits_the_edge_offset_below_the_top()
+    {
+        var toast = new Toast { Placement = ToastPlacement.Top, EdgeOffset = 48 };
+        var (host, platform) = TestPlatform.Show(new Column());
+
+        toast.Show(host, "Saved");
+        platform.Render().Dispose();
+
+        var panel = toast.Content!.LayoutBounds;
+        Assert.Equal(400f, panel.CenterX, 1);
+        Assert.Equal(48f, panel.Y, 3);
+    }
+
+    [Fact]
+    public void Edge_offset_moves_a_bottom_toast_too()
+    {
+        var toast = new Toast { EdgeOffset = 100 };
+        var (host, platform) = TestPlatform.Show(new Column());
+
+        toast.Show(host, "Saved");
+        platform.Render().Dispose();
+
+        Assert.Equal(500f, toast.Content!.LayoutBounds.Bottom, 3);
+    }
+
+    [Fact]
     public void Never_takes_pointer_input()
     {
         var button = new Button("Under") { Width = 800, Height = 600 };

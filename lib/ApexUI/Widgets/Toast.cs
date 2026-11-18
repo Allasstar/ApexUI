@@ -1,11 +1,15 @@
 namespace ApexUI.Widgets;
 
-/// A short message that floats at the bottom center of the window and hides itself after Duration.
+/// Which window edge a Toast sits at.
+public enum ToastPlacement { Top, Bottom }
+
+/// A short message that floats at the top or bottom center of the window and hides itself after Duration.
 /// It never takes pointer input. Showing a new message while one is up replaces it and restarts the timer.
 ///
 /// Usage:
 ///   var toast = new Toast();
 ///   toast.Show(host, "Saved");
+///   var notice = new Toast { Placement = ToastPlacement.Top, EdgeOffset = 56 };
 public sealed class Toast : Overlay
 {
     private readonly Label _message;
@@ -25,6 +29,20 @@ public sealed class Toast : Overlay
 
     public TimeSpan Duration { get; set; } = TimeSpan.FromSeconds(2.5);
 
+    public ToastPlacement Placement
+    {
+        get;
+        set
+        {
+            field = value;
+            ContentVAlign = value == ToastPlacement.Top ? VAlign.Top : VAlign.Bottom;
+        }
+    } = ToastPlacement.Bottom;
+
+    /// The gap between the message and its window edge, for example to clear a toolbar at the top.
+    /// Null follows the theme's SpacingLg.
+    public float? EdgeOffset { get; set => SetLayoutProperty(ref field, value); }
+
     public string Message => _message.Text;
 
     public void Show(UiHost host, string message)
@@ -42,9 +60,15 @@ public sealed class Toast : Overlay
         if (IsVisible) Close();
     }
 
-    // Lifts the message off the window's bottom edge, where Overlay would place it.
+    // Moves the message off its window edge, where Overlay would place it.
     protected override void ArrangeCore(Rect screen)
-        => base.ArrangeCore(screen with { Height = Math.Max(0f, screen.Height - Theme.SpacingLg) });
+    {
+        float offset = Math.Min(EdgeOffset ?? Theme.SpacingLg, screen.Height);
+        float height = screen.Height - offset;
+        base.ArrangeCore(Placement == ToastPlacement.Top
+            ? screen with { Y = screen.Y + offset, Height = height }
+            : screen with { Height = height });
+    }
 
     protected override void OnDetached()
     {

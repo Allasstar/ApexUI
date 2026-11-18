@@ -23,8 +23,10 @@ public class ColorsExample : Widget
         inline.ColorChanged += c => inlineHex.Text = ColorPicker.ToHex(c);
 
         var toast = new Toast();
+        var topToast = new Toast { Placement = ToastPlacement.Top, EdgeOffset = 8f };
         int count = 0;
-        var showToast = new Button("Show a toast", () => toast.Show(Host!, $"Message {++count}"));
+        var showToast = new Button("Show at the bottom", () => toast.Show(Host!, $"Message {++count}"));
+        var showTopToast = new Button("Show at the top", () => topToast.Show(Host!, $"Message {++count}"));
 
         AddChild(new PaddingBox(
             new Column(
@@ -42,8 +44,8 @@ public class ColorsExample : Widget
                 new Row(inline, inlineHex).WithSpacing(16f),
                 new Separator { Margin = new Thickness(0, 4f) },
                 new Label { Text = "Toast", Bold = true, Role = TextRole.Heading },
-                new Label { Text = "Appears at the bottom of the window and hides itself; a new message replaces the old.", WordWrap = true },
-                showToast
+                new Label { Text = "Appears at the bottom or the top of the window and hides itself; a new message replaces the old. The top one sits 8 px below the edge.", WordWrap = true },
+                new Row(showToast, showTopToast).WithSpacing(8f)
             ).WithSpacing(12f),
             new Thickness(24f)));
 
