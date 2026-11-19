@@ -11,21 +11,22 @@ public sealed record Theme
 {
     public static Theme Light { get; } = new();
 
+    // Neutral greys with a slight cool tint, so user colours read true; one blue accent.
     public static Theme Dark { get; } = new()
     {
-        Background     = new(30,  30,  46),
-        Surface        = new(49,  50,  68),
-        SurfaceHover   = new(69,  71,  90),
-        SurfacePressed = new(88,  91,  112),
-        OnSurface      = new(205, 214, 244),
-        OnSurfaceMuted = new(108, 112, 134),
-        Primary        = new(137, 180, 250),
-        PrimaryHover   = new(180, 190, 254),
-        OnPrimary      = new(30,  30,  46),
-        Success        = new(166, 227, 161),
-        Warning        = new(250, 179, 135),
-        Danger         = new(243, 139, 168),
-        Border         = new(88,  91,  112),
+        Background     = new(23,  24,  27),
+        Surface        = new(35,  36,  40),
+        SurfaceHover   = new(45,  47,  52),
+        SurfacePressed = new(56,  58,  64),
+        OnSurface      = new(228, 230, 234),
+        OnSurfaceMuted = new(142, 146, 155),
+        Primary        = new(76,  141, 246),
+        PrimaryHover   = new(106, 161, 248),
+        OnPrimary      = new(255, 255, 255),
+        Success        = new(61,  179, 126),
+        Warning        = new(227, 164, 59),
+        Danger         = new(229, 83,  75),
+        Border         = new(58,  61,  68),
         // Dark backgrounds need a heavier scrim and shadow to read as depth.
         Scrim          = new(0,   0,   0,   150),
         Shadow         = new(0,   0,   0,   110),

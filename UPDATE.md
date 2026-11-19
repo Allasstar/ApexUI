@@ -4,6 +4,10 @@ Newest first. **Breaking** marks changes that need edits in apps using ApexUI.
 
 ## Unreleased
 
+### Neutral dark theme
+- `Theme.Dark` (the Default pair's dark theme) is now neutral grey with a slight cool tint instead of the purple-tinted palette, with one blue accent: `Background` #17181b, `Surface` #232428, `SurfaceHover` #2d2f34, `SurfacePressed` #383a40, `OnSurface` #e4e6ea, `OnSurfaceMuted` #8e929b (4.7:1 on `Surface`), `Primary` #4c8df6, `PrimaryHover` #6aa1f8, `OnPrimary` white, `Success` #3db37e, `Warning` #e3a43b, `Danger` #e5534b, `Border` #3a3d44. Derived tokens (`Selection`, `FocusRing`, `BorderSubtle`, scrollbars) follow. Scrim, shadow, sizes and `Theme.Light` are unchanged. Apps that want the old look set the colours with `Theme.Dark with { ... }`.
+- The theme test that requires every dark colour to differ from the light one now also exempts `OnPrimary`, which sits on the accent rather than the background (white in both).
+
 ### Key hint tokens, label size from the theme
 - New Theme tokens for `KeyHint`: `KeyHintFontSize` (its text and chip text; derived: `FontSizeSmall`), `KeyHintText` (its text while not highlighted; derived: `OnSurfaceMuted`) and `KeyHintBorder` (the chip's outline while not highlighted; derived: `Border`). The chip's side padding is half of `KeyHintFontSize` (6 at the default size, as before), so the chip grows with the text. With the tokens unset nothing changes; a status bar that should read at a glance sets them, e.g. `theme with { KeyHintFontSize = theme.FontSizeSmall * 1.25f, KeyHintText = theme.OnSurface, KeyHintBorder = theme.OnSurfaceMuted }`.
 - New `Label.FontSizeSource` (`Func<Theme, float>`): the font size from the current theme, ahead of `FontSize` and `Role`, for a token other than the role sizes. Changing it re-measures the label.
