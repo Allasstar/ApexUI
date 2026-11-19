@@ -16,6 +16,14 @@ public class Image : Widget, IDisposable
         set => SetRenderProperty(ref field, value);
     } = ImageStretch.Uniform;
 
+    /// When false a raster image is drawn with nearest sampling, so scaled pixels stay sharp squares
+    /// (pixel art, previews of exact pixels). True (the default) samples linearly.
+    public bool Smoothing
+    {
+        get;
+        set => SetRenderProperty(ref field, value);
+    } = true;
+
     /// When true (the default) the decoded image is disposed when the widget leaves the screen,
     /// and the widget draws nothing afterwards. Set false to reuse an Image after removing it.
     public bool DisposeOnDetach { get; set; } = true;
@@ -62,11 +70,27 @@ public class Image : Widget, IDisposable
         return img;
     }
 
+    /// Replaces the image with a raster copy of bitmap, disposing the previous one. The widget keeps its
+    /// settings and is measured again when the natural size changes.
+    public void SetBitmap(SKBitmap bitmap)
+    {
+        SKImage next = SKImage.FromBitmap(bitmap);
+        ReleaseContent();
+        _raster = next;
+        _disposed = false;
+        bool resized = _naturalW != bitmap.Width || _naturalH != bitmap.Height;
+        _naturalW = bitmap.Width;
+        _naturalH = bitmap.Height;
+        if (resized) InvalidateLayout();
+        else Invalidate();
+    }
+
     // ── Fluent ───────────────────────────────────────────────────────────────
 
     public Image WithStretch(ImageStretch s)    { Stretch = s; return this; }
     public Image WithSize(float w, float h)     { Width = w; Height = h; return this; }
     public Image KeepOnDetach()                 { DisposeOnDetach = false; return this; }
+    public Image WithSmoothing(bool smooth)     { Smoothing = smooth; return this; }
 
     protected override void OnDetached()
     {
@@ -101,7 +125,7 @@ public class Image : Widget, IDisposable
         var dst = StretchRect(_naturalW, _naturalH, LayoutBounds, Stretch);
 
         if (_raster is not null)
-            ctx.DrawImage(_raster, dst);
+            ctx.DrawImage(_raster, dst, Smoothing ? DrawContext.LinearSampling : DrawContext.NearestSampling);
         else if (_vector is not null)
             ctx.DrawPicture(_vector, dst, _naturalW, _naturalH);
     }
@@ -161,8 +185,16 @@ public class Image : Widget, IDisposable
     {
         if (_disposed) return;
         _disposed = true;
+        ReleaseContent();
+    }
+
+    private void ReleaseContent()
+    {
         _raster?.Dispose();
         _vector?.Dispose();
         _svgLoader?.Dispose();
+        _raster = null;
+        _vector = null;
+        _svgLoader = null;
     }
 }

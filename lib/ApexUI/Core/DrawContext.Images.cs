@@ -13,6 +13,18 @@ public sealed partial class DrawContext
     public void DrawImage(SKImage image, SKRect src, Rect dest)
         => Canvas.DrawImage(image, src, dest.ToSKRect());
 
+    /// Linear filtering: smooth when an image is scaled.
+    public static readonly SKSamplingOptions LinearSampling = new(SKFilterMode.Linear, SKMipmapMode.None);
+
+    /// Nearest neighbour: each source pixel stays a sharp rectangle when scaled.
+    public static readonly SKSamplingOptions NearestSampling = new(SKFilterMode.Nearest, SKMipmapMode.None);
+
+    public void DrawImage(SKImage image, Rect dest, SKSamplingOptions sampling)
+    {
+        var src = new SKRect(0, 0, image.Width, image.Height);
+        Canvas.DrawImage(image, src, dest.ToSKRect(), sampling);
+    }
+
     // ── Vector pictures (SVG) ─────────────────────────────────────────────────
 
     /// Draw an SKPicture scaled to fit dest, given its natural (cull-rect) dimensions.

@@ -6,6 +6,7 @@ public class ImageToggleExample : Widget
     {
         var rasterImage = Image.FromBitmap(CreateGradientBitmap()).WithSize(280, 180);
         var svgImage    = Image.FromSvgString(SvgSource).WithSize(280, 180);
+        var pixelImage  = Image.FromBitmap(CreatePixelBitmap()).WithSize(96, 96).WithSmoothing(false);
 
         var stretchStatus = new Label()
             .WithText("Stretch: Uniform")
@@ -25,6 +26,11 @@ public class ImageToggleExample : Widget
                     new Column(
                         new Label().WithText("Vector SVG").WithSize(13).AsBold(),
                         svgImage
+                    ).WithSpacing(6),
+                    new Column(
+                        new Label().WithText("8 x 8 pixels").WithSize(13).AsBold(),
+                        pixelImage,
+                        new Toggle(false, "Smoothing").OnChange(v => pixelImage.Smoothing = v)
                     ).WithSpacing(6)
                 ).WithSpacing(24),
 
@@ -53,6 +59,21 @@ public class ImageToggleExample : Widget
             ).WithSpacing(12),
             all: 24
         ));
+    }
+
+    private static SKBitmap CreatePixelBitmap()
+    {
+        var bmp = new SKBitmap(8, 8);
+        for (int y = 0; y < 8; y++)
+        {
+            for (int x = 0; x < 8; x++)
+            {
+                bool on = (x + y) % 3 == 0 || x == y;
+                bmp.SetPixel(x, y, on ? new SKColor(0x89, 0xB4, 0xFA) : new SKColor(0x1E, 0x1E, 0x2E));
+            }
+        }
+
+        return bmp;
     }
 
     private static SKBitmap CreateGradientBitmap()

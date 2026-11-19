@@ -4,6 +4,13 @@ Newest first. **Breaking** marks changes that need edits in apps using ApexUI.
 
 ## Unreleased
 
+### Image: replace the bitmap, nearest sampling
+- New `Image.SetBitmap(bitmap)`: replaces the image with a raster copy of the bitmap and disposes the previous one, for a live preview. The widget is measured again only when the natural size changes.
+- New `Image.Smoothing` (and `WithSmoothing`): false draws a raster image with nearest sampling, so scaled pixels stay sharp squares. Default true (linear, as before).
+- New `DrawContext.DrawImage(image, dest, sampling)` with `DrawContext.LinearSampling` and `DrawContext.NearestSampling`.
+- Gallery: the Image tab shows an 8 x 8 pixel image scaled up, with a Smoothing switch.
+- 2 new tests (352 in total).
+
 ### Unit chip in number fields, compact buttons
 - `NumberField` units: the unit after the field is now a small chip in the small font (`Surface` fill, `Border` outline, `CornerRadiusSmall`, hover and pressed fills, text in `OnSurface`), centred beside the text field, when there is more than one unit to cycle through, and plain muted text when there is only one. It is as wide as the widest of `Units`, so switching units never shifts the field.
 - New `Button.IsCompact` (and `AsCompact()`): as tall as an `IconButton` (`IconSize` plus `IconButtonPadding`), with `SpacingSm` at the sides, for text buttons in a toolbar row of icon buttons, so showing one never changes the row's height.
