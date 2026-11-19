@@ -383,6 +383,8 @@ ScrollbarTrack*, ScrollbarThumb*, ScrollbarThumbActive* (+ float ScrollbarSize, 
 string FontFamily   // "Segoe UI"
 float  FontSizeSmall, FontSizeBody, FontSizeSubheading, FontSizeHeading, FontSizeTitle, LineHeight (multiplier)
 float  FontSize(TextRole role)   // enum TextRole { Body, Small, Subheading, Heading, Title }; Label.Role
+                                 // Label.FontSizeSource (Func<Theme, float>) wins over FontSize and Role
+float  KeyHintFontSize*; SKColor KeyHintText*, KeyHintBorder*   // KeyHint: FontSizeSmall, OnSurfaceMuted, Border
 float  CornerRadiusSmall, CornerRadiusControl, CornerRadiusPopup, CornerRadiusDialog
 float  SpacingXs, SpacingSm, SpacingMd, SpacingLg
 Thickness ButtonPadding, InputPadding, MenuItemPadding, PopupPadding, TooltipPadding, DialogPadding, TabPadding,
@@ -546,7 +548,7 @@ bool IsSelected   // latched tool look (Primary fill); MenuButton has the same
 ```csharp
 ButtonGroup(params Widget[] children) / ButtonGroup(Orientation, params Widget[] children)   // one rounded background (Background, BorderSubtle outline)
 Func<Theme, SKColor>? OutlineSource;  ButtonGroup Add(Widget) / WithChildrenCentered()
-KeyHint(string key = "", string text = "", KeyHintKind kind = Key)   // chip + small text; Mouse = capsule chip
+KeyHint(string key = "", string text = "", KeyHintKind kind = Key)   // chip + text in KeyHintFontSize; Mouse = capsule chip
 string Key, Text; KeyHintKind Kind; bool IsHighlighted (render only); void Set(key, text, kind, highlighted)
 ```
 

@@ -14,6 +14,14 @@ public class Label : Widget
         set => SetLayoutProperty(ref field, value);
     } = float.NaN; // NaN = the theme's size for Role
 
+    /// When set, gives the font size from the current theme, ahead of FontSize and Role, for a theme token
+    /// other than the role sizes.
+    public Func<Theme, float>? FontSizeSource
+    {
+        get;
+        set => SetLayoutProperty(ref field, value);
+    }
+
     /// Which of the theme's font sizes the label uses while FontSize is not set.
     public TextRole Role
     {
@@ -97,7 +105,7 @@ public class Label : Widget
 
     protected override void OnDetached() => ReleaseBlobs();
 
-    private float ResolvedFontSize(Theme theme) => float.IsNaN(FontSize) ? theme.FontSize(Role) : FontSize;
+    private float ResolvedFontSize(Theme theme) => FontSizeSource?.Invoke(theme) ?? (float.IsNaN(FontSize) ? theme.FontSize(Role) : FontSize);
 
     private List<SKTextBlob?> Blobs(DrawContext ctx, float fontSize)
     {

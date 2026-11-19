@@ -281,11 +281,12 @@ Built-in widgets take every color, size, radius, padding and font from the theme
 | Corner radii | `CornerRadiusSmall`, `CornerRadiusControl`, `CornerRadiusPopup`, `CornerRadiusDialog` |
 | Spacing | `SpacingXs` / `Sm` / `Md` / `Lg` |
 | Paddings | `ButtonPadding`, `InputPadding`, `MenuItemPadding`, `PopupPadding`, `TooltipPadding`, `DialogPadding`, `TabPadding`, `IconButtonPadding`, `SegmentPadding`, `SectionHeaderPadding` |
+| Key hints | `KeyHintFontSize`*, `KeyHintText`*, `KeyHintBorder`* |
 | Control sizes | `CheckboxSize`, `RadioSize`, `ToggleWidth`, `ToggleHeight`, `SliderThumbSize`, `SliderTrackHeight`, `ProgressBarHeight`, `TabBarSize`, `IconSize`, `SplitterSize`, `SwatchSize`, `ColorAreaSize`, `ColorStripHeight` |
 
 \* Derived: follows another token (e.g. `Selection` is `Primary` at 30%) unless set.
 
-Labels pick a size by role: `new Label { Text = "Settings", Role = TextRole.Title, Bold = true }`. An explicit `FontSize` still wins.
+Labels pick a size by role: `new Label { Text = "Settings", Role = TextRole.Title, Bold = true }`. An explicit `FontSize` still wins, and `FontSizeSource` (a `Func<Theme, float>`, e.g. `t => t.KeyHintFontSize`) wins over both.
 
 A widget's `Padding` and `CornerRadius` come from the theme until you set them. Custom widgets do the same by overriding `DefaultPadding(Theme)` / `DefaultCornerRadius(Theme)` (and `LinearPanel.DefaultSpacing(Theme)`), and read sizes from the protected `Theme` property in `MeasureCore`/`DrawCore`.
 

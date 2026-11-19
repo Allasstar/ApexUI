@@ -157,6 +157,29 @@ public sealed record Theme
         _                   => FontSizeBody,
     };
 
+    // ── Key hints ─────────────────────────────────────────────────────────
+
+    /// Size of a KeyHint's text and chip text; the chip grows with it. Derived: FontSizeSmall.
+    public float KeyHintFontSize
+    {
+        get => field > 0f ? field : FontSizeSmall;
+        init;
+    }
+
+    /// A KeyHint's text while not highlighted. Derived: OnSurfaceMuted.
+    public SKColor KeyHintText
+    {
+        get => field == SKColor.Empty ? OnSurfaceMuted : field;
+        init;
+    }
+
+    /// Outline of a KeyHint's chip while not highlighted. Derived: Border.
+    public SKColor KeyHintBorder
+    {
+        get => field == SKColor.Empty ? Border : field;
+        init;
+    }
+
     // ── Corner radii ──────────────────────────────────────────────────────
 
     /// Checkboxes, tooltips, small badges.

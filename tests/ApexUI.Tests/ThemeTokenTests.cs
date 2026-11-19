@@ -145,6 +145,52 @@ public class ThemeTokenTests
     }
 
     [Fact]
+    public void Label_font_size_source_wins_over_size_and_role()
+    {
+        var label = new Label { Text = "Hint", FontSize = 10f, Role = TextRole.Title, FontSizeSource = t => t.FontSizeSmall * 2f, HAlign = HAlign.Left, VAlign = VAlign.Top };
+        var (host, platform) = TestPlatform.Show(new Column(label));
+        host.Theme = Theme.Light with { FontSizeSmall = 11f, LineHeight = 1.5f };
+        platform.Render().Dispose();
+
+        Assert.Equal(33f, label.LayoutBounds.Height, 3);
+    }
+
+    [Fact]
+    public void Key_hint_tokens_follow_the_small_font_muted_text_and_border_unless_set()
+    {
+        var theme = Theme.Dark with { FontSizeSmall = 11f, OnSurfaceMuted = SKColors.Gray, Border = SKColors.Blue };
+
+        Assert.Equal(11f, theme.KeyHintFontSize);
+        Assert.Equal(SKColors.Gray, theme.KeyHintText);
+        Assert.Equal(SKColors.Blue, theme.KeyHintBorder);
+
+        var set = theme with { KeyHintFontSize = 15f, KeyHintText = SKColors.White, KeyHintBorder = SKColors.Red };
+        Assert.Equal(15f, set.KeyHintFontSize);
+        Assert.Equal(SKColors.White, set.KeyHintText);
+        Assert.Equal(SKColors.Red, set.KeyHintBorder);
+    }
+
+    [Fact]
+    public void Key_hint_text_and_chip_grow_with_the_key_hint_font_size()
+    {
+        var hint = new KeyHint("Shift", "Add") { HAlign = HAlign.Left, VAlign = VAlign.Top };
+        var (host, platform) = TestPlatform.Show(new Column(hint));
+        host.Theme = Theme.Light with { LineHeight = 1.5f };
+        platform.Render().Dispose();
+        Widget chip = hint.Children[0];
+        float chipWidth = chip.LayoutBounds.Width;
+        Assert.Equal(Theme.Light.FontSizeSmall * 1.5f, hint.LayoutBounds.Height, 3);
+        Assert.Equal(Theme.Light.FontSizeSmall * 0.5f, chip.Padding.Left, 3);
+
+        host.Theme = Theme.Light with { LineHeight = 1.5f, KeyHintFontSize = Theme.Light.FontSizeSmall * 1.25f };
+        platform.Render().Dispose();
+
+        Assert.Equal(Theme.Light.FontSizeSmall * 1.25f * 1.5f, hint.LayoutBounds.Height, 3);
+        Assert.Equal(Theme.Light.FontSizeSmall * 1.25f * 0.5f, chip.Padding.Left, 3);
+        Assert.True(chip.LayoutBounds.Width > chipWidth * 1.2f);
+    }
+
+    [Fact]
     public void Panel_spacing_comes_from_the_theme_until_set()
     {
         var group = new RadioGroup<int>(Orientation.Horizontal);

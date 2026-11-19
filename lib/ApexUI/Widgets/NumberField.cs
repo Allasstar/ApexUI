@@ -6,7 +6,9 @@ namespace ApexUI.Widgets;
 /// Drag the caption sideways to scrub the value by Step per pixel (Shift: ten times faster),
 /// or type a value and press Enter or move focus away. Escape restores the value from before typing.
 /// ValueChanged fires on every change (each scrub step); EditCompleted fires once when a scrub or
-/// typed edit that changed the value ends, which suits recording undo steps.
+/// typed edit that changed the value ends, which suits recording undo steps. Removing the field from the
+/// tree ends its scrub or typed edit the same way, so a handler that rebuilds its panel on ValueChanged
+/// must keep the field it is editing, or EditCompleted arrives in the middle of the rebuild.
 ///
 /// Units (optional): WithUnits("px", "%") shows the current unit after the field, on a small chip as wide as
 /// the widest unit so the field never shifts. Typing a value with a

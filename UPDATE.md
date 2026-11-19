@@ -4,6 +4,13 @@ Newest first. **Breaking** marks changes that need edits in apps using ApexUI.
 
 ## Unreleased
 
+### Key hint tokens, label size from the theme
+- New Theme tokens for `KeyHint`: `KeyHintFontSize` (its text and chip text; derived: `FontSizeSmall`), `KeyHintText` (its text while not highlighted; derived: `OnSurfaceMuted`) and `KeyHintBorder` (the chip's outline while not highlighted; derived: `Border`). The chip's side padding is half of `KeyHintFontSize` (6 at the default size, as before), so the chip grows with the text. With the tokens unset nothing changes; a status bar that should read at a glance sets them, e.g. `theme with { KeyHintFontSize = theme.FontSizeSmall * 1.25f, KeyHintText = theme.OnSurface, KeyHintBorder = theme.OnSurfaceMuted }`.
+- New `Label.FontSizeSource` (`Func<Theme, float>`): the font size from the current theme, ahead of `FontSize` and `Role`, for a token other than the role sizes. Changing it re-measures the label.
+- Gallery: the Toolbar tab has a Larger hints switch that sets the three tokens on the current theme.
+- `NumberField` docs: removing the field during a scrub or typed edit ends that edit with `EditCompleted` (as before); a panel that rebuilds itself on `ValueChanged` should keep the field being edited.
+- 3 new tests (371 in total).
+
 ### Text drawing without allocations
 - `DrawContext.DrawText(string, ...)` keeps the glyphs (an `SKTextBlob` and its width) of each text, font size and weight it draws, so text drawn again on the next frame allocates nothing. Before, every call built a new blob and its wrappers, about 160 bytes per string per frame. A text not drawn during a whole frame is dropped when the next frame begins, so only text that changes costs a new blob. Every widget that draws through it (`TextInput`, `NumberField`, `Checkbox`, `Toggle`, `RadioGroup`) benefits; nothing to change in apps.
 - Center and Right alignment place the blob by its measured width, as `SKCanvas.DrawText` did.

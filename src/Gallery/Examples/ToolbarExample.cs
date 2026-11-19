@@ -1,7 +1,8 @@
 namespace ApexUI.Gallery.Examples;
 
 /// Demonstrates ButtonGroup (a toolbar of grouped controls) and KeyHint (a status bar of key hints that
-/// shows only the held modifier's hints, highlighted, through UiHost.ModifiersChanged).
+/// shows only the held modifier's hints, highlighted, through UiHost.ModifiersChanged). The Larger hints switch
+/// sets the KeyHintFontSize, KeyHintText and KeyHintBorder tokens on the current theme.
 public class ToolbarExample : Widget
 {
     private const string Pointer = "M5 3l14 8-6 2-3 6z";
@@ -85,6 +86,7 @@ public class ToolbarExample : Widget
             vertical,
             new Label { Text = "KeyHint: hold Shift, Ctrl or Alt to see only that key's hint, highlighted", Bold = true },
             statusBar,
+            new Toggle(false, "Larger hints: KeyHintFontSize 1.25 x small, KeyHintText OnSurface, KeyHintBorder OnSurfaceMuted").OnChange(UseLargerHints),
             new Row(
                 new KeyHint("Enter", "Finish"),
                 new KeyHint("Esc", "Cancel"),
@@ -104,6 +106,16 @@ public class ToolbarExample : Widget
     {
         if (_host is not null) _host.ModifiersChanged -= ShowHeld;
         _host = null;
+    }
+
+    // Changing the theme preset afterwards brings back the preset's own tokens.
+    private void UseLargerHints(bool on)
+    {
+        if (_host is null) return;
+        Theme theme = _host.Theme;
+        _host.Theme = on
+            ? theme with { KeyHintFontSize = theme.FontSizeSmall * 1.25f, KeyHintText = theme.OnSurface, KeyHintBorder = theme.OnSurfaceMuted }
+            : theme with { KeyHintFontSize = 0f, KeyHintText = SKColor.Empty, KeyHintBorder = SKColor.Empty };
     }
 
     private void ShowHeld(KeyModifiers held)

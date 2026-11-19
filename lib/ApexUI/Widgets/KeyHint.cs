@@ -6,12 +6,15 @@ public enum KeyHintKind { Key, Mouse }
 /// A status bar hint: a key or mouse chip followed by what it does, as in "[Shift] Add" or "(Drag) Pan".
 /// Key, Text and Kind can be changed on a live hint, so a bar can keep a fixed set of hints and refill them;
 /// IsHighlighted only redraws, for a hint whose modifier is being held.
+/// Theme tokens: KeyHintFontSize (text and chip), KeyHintText, KeyHintBorder; Primary and OnPrimary when highlighted.
 ///
 /// Usage:
 ///   var bar = new Row(new KeyHint("LMB", "Select", KeyHintKind.Mouse), new KeyHint("Shift", "Add"));
 ///   shiftHint.IsHighlighted = true;
 public sealed class KeyHint : LinearPanel
 {
+    private static readonly Func<Theme, float> HintFontSize = t => t.KeyHintFontSize;
+
     private readonly Chip _chip;
     private readonly Label _label;
 
@@ -20,9 +23,9 @@ public sealed class KeyHint : LinearPanel
         _chip  = new Chip(this) { VAlign = VAlign.Center };
         _label = new Label
         {
-            Role        = TextRole.Small,
-            VAlign      = VAlign.Center,
-            ColorSource = t => IsHighlighted ? t.OnSurface : t.OnSurfaceMuted,
+            FontSizeSource = HintFontSize,
+            VAlign         = VAlign.Center,
+            ColorSource    = t => IsHighlighted ? t.OnSurface : t.KeyHintText,
         };
         AddChild(_chip);
         AddChild(_label);
@@ -46,7 +49,7 @@ public sealed class KeyHint : LinearPanel
 
     public KeyHintKind Kind { get; set => SetRenderProperty(ref field, value); }
 
-    /// Draws the chip in Primary and the text in OnSurface instead of OnSurfaceMuted.
+    /// Draws the chip in Primary and the text in OnSurface instead of KeyHintText.
     public bool IsHighlighted
     {
         get;
@@ -79,17 +82,18 @@ public sealed class KeyHint : LinearPanel
             _owner = owner;
             Text = new Label
             {
-                Role        = TextRole.Small,
-                HAlign      = HAlign.Center,
-                VAlign      = VAlign.Center,
-                ColorSource = t => owner.IsHighlighted ? t.OnPrimary : t.OnSurface,
+                FontSizeSource = HintFontSize,
+                HAlign         = HAlign.Center,
+                VAlign         = VAlign.Center,
+                ColorSource    = t => owner.IsHighlighted ? t.OnPrimary : t.OnSurface,
             };
             AddChild(Text);
         }
 
         public Label Text { get; }
 
-        protected override Thickness DefaultPadding(Theme theme) => new(theme.SpacingXs * 1.5f, 0f);
+        // Half the font size at the sides: 6 at the default small font, as before the token, and in step with it.
+        protected override Thickness DefaultPadding(Theme theme) => new(theme.KeyHintFontSize * 0.5f, 0f);
 
         protected override void DrawCore(DrawContext ctx)
         {
@@ -103,7 +107,7 @@ public sealed class KeyHint : LinearPanel
             }
 
             ctx.FillRoundRect(b, radius, t.Surface);
-            ctx.StrokeRoundRect(b, radius, t.Border);
+            ctx.StrokeRoundRect(b, radius, t.KeyHintBorder);
         }
     }
 }
