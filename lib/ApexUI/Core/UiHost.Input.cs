@@ -12,6 +12,7 @@ public sealed partial class UiHost
     private readonly WheelEventArgs     _wheelArgs   = new();
     private readonly KeyEventArgs       _keyArgs     = new();
     private readonly TextInputEventArgs _textArgs    = new();
+    private readonly FileDropEventArgs  _dropArgs    = new();
 
     // Deepest widget first. Two lists, swapped on every move, so updating hover allocates nothing.
     private List<Widget> _hoverChain     = [];
@@ -408,6 +409,24 @@ public sealed partial class UiHost
             Route(_focused, InputKind.KeyUp, _keyArgs);
         if (!_keyArgs.Handled)
             UnhandledKeyUp?.Invoke(_keyArgs);
+    }
+
+    // A drop is also a pointer position: the hover follows it, so the widget under the drop shows as hovered.
+    void IPlatformListener.FilesDropped(float px, float py, IReadOnlyList<string> paths)
+    {
+        if (paths.Count == 0) return;
+        EnsureLayout();
+        float x = _pointerX = px / PixelScale;
+        float y = _pointerY = py / PixelScale;
+
+        var hit = HitTestAll(x, y);
+        UpdateHover(hit, x, y);
+        if (hit is null) return;
+        _dropArgs.SetWindowPosition(x, y);
+        _dropArgs.Modifiers = _modifiers;
+        _dropArgs.Paths     = paths;
+        Route(hit, InputKind.FilesDropped, _dropArgs);
+        _dropArgs.Paths = [];
     }
 
     void IPlatformListener.TextEntered(string text)

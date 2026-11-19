@@ -81,6 +81,14 @@ public sealed class TextInputEventArgs : InputEventArgs
     public string Text { get; internal set; } = "";
 }
 
+/// Files dropped onto the window from the system (for example from a file manager), at the drop position.
+/// Bubbles from the widget under the drop point. The list belongs to the event: copy it to keep it.
+public sealed class FileDropEventArgs : PositionedEventArgs
+{
+    /// Full paths, in the order the system gave them.
+    public IReadOnlyList<string> Paths { get; internal set; } = [];
+}
+
 public enum PointerButton { None, Left, Right, Middle }
 
 [Flags]

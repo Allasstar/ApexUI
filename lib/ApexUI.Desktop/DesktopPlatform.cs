@@ -69,6 +69,7 @@ public sealed class DesktopPlatform : IPlatform
         _window.StateChanged      += _ => OnWindowChanged();
         _window.FocusChanged      += _ => OnWindowChanged();
         _window.Closing += OnClosing;
+        _window.FileDrop += OnFileDrop;
 
         _wakeTimer = new Timer(_ => _window.ContinueEvents());
         _context   = new LoopSynchronizationContext(Wake);
@@ -384,6 +385,13 @@ public sealed class DesktopPlatform : IPlatform
 
     private void OnMouseUp(IMouse mouse, MouseButton button)
         => _listener!.PointerUp(mouse.Position.X * _pixelRatio, mouse.Position.Y * _pixelRatio, MapButton(button), Modifiers());
+
+    // GLFW moves the cursor to the drop point before it reports the drop, so the mouse position is where it landed.
+    private void OnFileDrop(string[] paths)
+    {
+        var position = _mouse?.Position ?? default;
+        _listener!.FilesDropped(position.X * _pixelRatio, position.Y * _pixelRatio, paths);
+    }
 
     private void OnScroll(IMouse mouse, ScrollWheel wheel)
         => _listener!.Wheel(wheel.X, wheel.Y, Modifiers());

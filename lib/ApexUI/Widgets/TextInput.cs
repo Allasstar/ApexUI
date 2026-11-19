@@ -451,54 +451,13 @@ public class TextInput : Widget
     // A word is a run of letters and digits, or a run of other symbols; spaces separate them.
     // A password field is one word, so word jumps do not reveal its structure.
 
-    private int PreviousWordStop(int from)
-    {
-        if (IsPassword) return 0;
-        string s = Value;
-        int i = from;
-        while (i > 0 && char.IsWhiteSpace(s[i - 1])) i--;
-        if (i == 0) return 0;
-        int kind = CharKind(s[i - 1]);
-        while (i > 0 && CharKind(s[i - 1]) == kind) i--;
-        return i;
-    }
+    private int PreviousWordStop(int from) => IsPassword ? 0 : WordBoundaries.PreviousStop(Value, from);
 
-    private int NextWordStop(int from)
-    {
-        if (IsPassword) return Value.Length;
-        string s = Value;
-        int i = from;
-        if (i < s.Length && !char.IsWhiteSpace(s[i]))
-        {
-            int kind = CharKind(s[i]);
-            while (i < s.Length && CharKind(s[i]) == kind) i++;
-        }
-        while (i < s.Length && char.IsWhiteSpace(s[i])) i++;
-        return i;
-    }
+    private int NextWordStop(int from) => IsPassword ? Value.Length : WordBoundaries.NextStop(Value, from);
 
-    private int WordStart(int index)
-    {
-        if (IsPassword || Value.Length == 0) return 0;
-        string s = Value;
-        int kind = CharKind(s[Math.Min(index, s.Length - 1)]);
-        int i = Math.Min(index, s.Length - 1);
-        while (i > 0 && CharKind(s[i - 1]) == kind) i--;
-        return i;
-    }
+    private int WordStart(int index) => IsPassword ? 0 : WordBoundaries.WordStart(Value, index);
 
-    private int WordEnd(int index)
-    {
-        if (IsPassword || Value.Length == 0) return Value.Length;
-        string s = Value;
-        int i = Math.Min(index, s.Length - 1);
-        int kind = CharKind(s[i]);
-        while (i < s.Length && CharKind(s[i]) == kind) i++;
-        return i;
-    }
-
-    private static int CharKind(char c)
-        => char.IsWhiteSpace(c) ? 0 : char.IsLetterOrDigit(c) || c == '_' ? 1 : 2;
+    private int WordEnd(int index) => IsPassword ? Value.Length : WordBoundaries.WordEnd(Value, index);
 
     // ── Character filtering ───────────────────────────────────────────────────
 

@@ -67,6 +67,9 @@ public interface IPlatformListener
     void KeyUp(Key key, KeyModifiers modifiers);
     /// Text typed by the user, already translated by the keyboard layout. Never contains control characters.
     void TextEntered(string text);
+    /// Files dropped onto the window from the system, at a position in surface pixels.
+    /// A backend without file drops never calls it.
+    void FilesDropped(float x, float y, IReadOnlyList<string> paths) { }
     void Close();
 }
 

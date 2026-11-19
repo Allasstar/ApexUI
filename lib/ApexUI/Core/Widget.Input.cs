@@ -66,6 +66,8 @@ public abstract partial class Widget
     public event Action<KeyEventArgs>?       KeyDown;
     public event Action<KeyEventArgs>?       KeyUp;
     public event Action<TextInputEventArgs>? TextEntered;
+    /// Files dropped from the system onto this widget or a descendant.
+    public event Action<FileDropEventArgs>?  FilesDropped;
 
     // Sent to each widget on its own, without bubbling.
     public event Action<PointerEventArgs>? PointerEntered;
@@ -99,6 +101,7 @@ public abstract partial class Widget
     protected virtual void OnKeyDown(KeyEventArgs e)             { }
     protected virtual void OnKeyUp(KeyEventArgs e)               { }
     protected virtual void OnTextEntered(TextInputEventArgs e)   { }
+    protected virtual void OnFilesDropped(FileDropEventArgs e)   { }
     protected virtual void OnGotFocus()                          { }
     protected virtual void OnLostFocus()                         { }
     /// Capture ended: all buttons released, ReleasePointerCapture, another widget captured, or detach.
@@ -119,6 +122,7 @@ public abstract partial class Widget
             case InputKind.KeyDown:         { var k = (KeyEventArgs)e;     OnKeyDown(k);         KeyDown?.Invoke(k);         break; }
             case InputKind.KeyUp:           { var k = (KeyEventArgs)e;     OnKeyUp(k);           KeyUp?.Invoke(k);           break; }
             case InputKind.TextEntered:     { var t = (TextInputEventArgs)e; OnTextEntered(t);   TextEntered?.Invoke(t);     break; }
+            case InputKind.FilesDropped:    { var f = (FileDropEventArgs)e;  OnFilesDropped(f);  FilesDropped?.Invoke(f);    break; }
         }
     }
 
@@ -149,5 +153,5 @@ public abstract partial class Widget
 internal enum InputKind
 {
     PointerPressed, PointerReleased, PointerMoved, PointerEntered, PointerExited, Click,
-    Wheel, KeyDown, KeyUp, TextEntered,
+    Wheel, KeyDown, KeyUp, TextEntered, FilesDropped,
 }

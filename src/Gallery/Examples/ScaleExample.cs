@@ -16,6 +16,9 @@ public class ScaleExample : Widget
                 MakeFormRow("Username", new TextInput { Width = 220f }.WithValue("JohnDoe")),
                 MakeFormRow("Email",    new TextInput { Width = 220f }.WithValue("john@example.com")),
                 MakeFormRow("Password", new TextInput { Width = 220f }.AsPassword().WithValue("hunter2")),
+                MakeFormRow("Notes",    new TextArea("Several lines; Enter breaks a line") { Width = 220f }
+                    .WithLines(3, 6)
+                    .WithValue("First line\nSecond line")),
 
                 new Toggle(false, label: "Email notifications"),
 

@@ -4,6 +4,13 @@ Newest first. **Breaking** marks changes that need edits in apps using ApexUI.
 
 ## Unreleased
 
+### File drops, multi-line text area
+- New file drop events: `IPlatformListener.FilesDropped(x, y, paths)` (a default interface method, so existing listeners and backends keep compiling), routed by `UiHost` to the widget under the drop point as `Widget.FilesDropped` / `OnFilesDropped(FileDropEventArgs)`, bubbling until handled. `FileDropEventArgs` is a `PositionedEventArgs` with `Paths`; the drop also moves the hover there. Desktop: GLFW's file drop (the cursor is moved to the drop point first, so the position is where the files landed).
+- New `TextArea`: a multi-line text field. `Value` holds lines joined by `\n` (pasted `\r\n` and `\r` become `\n`); `MinLines`/`MaxLines` (default 3 and 10, `WithLines`) set its height, which follows the text; longer text scrolls to keep the caret in view, lines do not wrap. Keys as in `TextInput`, plus Up/Down (keeping the caret's column on screen), Home/End per line (Ctrl: whole text), Enter for a line break and Ctrl+Enter to complete. `EditCompleted` fires once per edit (Ctrl+Enter or focus leaving) when the text changed; Escape restores the text it had when focused. `SelectAll()`, `Select(start, end)`, `CaretIndex`, `SelectionStart`/`SelectionEnd`. Theme tokens as `TextInput` (`InputPadding`, `CornerRadiusControl`, `Background`, `Border`, `Primary`, `Selection`).
+- `TextInput` and `TextArea` share their word stops (internal `WordBoundaries`); no behaviour change.
+- Gallery: the Images tab takes dropped files (names and the first image); the Forms tab has a Notes text area.
+- 13 new tests (365 in total).
+
 ### Image: replace the bitmap, nearest sampling
 - New `Image.SetBitmap(bitmap)`: replaces the image with a raster copy of the bitmap and disposes the previous one, for a live preview. The widget is measured again only when the natural size changes.
 - New `Image.Smoothing` (and `WithSmoothing`): false draws a raster image with nearest sampling, so scaled pixels stay sharp squares. Default true (linear, as before).

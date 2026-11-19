@@ -150,6 +150,7 @@ event Action<PointerEventArgs>?   PointerPressed, PointerReleased, PointerMoved,
 event Action<WheelEventArgs>?     Wheel;
 event Action<KeyEventArgs>?       KeyDown, KeyUp;      // from the focused widget
 event Action<TextInputEventArgs>? TextEntered;         // typed text, separate from keys
+event Action<FileDropEventArgs>?  FilesDropped;        // files dropped from the system on the widget under the drop point
 // Not routed:
 event Action<PointerEventArgs>? PointerEntered, PointerExited;   // per widget in the hover chain
 event Action? GotFocus, LostFocus, PointerCaptureLost;
@@ -250,7 +251,8 @@ void SetMinimumSize(float width, float height)   // logical units, 0 = no limit;
 // Desktop: Win32 common dialogs and the COM folder picker (STA thread, owned by the window), osascript on macOS, zenity/kdialog on Linux.
 
 // IPlatformListener: Resize, Render(SKCanvas, TimeSpan frameTime), PointerMove/Down/Up(…, KeyModifiers), Wheel(dx, dy, KeyModifiers),
-//                    KeyDown/KeyUp(Key, KeyModifiers) (repeat KeyDown while held), TextEntered(string), Close
+//                    KeyDown/KeyUp(Key, KeyModifiers) (repeat KeyDown while held), TextEntered(string),
+//                    FilesDropped(x, y, paths) (default no-op), Close
 // Resize(pixelWidth, pixelHeight, dpiScale). Sizes and pointer positions are surface pixels; UiHost converts to logical units.
 // Everything above the platform (layout, drawing, fonts, input) is in logical units.
 ```
@@ -716,6 +718,16 @@ IReadOnlyList<string> Units; string Unit; event Action<string>? UnitChanged   //
 Func<float, string, string, float>? ConvertUnit   // (value, from, to), used by the unit label
 bool IsMixed; string MixedText = "Mixed"          // shows MixedText instead of the number; a user edit clears it
 NumberField WithUnits(params string[]) / WithUnitConversion / OnUnitChange
+```
+
+### `TextArea` · `lib/ApexUI/Widgets/TextArea.cs`
+
+```csharp
+TextArea(string placeholder = "")   // multi-line; Value uses '\n'; MinLines..MaxLines tall (3, 10), scrolls past that; no wrapping
+string Value, Placeholder; int MinLines, MaxLines; int CaretIndex, SelectionStart, SelectionEnd
+event Action<string>? ValueChanged, EditCompleted   // EditCompleted: Ctrl+Enter or focus left, after a change
+void SelectAll(); void Select(int start, int end)
+TextArea WithPlaceholder / WithValue / WithLines(min, max) / OnChange / OnEditCompleted
 ```
 
 ### `ColorPicker`, `ColorSwatch`, `Toast` · `lib/ApexUI/Widgets/`

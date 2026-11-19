@@ -47,6 +47,8 @@ internal sealed class TestPlatform(int pixelWidth = 800, int pixelHeight = 600, 
         Listener.KeyUp(key, modifiers);
     }
 
+    public void Drop(float x, float y, params string[] paths) => Listener.FilesDropped(x, y, paths);
+
     public void Type(string text)
     {
         foreach (var c in text) Listener.TextEntered(c.ToString());

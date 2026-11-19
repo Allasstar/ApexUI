@@ -8,6 +8,24 @@ public class ImageToggleExample : Widget
         var svgImage    = Image.FromSvgString(SvgSource).WithSize(280, 180);
         var pixelImage  = Image.FromBitmap(CreatePixelBitmap()).WithSize(96, 96).WithSmoothing(false);
 
+        var dropped    = Image.FromBitmap(CreatePixelBitmap()).WithSize(160, 120);
+        var dropStatus = new Label()
+            .WithText("Drop image files anywhere on this tab")
+            .WithColor(SKColor.FromHex("#888888"))
+            .WithSize(13f);
+        FilesDropped += e =>
+        {
+            dropStatus.WithText($"{e.Paths.Count} file(s): {string.Join(", ", e.Paths.Select(Path.GetFileName))}");
+            foreach (var path in e.Paths)
+            {
+                using var bitmap = SKBitmap.Decode(path);
+                if (bitmap is null) continue;
+                dropped.SetBitmap(bitmap);
+                break;
+            }
+            e.Handled = true;
+        };
+
         var stretchStatus = new Label()
             .WithText("Stretch: Uniform")
             .WithColor(SKColor.FromHex("#888888"))
@@ -33,6 +51,11 @@ public class ImageToggleExample : Widget
                         new Toggle(false, "Smoothing").OnChange(v => pixelImage.Smoothing = v)
                     ).WithSpacing(6)
                 ).WithSpacing(24),
+
+                // File drop from the system
+                new Label().WithText("Dropped files").WithSize(16).AsBold(),
+                dropStatus,
+                dropped,
 
                 // Image controls
                 new Label().WithText("Image Controls").WithSize(16).AsBold(),
