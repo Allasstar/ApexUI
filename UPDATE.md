@@ -4,6 +4,11 @@ Newest first. **Breaking** marks changes that need edits in apps using ApexUI.
 
 ## Unreleased
 
+### Text drawing without allocations
+- `DrawContext.DrawText(string, ...)` keeps the glyphs (an `SKTextBlob` and its width) of each text, font size and weight it draws, so text drawn again on the next frame allocates nothing. Before, every call built a new blob and its wrappers, about 160 bytes per string per frame. A text not drawn during a whole frame is dropped when the next frame begins, so only text that changes costs a new blob. Every widget that draws through it (`TextInput`, `NumberField`, `Checkbox`, `Toggle`, `RadioGroup`) benefits; nothing to change in apps.
+- Center and Right alignment place the blob by its measured width, as `SKCanvas.DrawText` did.
+- 3 new tests (368 in total).
+
 ### File drops, multi-line text area
 - New file drop events: `IPlatformListener.FilesDropped(x, y, paths)` (a default interface method, so existing listeners and backends keep compiling), routed by `UiHost` to the widget under the drop point as `Widget.FilesDropped` / `OnFilesDropped(FileDropEventArgs)`, bubbling until handled. `FileDropEventArgs` is a `PositionedEventArgs` with `Paths`; the drop also moves the hover there. Desktop: GLFW's file drop (the cursor is moved to the drop point first, so the position is where the files landed).
 - New `TextArea`: a multi-line text field. `Value` holds lines joined by `\n` (pasted `\r\n` and `\r` become `\n`); `MinLines`/`MaxLines` (default 3 and 10, `WithLines`) set its height, which follows the text; longer text scrolls to keep the caret in view, lines do not wrap. Keys as in `TextInput`, plus Up/Down (keeping the caret's column on screen), Home/End per line (Ctrl: whole text), Enter for a line break and Ctrl+Enter to complete. `EditCompleted` fires once per edit (Ctrl+Enter or focus leaving) when the text changed; Escape restores the text it had when focused. `SelectAll()`, `Select(start, end)`, `CaretIndex`, `SelectionStart`/`SelectionEnd`. Theme tokens as `TextInput` (`InputPadding`, `CornerRadiusControl`, `Background`, `Border`, `Primary`, `Selection`).

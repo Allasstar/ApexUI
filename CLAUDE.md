@@ -445,7 +445,7 @@ void StrokeDashedPath(SKPath path, SKColor color, float thickness, float dash, f
 ### `DrawContext` text · `lib/ApexUI/Core/DrawContext.Text.cs`
 
 ```csharp
-void  DrawText(string text, Rect bounds, SKColor color, float sizePx, bool bold = false, SKTextAlign align = Left)
+void  DrawText(string text, Rect bounds, SKColor color, float sizePx, bool bold = false, SKTextAlign align = Left)   // glyphs kept while drawn every frame
 void  DrawText(SKTextBlob? blob, Rect bounds, SKColor color, float sizePx, bool bold = false)   // left-aligned; no allocation, cache the blob
 float MeasureText(string text, float sizePx, bool bold = false)
 float MeasureText(ReadOnlySpan<char> text, float sizePx, bool bold = false)  // no substring needed

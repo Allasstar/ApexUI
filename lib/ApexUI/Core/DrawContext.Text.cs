@@ -13,20 +13,23 @@ public sealed partial class DrawContext
 
     /// Draw text vertically centered within bounds.
     /// Horizontal anchor: Left → bounds.X, Center → bounds center, Right → bounds.Right.
+    /// The glyphs are kept while the same text is drawn every frame, so unchanged text allocates nothing.
     public void DrawText(string text, Rect bounds, SKColor color,
         float sizePx, bool bold = false, SKTextAlign align = SKTextAlign.Left)
     {
         if (string.IsNullOrEmpty(text)) return;
         var   font = GetFont(sizePx, bold);
+        var   blob = _textBlobs.Get(text, font, out float width);
+        if (blob is null) return;
         var   m    = font.Metrics;
         float y    = bounds.Y + (bounds.Height - (m.Descent - m.Ascent)) * 0.5f - m.Ascent;
         float x    = align switch
         {
-            SKTextAlign.Center => bounds.X + bounds.Width * 0.5f,
-            SKTextAlign.Right  => bounds.Right,
+            SKTextAlign.Center => bounds.X + (bounds.Width - width) * 0.5f,
+            SKTextAlign.Right  => bounds.Right - width,
             _                  => bounds.X,
         };
-        Canvas.DrawText(text, x, y, align, font, TextPaint(color));
+        Canvas.DrawText(blob, x, y, TextPaint(color));
     }
 
     /// Draws a prepared text blob left-aligned and vertically centered within bounds, like DrawText.

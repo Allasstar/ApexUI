@@ -19,6 +19,7 @@ public sealed partial class DrawContext : IDisposable
     private readonly SKPath  _path   = new();
     private readonly SKRoundRect _roundRect = new();
     private readonly Dictionary<float, SKMaskFilter> _blurs = new();
+    private readonly TextBlobCache _textBlobs = new();
     private SKPathEffect? _dashEffect;
     private float _dash;
     private float _gap;
@@ -48,7 +49,10 @@ public sealed partial class DrawContext : IDisposable
         Canvas     = canvas;
         Theme      = theme;
         PixelScale = pixelScale;
+        _textBlobs.BeginFrame();
     }
+
+    internal int CachedTextBlobCount => _textBlobs.Count;
 
     /// Cached font in the current family, sized in logical units. Owned by the context: do not dispose.
     public SKFont GetFont(float sizePx, bool bold = false)
@@ -155,6 +159,7 @@ public sealed partial class DrawContext : IDisposable
         _roundRect.Dispose();
         foreach (var filter in _blurs.Values) filter.Dispose();
         _blurs.Clear();
+        _textBlobs.Dispose();
         if (_ownsFonts) _fonts.Dispose();
     }
 }
