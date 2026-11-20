@@ -134,6 +134,8 @@ public sealed class DesktopPlatform : IPlatform
 
     public TimeSpan Now => _clock.Elapsed;
 
+    public KeyRepeat? SystemKeyRepeat => ApexUI.Desktop.SystemKeyRepeat.Read();
+
     public float ResizeFrameRate { get; set; } = 60f;
 
     /// Redraws per second while the user drags a window edge; 0 redraws only when the drag ends.

@@ -23,6 +23,10 @@ public sealed class Command
     /// A disabled command ignores Execute and its shortcuts; bound buttons show as disabled.
     public Bindable<bool> Enabled { get; } = new(true);
 
+    /// Whether a held shortcut runs the command again on each key repeat (nudges, undo, zoom). Off by default, so
+    /// a held Ctrl+S saves once.
+    public bool Repeats { get; set; }
+
     public bool IsEnabled
     {
         get => Enabled.Value;

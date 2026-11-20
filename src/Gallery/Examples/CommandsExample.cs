@@ -4,6 +4,7 @@ namespace ApexUI.Gallery.Examples;
 public class CommandsExample : Widget
 {
     private readonly CommandManager _commands = new();
+    private readonly Label _repeat = new() { WordWrap = true, ColorSource = t => t.OnSurfaceMuted };
 
     public CommandsExample()
     {
@@ -20,6 +21,9 @@ public class CommandsExample : Widget
         var increment = _commands.Add("count.up", "Increment", () => Set(count + 1), "Mod+Up", "Equal");
         var decrement = _commands.Add("count.down", "Decrement", () => Set(count - 1), "Mod+Down", "Minus");
         var reset = _commands.Add("count.reset", "Reset", () => Set(0), "R");
+        // Held, these count on; a held R resets once.
+        increment.Repeats = true;
+        decrement.Repeats = true;
         _commands.Executed += c => log.Text = $"Ran \"{c.Label}\"";
 
         var enabled = new Checkbox(true, "Commands enabled", on =>
@@ -69,7 +73,8 @@ public class CommandsExample : Widget
                 ).WithSpacing(8f),
                 enabled,
                 log,
-                new TextInput("Type here: R stays a letter"),
+                _repeat,
+                new TextInput("Type here: R stays a letter; hold an arrow or Backspace"),
                 new Separator { Margin = new Thickness(0, 4f) },
                 new Label { Text = "File dialogs", Bold = true, Role = TextRole.Heading },
                 new Row(
@@ -85,7 +90,13 @@ public class CommandsExample : Widget
             24f));
     }
 
-    protected override void OnAttached(UiHost host) => _commands.Attach(host);
+    protected override void OnAttached(UiHost host)
+    {
+        _commands.Attach(host);
+        KeyRepeat repeat = host.KeyRepeat;
+        _repeat.Text = $"Hold a shortcut: + and − repeat, Reset runs once. Keys repeat after {repeat.Delay.TotalMilliseconds:0} ms, " +
+            $"{1 / repeat.Interval.TotalSeconds:0.#} times a second.";
+    }
 
     protected override void OnDetached() => _commands.Detach();
 }

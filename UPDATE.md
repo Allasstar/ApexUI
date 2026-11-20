@@ -4,6 +4,14 @@ Newest first. **Breaking** marks changes that need edits in apps using ApexUI.
 
 ## Unreleased
 
+### Held keys repeat
+- Held keys now repeat in every focused widget: arrows, Home/End, Backspace and Delete in `TextInput` and `TextArea`, Up/Down in `NumberInput`, `ListView` and `TreeView`, and so on. The desktop backend never sent repeats (Silk.NET drops GLFW's repeat events), so `UiHost` now makes them: after `KeyRepeat.Delay` it sends the last key pressed again every `KeyRepeat.Interval` as a `KeyDown` with `IsRepeat` set and the modifiers held at that moment, until the key is released or another key goes down. Modifier and lock keys never repeat. Typed characters keep coming from the system's own text repeat.
+- New `KeyRepeat` (`Delay`, `Interval`; `KeyRepeat.Default` is 500 ms and 30 per second) and `UiHost.KeyRepeat`, which starts as `IPlatform.SystemKeyRepeat` or the default. New default interface members on `IPlatform`: `RepeatsKeys` (false; a backend that sends its own repeats, as a browser does, returns true and `UiHost` makes none) and `SystemKeyRepeat` (null). Desktop reads the keyboard delay and speed from Windows; elsewhere it uses the default.
+- New `Command.Repeats` (default false): a held shortcut runs the command once, and its repeats are used up (marked handled) so they reach nothing else. Set it for nudges, undo or zoom. **Behaviour change** for apps whose backend already sent repeats: shortcuts no longer repeat unless `Repeats` is set.
+- `Dropdown` and `MenuButton` no longer reopen on a repeated Down.
+- Gallery: the Commands tab's + and − repeat when held, Reset does not, and the tab shows the delay and rate in use.
+- 8 new tests (379 in total).
+
 ### Neutral dark theme
 - `Theme.Dark` (the Default pair's dark theme) is now neutral grey with a slight cool tint instead of the purple-tinted palette, with one blue accent: `Background` #17181b, `Surface` #232428, `SurfaceHover` #2d2f34, `SurfacePressed` #383a40, `OnSurface` #e4e6ea, `OnSurfaceMuted` #8e929b (4.7:1 on `Surface`), `Primary` #4c8df6, `PrimaryHover` #6aa1f8, `OnPrimary` white, `Success` #3db37e, `Warning` #e3a43b, `Danger` #e5534b, `Border` #3a3d44. Derived tokens (`Selection`, `FocusRing`, `BorderSubtle`, scrollbars) follow. Scrim, shadow, sizes and `Theme.Light` are unchanged. Apps that want the old look set the colours with `Theme.Dark with { ... }`.
 - The theme test that requires every dark colour to differ from the light one now also exempts `OnPrimary`, which sits on the accent rather than the background (white in both).

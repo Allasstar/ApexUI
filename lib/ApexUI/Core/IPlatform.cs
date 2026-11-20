@@ -29,6 +29,14 @@ public interface IPlatform
 
     void SetCursor(CursorShape cursor);
 
+    /// Whether the platform sends KeyDown again for each auto-repeat of a held key, as a browser does. When false,
+    /// UiHost repeats the held key itself, timed by SystemKeyRepeat.
+    bool RepeatsKeys => false;
+
+    /// The system's delay before a held key repeats and the time between repeats, or null when the platform cannot
+    /// read them; UiHost then uses KeyRepeat.Default.
+    KeyRepeat? SystemKeyRepeat => null;
+
     /// Calls tick on the UI thread every interval until the returned handle is disposed.
     /// A tick does not render by itself; widgets it changes invalidate as usual.
     IDisposable StartTimer(TimeSpan interval, Action tick);
@@ -62,7 +70,8 @@ public interface IPlatformListener
     void PointerUp(float x, float y, PointerButton button, KeyModifiers modifiers);
     /// Deltas in wheel notches; positive deltaY scrolls up. Applies at the last PointerMove position.
     void Wheel(float deltaX, float deltaY, KeyModifiers modifiers);
-    /// Send it again for each auto-repeat while a key is held; UiHost marks those as repeats.
+    /// A platform that repeats keys itself (RepeatsKeys) sends it again for each auto-repeat while a key is held;
+    /// UiHost marks those as repeats. Otherwise UiHost makes the repeats.
     void KeyDown(Key key, KeyModifiers modifiers);
     void KeyUp(Key key, KeyModifiers modifiers);
     /// Text typed by the user, already translated by the keyboard layout. Never contains control characters.

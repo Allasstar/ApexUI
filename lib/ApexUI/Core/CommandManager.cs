@@ -81,7 +81,15 @@ public sealed class CommandManager
 
         foreach (var command in _commands)
         {
-            if (!command.Matches(e) || !command.Execute()) continue;
+            if (!command.Matches(e)) continue;
+            // A repeat of a shortcut that does not repeat is used up, so it reaches nothing else.
+            if (e.IsRepeat && !command.Repeats && command.IsEnabled)
+            {
+                e.Handled = true;
+                return false;
+            }
+
+            if (!command.Execute()) continue;
             e.Handled = true;
             Executed?.Invoke(command);
             return true;

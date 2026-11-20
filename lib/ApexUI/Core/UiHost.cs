@@ -29,8 +29,11 @@ public sealed partial class UiHost : IPlatformListener
 
     public UiHost(IPlatform platform)
     {
-        Platform = platform;
-        _preset  = Themes.DefaultName;
+        Platform  = platform;
+        _preset   = Themes.DefaultName;
+        KeyRepeat = platform.SystemKeyRepeat ?? KeyRepeat.Default;
+        _onRepeatDelay = StartRepeating;
+        _onRepeat      = RepeatHeldKey;
     }
 
     public IPlatform Platform { get; }
@@ -268,6 +271,7 @@ public sealed partial class UiHost : IPlatformListener
 
     void IPlatformListener.Close()
     {
+        StopRepeating();
         _drawContext?.Dispose();
         _drawContext = null;
         Fonts.Dispose();

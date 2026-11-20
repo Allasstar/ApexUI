@@ -209,6 +209,8 @@ event Action<KeyEventArgs>? UnhandledKeyDown;   // keys no widget handled (app s
 event Action<KeyEventArgs>? UnhandledKeyUp;     // releases no widget handled, also with nothing focused (end held-key modes)
 bool    HasModalOverlay { get; }   // a dialog is open; app-wide shortcuts wait
 KeyModifiers Modifiers { get; }    // held modifiers as of the latest input event
+KeyRepeat KeyRepeat { get; set; }  // (Delay, Interval) for held keys; SystemKeyRepeat or KeyRepeat.Default (500 ms, 30/s).
+                                   // The last key pressed repeats as KeyDown with IsRepeat until released; modifiers never repeat
 event Action<KeyModifiers>? ModifiersChanged   // a modifier went down or up, whatever has focus
 ```
 
@@ -224,6 +226,7 @@ bool HandleKey(KeyEventArgs e)
 
 Command: string Name, Label, Tooltip ("Undo (Ctrl+Z)"); ReadOnlySpan<KeyGesture> Gestures
          Bindable<bool> Enabled; bool IsEnabled; bool Execute()   // no-op while disabled
+         bool Repeats   // held shortcut runs again on each repeat; default false (repeats are used up)
 Button.WithCommand(command) / IconButton.WithCommand(command)    // press runs it; IsEnabled follows it
 
 readonly record struct KeyGesture(Key Key, KeyModifiers Modifiers = None)
@@ -247,11 +250,13 @@ IDisposable StartTimer(TimeSpan interval, Action tick)   // UI thread; dispose t
 Task<string?> OpenFileAsync(FileDialogOptions) / SaveFileAsync(FileDialogOptions)   // null = cancelled; awaiting code resumes on the UI thread
 Task<string?> PickFolderAsync(string title)   // null = cancelled
 void SetMinimumSize(float width, float height)   // logical units, 0 = no limit; desktop applies it from the main loop
+bool RepeatsKeys => false            // true: the backend sends its own key repeats; false: UiHost makes them
+KeyRepeat? SystemKeyRepeat => null   // the system's delay and rate (desktop: read on Windows)
 // FileDialogOptions(string Title, IReadOnlyList<FileFilter> Filters, string? SuggestedFileName); FileFilter(string Name, IReadOnlyList<string> Extensions) without dots
 // Desktop: Win32 common dialogs and the COM folder picker (STA thread, owned by the window), osascript on macOS, zenity/kdialog on Linux.
 
 // IPlatformListener: Resize, Render(SKCanvas, TimeSpan frameTime), PointerMove/Down/Up(…, KeyModifiers), Wheel(dx, dy, KeyModifiers),
-//                    KeyDown/KeyUp(Key, KeyModifiers) (repeat KeyDown while held), TextEntered(string),
+//                    KeyDown/KeyUp(Key, KeyModifiers) (a backend with RepeatsKeys sends KeyDown again while held), TextEntered(string),
 //                    FilesDropped(x, y, paths) (default no-op), Close
 // Resize(pixelWidth, pixelHeight, dpiScale). Sizes and pointer positions are surface pixels; UiHost converts to logical units.
 // Everything above the platform (layout, drawing, fonts, input) is in logical units.

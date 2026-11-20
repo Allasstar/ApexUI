@@ -35,6 +35,13 @@ public sealed partial class UiHost
     private float         _lastPressX;
     private float         _lastPressY;
 
+    // The held key UiHost repeats when the platform does not (IPlatform.RepeatsKeys): the last key pressed, as on
+    // desktop systems, until it is released or another key goes down.
+    private readonly Action _onRepeatDelay;
+    private readonly Action _onRepeat;
+    private Key          _repeatKey;
+    private IDisposable? _repeatTimer;
+
     private KeyModifiers _modifiers;
     private bool        _lastInputWasKeyboard;
     private CursorShape _cursor = CursorShape.Arrow;
@@ -52,6 +59,11 @@ public sealed partial class UiHost
     /// Key releases no focused widget handled, so a key held for an app-wide mode (for example
     /// Space to pan) can end it even when nothing has focus.
     public event Action<KeyEventArgs>? UnhandledKeyUp;
+
+    /// How held keys repeat when the platform does not repeat them itself: the system's delay and rate when the
+    /// platform reports them (IPlatform.SystemKeyRepeat), otherwise KeyRepeat.Default. Each repeat is a KeyDown
+    /// with IsRepeat set and the modifiers held at that moment; modifier and lock keys never repeat.
+    public KeyRepeat KeyRepeat { get; set; }
 
     /// Shift, Control, Alt and Super as of the latest input event.
     public KeyModifiers Modifiers => _modifiers;
@@ -384,10 +396,24 @@ public sealed partial class UiHost
     void IPlatformListener.KeyDown(Key key, KeyModifiers modifiers)
     {
         SetModifiers(modifiers);
-        _lastInputWasKeyboard = true;
         bool repeat = key != Key.Unknown && _keysDown[(int)key];
         if (key != Key.Unknown) _keysDown[(int)key] = true;
+        if (!repeat)
+        {
+            StopRepeating();
+            if (!Platform.RepeatsKeys && Repeats(key))
+            {
+                _repeatKey   = key;
+                _repeatTimer = Platform.StartTimer(KeyRepeat.Delay, _onRepeatDelay);
+            }
+        }
 
+        SendKeyDown(key, modifiers, repeat);
+    }
+
+    private void SendKeyDown(Key key, KeyModifiers modifiers, bool repeat)
+    {
+        _lastInputWasKeyboard = true;
         FillKey(key, modifiers, repeat);
         if (_focused is not null)
             Route(_focused, InputKind.KeyDown, _keyArgs);
@@ -404,6 +430,7 @@ public sealed partial class UiHost
     {
         SetModifiers(modifiers);
         if (key != Key.Unknown) _keysDown[(int)key] = false;
+        if (key == _repeatKey) StopRepeating();
         FillKey(key, modifiers, repeat: false);
         if (_focused is not null)
             Route(_focused, InputKind.KeyUp, _keyArgs);
@@ -435,6 +462,31 @@ public sealed partial class UiHost
         _textArgs.Text      = text;
         _textArgs.Modifiers = _modifiers;
         Route(_focused, InputKind.TextEntered, _textArgs);
+    }
+
+    private static bool Repeats(Key key) => key is not (Key.Unknown or Key.CapsLock or Key.NumLock or Key.ScrollLock
+        or Key.ShiftLeft or Key.ShiftRight or Key.ControlLeft or Key.ControlRight
+        or Key.AltLeft or Key.AltRight or Key.SuperLeft or Key.SuperRight);
+
+    // The delay is over: repeat now, then every interval.
+    private void StartRepeating()
+    {
+        _repeatTimer?.Dispose();
+        _repeatTimer = Platform.StartTimer(KeyRepeat.Interval, _onRepeat);
+        RepeatHeldKey();
+    }
+
+    private void RepeatHeldKey()
+    {
+        if (_repeatKey == Key.Unknown) return;
+        SendKeyDown(_repeatKey, _modifiers, repeat: true);
+    }
+
+    private void StopRepeating()
+    {
+        _repeatTimer?.Dispose();
+        _repeatTimer = null;
+        _repeatKey   = Key.Unknown;
     }
 
     private void FillKey(Key key, KeyModifiers modifiers, bool repeat)
