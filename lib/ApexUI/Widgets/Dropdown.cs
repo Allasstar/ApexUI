@@ -205,7 +205,7 @@ public class Dropdown<T> : Widget
 
         protected override void OnKeyDown(KeyEventArgs e)
         {
-            if (!Activation.IsActivationKey(e) && !(e.Key == Key.Down && !_isOpen && !e.IsRepeat)) return;
+            if (!Activation.IsActivationKey(e) && !(Activation.IsOpenKey(e) && !_isOpen)) return;
             e.Handled = true;
             _onToggle();
         }

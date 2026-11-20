@@ -101,7 +101,7 @@ public class MenuButton : Widget
 
     protected override void OnKeyDown(KeyEventArgs e)
     {
-        if (!Activation.IsActivationKey(e) && !(e.Key == Key.Down && e.Modifiers == KeyModifiers.None && !e.IsRepeat)) return;
+        if (!Activation.IsActivationKey(e) && !Activation.IsOpenKey(e)) return;
         e.Handled = true;
         Open();
     }
