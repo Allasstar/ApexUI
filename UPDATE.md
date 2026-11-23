@@ -4,6 +4,10 @@ Newest first. **Breaking** marks changes that need edits in apps using ApexUI.
 
 ## Unreleased
 
+### Signs and points typed over a selection
+- `TextInput` in integer or float mode (and so `NumberField` and `NumberInput`) now checks a typed `-` or `.` against the text that stays once the selection is replaced, and at the selection's start. Before, it looked at the caret and the whole old text, so selecting a field's value and typing `-0.5` dropped the minus (the caret sits at the end after Select all) and typing `.5` over `1.25` dropped the point.
+- 1 new test (380 in total).
+
 ### Held keys repeat
 - Held keys now repeat in every focused widget: arrows, Home/End, Backspace and Delete in `TextInput` and `TextArea`, Up/Down in `NumberInput`, `ListView` and `TreeView`, and so on. The desktop backend never sent repeats (Silk.NET drops GLFW's repeat events), so `UiHost` now makes them: after `KeyRepeat.Delay` it sends the last key pressed again every `KeyRepeat.Interval` as a `KeyDown` with `IsRepeat` set and the modifiers held at that moment, until the key is released or another key goes down. Modifier and lock keys never repeat. Typed characters keep coming from the system's own text repeat.
 - New `KeyRepeat` (`Delay`, `Interval`; `KeyRepeat.Default` is 500 ms and 30 per second) and `UiHost.KeyRepeat`, which starts as `IPlatform.SystemKeyRepeat` or the default. New default interface members on `IPlatform`: `RepeatsKeys` (false; a backend that sends its own repeats, as a browser does, returns true and `UiHost` makes none) and `SystemKeyRepeat` (null). Desktop reads the keyboard delay and speed from Windows; elsewhere it uses the default.

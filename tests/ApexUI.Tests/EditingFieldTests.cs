@@ -176,6 +176,24 @@ public class NumberFieldTests
         Assert.Equal([42.5f], completed);
     }
 
+    [Fact]
+    public void A_negative_number_or_a_point_can_be_typed_over_the_selected_text()
+    {
+        var (field, platform) = Show(12.5f);
+        var input = (TextInput)field.Children[0].Children[1];
+
+        input.Focus();
+        platform.Key(Key.A, KeyModifiers.Control);
+        platform.Type("-0.5");
+        platform.Key(Key.Enter);
+
+        Assert.Equal(-0.5f, field.Value);
+
+        platform.Key(Key.End);
+        platform.Type("-.");
+        Assert.Equal("-0.5", input.Value);
+    }
+
     private static (NumberField Field, TextInput Input, UiHost Host, TestPlatform Platform) ShowWithUnits(float value = 10f)
     {
         var field = new NumberField("W", value) { Width = 200 }.WithUnits("px", "%");

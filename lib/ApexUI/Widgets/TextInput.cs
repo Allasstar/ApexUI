@@ -461,26 +461,17 @@ public class TextInput : Widget
 
     // ── Character filtering ───────────────────────────────────────────────────
 
+    // A typed character replaces the selection, so the sign and point checks look at the text that stays and at
+    // where the character goes in: "-5" typed over a selected "12" is allowed.
     private bool IsCharAllowed(char c)
     {
-        switch (InputMode)
+        if (InputMode is InputMode.Integer or InputMode.Float && !char.IsDigit(c))
         {
-            case InputMode.Integer:
-                if (!char.IsDigit(c))
-                {
-                    if (c == '-' && _cursorPos == 0 && !Value.Contains('-')) break;
-                    return false;
-                }
-                break;
-
-            case InputMode.Float:
-                if (!char.IsDigit(c))
-                {
-                    if (c == '-' && _cursorPos == 0 && !Value.Contains('-')) break;
-                    if (c == '.' && !Value.Contains('.'))                     break;
-                    return false;
-                }
-                break;
+            int at = SelectionStart;
+            string kept = HasSelection ? Value.Remove(at, SelectionEnd - at) : Value;
+            bool sign = c == '-' && at == 0 && !kept.Contains('-');
+            bool point = InputMode == InputMode.Float && c == '.' && !kept.Contains('.');
+            if (!sign && !point) return false;
         }
 
         if (AllowedChars is not null && !AllowedChars.Contains(c)) return false;
