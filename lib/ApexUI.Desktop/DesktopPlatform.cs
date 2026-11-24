@@ -147,7 +147,19 @@ public sealed class DesktopPlatform : IPlatform
 
     public void SetTitle(string title) => _window.Title = title;
 
-    public string? GetClipboardText() => _keyboard?.ClipboardText;
+    // Silk.NET turns every GLFW error into an exception, and GLFW reports a clipboard holding no text
+    // (an image, files) as FormatUnavailable, so that case means "no text" here.
+    public string? GetClipboardText()
+    {
+        try
+        {
+            return _keyboard?.ClipboardText;
+        }
+        catch (Silk.NET.GLFW.GlfwException e) when (e.ErrorCode == Silk.NET.GLFW.ErrorCode.FormatUnavailable)
+        {
+            return null;
+        }
+    }
 
     public void SetClipboardText(string text)
     {

@@ -4,6 +4,9 @@ Newest first. **Breaking** marks changes that need edits in apps using ApexUI.
 
 ## Unreleased
 
+### Pasting with an image on the clipboard
+- `DesktopPlatform.GetClipboardText` returns null when the clipboard holds no text (an image, files). Before, GLFW reported that as `FormatUnavailable`, Silk.NET threw it as `GlfwException`, and Ctrl+V in any text field or app paste command closed the app. No test: it needs a real window and system clipboard.
+
 ### Signs and points typed over a selection
 - `TextInput` in integer or float mode (and so `NumberField` and `NumberInput`) now checks a typed `-` or `.` against the text that stays once the selection is replaced, and at the selection's start. Before, it looked at the caret and the whole old text, so selecting a field's value and typing `-0.5` dropped the minus (the caret sits at the end after Select all) and typing `.5` over `1.25` dropped the point.
 - 1 new test (380 in total).
