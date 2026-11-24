@@ -757,7 +757,7 @@ event Action<SKColor>? ColorChanged, EditCompleted;  event Action? Opened, Close
 
 GradientBar(params ColorStop[] stops)   // strip + stop handles: click adds, drag moves, drag off / Delete removes (≥ MinStops = 2)
 readonly record struct ColorStop(float Offset, SKColor Color)   // stops keep their index whatever their offsets
-IReadOnlyList<ColorStop> Stops; int SelectedIndex; ColorStop SelectedStop; void SetStops(list) (silent), SetStopColor(i, c); bool RemoveStop(i)
+IReadOnlyList<ColorStop> Stops; int SelectedIndex; ColorStop SelectedStop; void SetStops(list) (silent), SetStopColor(i, c), SetStopOffset(i, t); bool RemoveStop(i)
 event Action? StopsChanged, EditCompleted; event Action<int>? SelectionChanged; static SKColor ColorAt(stops, offset)
 
 Toast : Overlay   // bottom center, never hit-testable; a new Show replaces the message and restarts the timer

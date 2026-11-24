@@ -80,6 +80,15 @@ public class GradientBar : Widget
         StopsUpdated(notify: true);
     }
 
+    /// Moves a stop to offset (clamped to 0 to 1), as a drag does; for a position field next to the bar.
+    public void SetStopOffset(int index, float offset)
+    {
+        offset = Math.Clamp(offset, 0f, 1f);
+        if ((uint)index >= (uint)_stops.Count || _stops[index].Offset == offset) return;
+        _stops[index] = _stops[index] with { Offset = offset };
+        StopsUpdated(notify: true);
+    }
+
     public bool RemoveStop(int index)
     {
         if (_stops.Count <= MinStops || (uint)index >= (uint)_stops.Count) return false;

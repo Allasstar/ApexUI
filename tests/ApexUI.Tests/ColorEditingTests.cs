@@ -267,6 +267,22 @@ public class GradientBarTests
     }
 
     [Fact]
+    public void Set_stop_offset_moves_that_stop_within_the_bar()
+    {
+        var (bar, _) = Show(new ColorStop(0f, SKColors.Black), new ColorStop(1f, SKColors.White));
+        int changes = 0;
+        bar.StopsChanged += () => changes++;
+
+        bar.SetStopOffset(1, 0.25f);
+        bar.SetStopOffset(1, 0.25f);
+        bar.SetStopOffset(0, 2f);
+
+        Assert.Equal(2, changes);
+        Assert.Equal(0.25f, bar.Stops[1].Offset);
+        Assert.Equal(1f, bar.Stops[0].Offset);
+    }
+
+    [Fact]
     public void Set_stop_color_changes_only_that_stop()
     {
         var (bar, _) = Show(new ColorStop(0f, SKColors.Black), new ColorStop(1f, SKColors.White));
