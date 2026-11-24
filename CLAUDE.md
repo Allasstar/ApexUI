@@ -245,6 +245,7 @@ TimeSpan Now { get; }          // monotonic clock (same as Render's frameTime); 
 float ResizeFrameRate { get; set; }   // redraws/s during a user resize, 0 = after it ends; desktop draws from the size callbacks
 void SetTitle(string title)
 string? GetClipboardText(); void SetClipboardText(string)
+byte[]? GetClipboardImage() => null   // encoded picture (desktop: Windows "PNG" format, else the screenshot bitmap as PNG)
 void SetCursor(CursorShape)
 IDisposable StartTimer(TimeSpan interval, Action tick)   // UI thread; dispose to stop
 Task<string?> OpenFileAsync(FileDialogOptions) / SaveFileAsync(FileDialogOptions)   // null = cancelled; awaiting code resumes on the UI thread

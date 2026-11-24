@@ -27,6 +27,10 @@ public interface IPlatform
     string? GetClipboardText();
     void SetClipboardText(string text);
 
+    /// A picture on the clipboard as encoded image bytes (PNG, or another format Skia decodes), or null when there
+    /// is none or the platform cannot read pictures. Desktop reads them on Windows; a screenshot comes back as PNG.
+    byte[]? GetClipboardImage() => null;
+
     void SetCursor(CursorShape cursor);
 
     /// Whether the platform sends KeyDown again for each auto-repeat of a held key, as a browser does. When false,

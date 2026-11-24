@@ -18,4 +18,8 @@
     <ProjectReference Include="..\ApexUI\ApexUI.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <InternalsVisibleTo Include="ApexUI.Tests" />
+  </ItemGroup>
+
 </Project>

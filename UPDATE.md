@@ -4,8 +4,10 @@ Newest first. **Breaking** marks changes that need edits in apps using ApexUI.
 
 ## Unreleased
 
-### Pasting with an image on the clipboard
-- `DesktopPlatform.GetClipboardText` returns null when the clipboard holds no text (an image, files). Before, GLFW reported that as `FormatUnavailable`, Silk.NET threw it as `GlfwException`, and Ctrl+V in any text field or app paste command closed the app. No test: it needs a real window and system clipboard.
+### Pictures on the clipboard
+- `DesktopPlatform.GetClipboardText` returns null when the clipboard holds no text (an image, files). Before, GLFW reported that as `FormatUnavailable`, Silk.NET threw it as `GlfwException`, and Ctrl+V in any text field or app paste command closed the app. The throw also skipped GLFW's `CloseClipboard`, so catching it left the clipboard locked for every application until the app exited; on Windows the text is now read through Win32 (`WindowsClipboard`), never through GLFW. Elsewhere GLFW still reads it and the error is caught. No test: it needs a real window and system clipboard.
+- New `IPlatform.GetClipboardImage()` (default member, returns null): a picture on the clipboard as encoded image bytes. Desktop reads it on Windows: the "PNG" format browsers and editors set (transparency kept), else the bitmap a screenshot leaves, turned into a PNG (a 32-bit bitmap without an alpha mask is opaque). Other systems return null for now.
+- 4 new tests for the bitmap conversion (24- and 32-bit, masks after the header, a truncated header) (384 in total).
 
 ### Signs and points typed over a selection
 - `TextInput` in integer or float mode (and so `NumberField` and `NumberInput`) now checks a typed `-` or `.` against the text that stays once the selection is replaced, and at the selection's start. Before, it looked at the caret and the whole old text, so selecting a field's value and typing `-0.5` dropped the minus (the caret sits at the end after Select all) and typing `.5` over `1.25` dropped the point.
