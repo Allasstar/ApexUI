@@ -691,6 +691,17 @@ bool IsDragging
 ListView<T> WithReorder(bool = true) / OnSelectionChange / OnReorder   // WithItems/WithTemplate/WithRowHeight return ListView<T>
 ```
 
+### `ReorderList` · `lib/ApexUI/Widgets/ReorderList.cs`
+
+```csharp
+// Items of any height: header (grip, eye, title, ×) over an optional body. Drag a header (or Alt+Up/Down) to reorder.
+// Never moves or removes items itself: the app changes its model and rebuilds.
+int AddItem(string title, Widget? body = null, bool isOn = true);  void ClearItems();  int Count
+string TitleOf(int); Widget? BodyOf(int); bool IsOn(int); void SetOn(int, bool) (silent); bool IsDragging
+event Action<int, int>? Reordered;  event Action<int, bool>? Toggled;  event Action<int>? Removed
+ReorderList OnReorder / OnToggle / OnRemove
+```
+
 ### `TreeView<T>` · `lib/ApexUI/Widgets/TreeView.cs`
 
 ```csharp

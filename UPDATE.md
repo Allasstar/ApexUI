@@ -4,6 +4,11 @@ Newest first. **Breaking** marks changes that need edits in apps using ApexUI.
 
 ## Unreleased
 
+### ReorderList
+- New `ReorderList`: a short stack of items of any height, each a header (drag grip, eye, title, remove ×) over an optional body widget such as the item's own fields. Dragging a header shows a drop line and on release raises `Reordered(from, to)` with the item's final index; Alt+Up and Alt+Down on a focused header move it by one place. The eye flips the item's `IsOn` and raises `Toggled(index, on)`; × raises `Removed(index)`. Like `ListView`, it never moves or removes items itself: the app changes its model and rebuilds. `AddItem(title, body, isOn)`, `ClearItems()`, `Count`, `TitleOf`, `BodyOf`, `IsOn`, `SetOn` (silent), `IsDragging`, `OnReorder` / `OnToggle` / `OnRemove`. Presses inside a body never start a drag, so its fields keep their scrubbing. Theme tokens: `SpacingXs`, `IconSize`, `CornerRadiusSmall`, `BorderSubtle`, `SurfaceHover`, `Selection`, `Primary`, `OnSurfaceMuted`.
+- Gallery: the Lists tab has a list of adjustment steps with an Amount field each, and an Add menu.
+- 10 new tests (410 in total).
+
 ### Eyedropper, picker fields and swatch rows, GradientBar
 - Window pixel readback. New default members on `IPlatform`: `CanReadPixels` (false) and `TryReadPixel(x, y, out SKColor)` (false), which reads one unpremultiplied pixel of the frame being rendered, in surface pixels. `UiHost` calls it inside `Render`, after the tree and overlays are drawn and before the frame is shown. Desktop reads its GPU surface (a one-pixel snapshot when a multisampled target refuses a direct read).
 - New eyedropper mode on `UiHost`: `PickPixel(picked, cancelled)`, `CancelPixelPick()`, `IsPickingPixel`, `CanPickPixels`, `PickPreviewColor`. While it runs, pointer events reach no widget and the cursor is a crosshair; a chip next to the pointer shows the color under it, a left press picks what the next frame draws there, Escape or another button cancels.

@@ -2,6 +2,7 @@ namespace ApexUI.Gallery.Examples;
 
 /// ListView with selection, keyboard navigation and drag reordering; rows rename in place with EditableLabel.
 /// TreeView with expand/collapse, multi-select and drag into folders.
+/// ReorderList: items with their own fields, an eye and a remove button, dragged by the header.
 public class ListsExample : Widget
 {
     public ListsExample()
@@ -57,9 +58,63 @@ public class ListsExample : Widget
                 new Label { Text = "TreeView", Bold = true, Role = TextRole.Heading },
                 new Label { Text = "Click the arrows to expand. Ctrl+click or Shift+click selects several rows. Drag rows between others (move sideways to pick the level) or onto a folder. Files cannot hold anything.", WordWrap = true },
                 tree.Tree,
-                tree.Status
+                tree.Status,
+                new Separator { Margin = new Thickness(0, 4f) },
+                new Label { Text = "ReorderList", Bold = true, Role = TextRole.Heading },
+                new Label { Text = "Drag an item by its header (or Alt+Up/Down on a focused header). The eye switches it off, × removes it. Add brings more.", WordWrap = true },
+                BuildSteps()
             ).WithSpacing(12f),
             new Thickness(24f)));
+    }
+
+    private sealed class Step(string name, float amount)
+    {
+        public string Name { get; } = name;
+        public float Amount { get; set; } = amount;
+        public bool On { get; set; } = true;
+    }
+
+    private static Widget BuildSteps()
+    {
+        var steps = new List<Step> { new("Brightness", 10f), new("Contrast", 25f), new("Saturation", 50f) };
+        var status = new Label { ColorSource = t => t.OnSurfaceMuted };
+        var list = new ReorderList { Width = 280f, HAlign = HAlign.Left };
+
+        void Describe()
+        {
+            var parts = new List<string>();
+            foreach (Step step in steps) parts.Add(step.On ? $"{step.Name} {step.Amount:0}" : $"({step.Name})");
+            status.Text = steps.Count == 0 ? "No steps" : string.Join(" → ", parts);
+        }
+
+        void Rebuild()
+        {
+            list.ClearItems();
+            foreach (Step step in steps)
+            {
+                var amount = new NumberField("Amount", step.Amount).WithRange(0f, 100f).WithStep(0.5f)
+                    .OnChange(v => { step.Amount = v; Describe(); });
+                list.AddItem(step.Name, amount, step.On);
+            }
+
+            Describe();
+        }
+
+        list.OnReorder((from, to) =>
+            {
+                Step moved = steps[from];
+                steps.RemoveAt(from);
+                steps.Insert(to, moved);
+                Rebuild();
+            })
+            .OnToggle((index, on) => { steps[index].On = on; Describe(); })
+            .OnRemove(index => { steps.RemoveAt(index); Rebuild(); });
+        Rebuild();
+
+        var add = new MenuButton("Add") { HAlign = HAlign.Left };
+        foreach (string name in new[] { "Brightness", "Contrast", "Saturation", "Hue" })
+            add.AddItem(name, () => { steps.Add(new Step(name, 0f)); Rebuild(); });
+        return new Column(list, add, status).WithSpacing(8f);
     }
 
     private sealed class Entry(string name, bool folder, params Entry[] children)
