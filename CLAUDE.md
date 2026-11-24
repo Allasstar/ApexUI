@@ -702,6 +702,21 @@ event Action<int, int>? Reordered;  event Action<int, bool>? Toggled;  event Act
 ReorderList OnReorder / OnToggle / OnRemove
 ```
 
+### `FoldList` · `lib/ApexUI/Widgets/FoldList.cs`
+
+```csharp
+// Title with Expand all / Collapse all over rows (chevron, title, chip, summary) that fold open onto a body. Several rows open at once.
+// Keeps no model: the app adds rows and rebuilds.
+FoldList(string title = "");  string Title;  int Count;  int MaxVisibleRows (0 = all);  bool ShowAll   // cap: "Show all (N)" link
+int AddRow(string title, Widget body, string chip = "", string summary = "", bool open = false);  void ClearRows()
+bool IsOpen(int);  void SetOpen(int, bool) (silent);  string TitleOf(int);  Widget BodyOf(int);  void SetRowText(int, chip, summary)
+void ExpandAll(), CollapseAll();  bool IsHiddenByCap(int);  void Reveal(int)
+int HighlightedRow   // drawn as hovered, set from code (silent); -1 = none, out of range = none, ClearRows resets
+event Action<int, bool>? RowToggled   // user clicks, Expand all, Collapse all (once per changed row)
+event Action<int>? HoverChanged       // row under the pointer, -1 when none
+FoldList OnToggle / OnHover
+```
+
 ### `TreeView<T>` · `lib/ApexUI/Widgets/TreeView.cs`
 
 ```csharp

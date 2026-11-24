@@ -3,6 +3,7 @@ namespace ApexUI.Gallery.Examples;
 /// ListView with selection, keyboard navigation and drag reordering; rows rename in place with EditableLabel.
 /// TreeView with expand/collapse, multi-select and drag into folders.
 /// ReorderList: items with their own fields, an eye and a remove button, dragged by the header.
+/// FoldList: rows that fold open onto their fields, several at once, with Expand all, Collapse all and a row cap.
 public class ListsExample : Widget
 {
     public ListsExample()
@@ -62,7 +63,11 @@ public class ListsExample : Widget
                 new Separator { Margin = new Thickness(0, 4f) },
                 new Label { Text = "ReorderList", Bold = true, Role = TextRole.Heading },
                 new Label { Text = "Drag an item by its header (or Alt+Up/Down on a focused header). The eye switches it off, × removes it. Add brings more.", WordWrap = true },
-                BuildSteps()
+                BuildSteps(),
+                new Separator { Margin = new Thickness(0, 4f) },
+                new Label { Text = "FoldList", Bold = true, Role = TextRole.Heading },
+                new Label { Text = "Click a row to open it; any number can stay open. Expand all and Collapse all work on every row. Past six rows the rest wait behind Show all. The status shows the row under the pointer; Highlight draws a row as hovered from code.", WordWrap = true },
+                BuildFolds()
             ).WithSpacing(12f),
             new Thickness(24f)));
     }
@@ -115,6 +120,29 @@ public class ListsExample : Widget
         foreach (string name in new[] { "Brightness", "Contrast", "Saturation", "Hue" })
             add.AddItem(name, () => { steps.Add(new Step(name, 0f)); Rebuild(); });
         return new Column(list, add, status).WithSpacing(8f);
+    }
+
+    private static Widget BuildFolds()
+    {
+        const int count = 8;
+        string[] kinds = ["Sharp", "Rounded", "Mirrored"];
+        var status = new Label { Text = "Pointer over no row", ColorSource = t => t.OnSurfaceMuted };
+        var list = new FoldList($"Points ({count})") { Width = 280f, HAlign = HAlign.Left, MaxVisibleRows = 6 };
+        for (int i = 0; i < count; i++)
+        {
+            int index = i;
+            string kind = kinds[i % kinds.Length];
+            var field = new NumberField("Radius", 4f + i).WithRange(0f, 100f).WithStep(0.5f);
+            field.OnChange(v => list.SetRowText(index, kind, Summary(kind, v)));
+            list.AddRow($"Point {i + 1}", field, kind, Summary(kind, field.Value));
+        }
+
+        list.HoverChanged += index => status.Text = index < 0 ? "Pointer over no row" : $"Pointer over Point {index + 1}";
+        var highlight = new NumberField("Highlight (0 = none)", 0f) { Width = 280f, HAlign = HAlign.Left }.WithRange(0f, count).WithStep(0.2f).WithFormat("0");
+        highlight.OnChange(v => list.HighlightedRow = (int)MathF.Round(v) - 1);
+        return new Column(list, status, highlight).WithSpacing(8f);
+
+        static string Summary(string kind, float value) => kind == "Sharp" ? "–" : $"{value:0.##} px";
     }
 
     private sealed class Entry(string name, bool folder, params Entry[] children)
