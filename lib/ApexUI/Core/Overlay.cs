@@ -48,6 +48,16 @@ public class Overlay : Widget
     /// Pressing any pointer button outside Content closes the overlay (default true).
     public bool DismissOnClickOutside { get; set; } = true;
 
+    /// Presses outside Content reach the widgets below instead of the backdrop, so the overlay floats over a window
+    /// that stays usable (a popover next to a canvas). With DismissOnClickOutside such a press also closes it, unless
+    /// KeepOpenOnPress says otherwise for the widget pressed. Ignored while IsModal.
+    public bool ClickThrough { get; set; }
+
+    /// For a ClickThrough overlay: true keeps it open on a press on this widget (null: nothing was hit).
+    public Func<Widget?, bool>? KeepOpenOnPress { get; set; }
+
+    internal bool PassesPresses => ClickThrough && !IsModal;
+
     /// When Anchor is set, stretches Content to match the anchor's width (e.g. for dropdowns).
     public bool MatchAnchorWidth { get; set => SetLayoutProperty(ref field, value); }
 
@@ -56,6 +66,12 @@ public class Overlay : Widget
     public Overlay()
     {
         IsVisible = false;
+    }
+
+    public override Widget? HitTest(float x, float y)
+    {
+        var hit = base.HitTest(x, y);
+        return PassesPresses && hit == this ? null : hit;
     }
 
     // Events from Content bubble here too; only a press on the backdrop itself dismisses.

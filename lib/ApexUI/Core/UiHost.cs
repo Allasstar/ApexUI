@@ -220,6 +220,19 @@ public sealed partial class UiHost : IPlatformListener
         }
     }
 
+    // A press outside a ClickThrough overlay reaches the widget below and closes the overlay on the way, unless the
+    // overlay keeps itself open for that widget.
+    private void DismissPassedOverlays(Widget? hit)
+    {
+        for (int i = _overlays.Count - 1; i >= 0; i--)
+        {
+            var overlay = _overlays[i];
+            if (!overlay.PassesPresses || !overlay.DismissOnClickOutside || IsWithin(hit, overlay)) continue;
+            if (overlay.KeepOpenOnPress?.Invoke(hit) == true) continue;
+            overlay.Close();
+        }
+    }
+
     private Widget? HitTestAll(float x, float y)
     {
         for (int i = _overlays.Count - 1; i >= 0; i--)
@@ -261,6 +274,7 @@ public sealed partial class UiHost : IPlatformListener
         // without inheriting any clip stack.
         foreach (var o in _overlays)
             o.Draw(_drawContext);
+        RenderPixelPick(_drawContext);
 
         canvas.Restore();
 

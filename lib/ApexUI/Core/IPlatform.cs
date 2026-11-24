@@ -33,6 +33,17 @@ public interface IPlatform
 
     void SetCursor(CursorShape cursor);
 
+    /// Whether TryReadPixel can read the frames this platform renders (for an eyedropper).
+    bool CanReadPixels => false;
+
+    /// Reads one pixel of the frame being rendered, in surface pixels, unpremultiplied. UiHost calls it inside
+    /// Render, after drawing and before the frame is shown. False outside the surface or when CanReadPixels is false.
+    bool TryReadPixel(int x, int y, out SKColor color)
+    {
+        color = default;
+        return false;
+    }
+
     /// Whether the platform sends KeyDown again for each auto-repeat of a held key, as a browser does. When false,
     /// UiHost repeats the held key itself, timed by SystemKeyRepeat.
     bool RepeatsKeys => false;

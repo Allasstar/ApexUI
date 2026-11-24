@@ -212,6 +212,8 @@ KeyModifiers Modifiers { get; }    // held modifiers as of the latest input even
 KeyRepeat KeyRepeat { get; set; }  // (Delay, Interval) for held keys; SystemKeyRepeat or KeyRepeat.Default (500 ms, 30/s).
                                    // The last key pressed repeats as KeyDown with IsRepeat until released; modifiers never repeat
 event Action<KeyModifiers>? ModifiersChanged   // a modifier went down or up, whatever has focus
+void PickPixel(Action<SKColor> picked, Action? cancelled = null)   // eyedropper: next left press picks the drawn pixel; Escape cancels
+void CancelPixelPick(); bool IsPickingPixel, CanPickPixels; SKColor PickPreviewColor   // pointer reaches no widget while picking
 ```
 
 ### `CommandManager`, `Command`, `KeyGesture` · `lib/ApexUI/Core/`
@@ -253,6 +255,7 @@ Task<string?> PickFolderAsync(string title)   // null = cancelled
 void SetMinimumSize(float width, float height)   // logical units, 0 = no limit; desktop applies it from the main loop
 bool RepeatsKeys => false            // true: the backend sends its own key repeats; false: UiHost makes them
 KeyRepeat? SystemKeyRepeat => null   // the system's delay and rate (desktop: read on Windows)
+bool CanReadPixels => false; bool TryReadPixel(int x, int y, out SKColor c)   // one pixel of the frame being rendered (UiHost calls it inside Render); desktop reads its surface
 // FileDialogOptions(string Title, IReadOnlyList<FileFilter> Filters, string? SuggestedFileName); FileFilter(string Name, IReadOnlyList<string> Extensions) without dots
 // Desktop: Win32 common dialogs and the COM folder picker (STA thread, owned by the window), osascript on macOS, zenity/kdialog on Linux.
 
@@ -741,17 +744,35 @@ TextArea WithPlaceholder / WithValue / WithLines(min, max) / OnChange / OnEditCo
 ### `ColorPicker`, `ColorSwatch`, `Toast` · `lib/ApexUI/Widgets/`
 
 ```csharp
-ColorPicker(SKColor? color = null)   // SV square, hue strip, alpha strip, hex field; ColorAreaSize wide
-SKColor Color; bool ShowAlpha; event Action<SKColor>? ColorChanged, EditCompleted
+ColorPicker(SKColor? color = null)   // SV square, hue and alpha strips, hex field + eyedropper, R G B A fields, swatch rows; ColorAreaSize wide
+SKColor Color; bool ShowAlpha; event Action<SKColor>? ColorChanged, EditCompleted   // EditCompleted once per finished drag, typed value, swatch or pick
+ColorPicker AddSwatches(string title, ObservableList<SKColor> colors)   // host-fed row, hidden while empty
+void StartEyedropper(); bool IsPickingPixel   // button hidden when !host.CanPickPixels
 static string ToHex(SKColor)                     // #RRGGBB, or #RRGGBBAA when not opaque
 static bool   TryParseHex(string, out SKColor)   // RRGGBB or RRGGBBAA, # optional
 
 ColorSwatch(SKColor color)   // SwatchSize square; click / Space / Enter opens a ColorPicker popup below it
-SKColor Color; bool ShowAlpha = true, IsReadOnly, IsOpen; void Open(), Close()
-event Action<SKColor>? ColorChanged, EditCompleted;  WithAlpha(bool) / AsReadOnly() / OnChange / OnEditCompleted
+SKColor Color; bool ShowAlpha = true, IsReadOnly, IsOpen; void Open(), Close(); ColorPicker Picker   // created on first use
+event Action<SKColor>? ColorChanged, EditCompleted;  event Action? Opened, Closed;  WithAlpha(bool) / AsReadOnly() / OnChange / OnEditCompleted
+
+GradientBar(params ColorStop[] stops)   // strip + stop handles: click adds, drag moves, drag off / Delete removes (≥ MinStops = 2)
+readonly record struct ColorStop(float Offset, SKColor Color)   // stops keep their index whatever their offsets
+IReadOnlyList<ColorStop> Stops; int SelectedIndex; ColorStop SelectedStop; void SetStops(list) (silent), SetStopColor(i, c); bool RemoveStop(i)
+event Action? StopsChanged, EditCompleted; event Action<int>? SelectionChanged; static SKColor ColorAt(stops, offset)
 
 Toast : Overlay   // bottom center, never hit-testable; a new Show replaces the message and restarts the timer
 TimeSpan Duration = 2.5 s; string Message; void Show(UiHost host, string message); void Hide()
+```
+
+### `Overlay` · `lib/ApexUI/Core/Overlay.cs`
+
+```csharp
+Widget? Content; Widget? Anchor; OverlayAnchor AnchorEdge (BelowAnchor | AboveAnchor | RightOfAnchor | LeftOfAnchor); bool MatchAnchorWidth
+float PositionX, PositionY; HAlign ContentHAlign; VAlign ContentVAlign   // without an anchor
+bool IsModal (backdrop Scrim); bool DismissOnClickOutside = true; event Action? Closed
+bool ClickThrough   // non-modal: presses outside Content reach the widgets below; with DismissOnClickOutside they also close it
+Func<Widget?, bool>? KeepOpenOnPress   // ClickThrough: true keeps it open for a press on that widget
+void Open(UiHost host) / Open(Widget anchor, OverlayAnchor edge = BelowAnchor); void Close(); void Detach()
 ```
 
 ### `Dropdown<T>` — live collection overloads

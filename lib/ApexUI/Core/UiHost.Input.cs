@@ -292,6 +292,7 @@ public sealed partial class UiHost
         SetModifiers(modifiers);
         float x = _pointerX = px / PixelScale;
         float y = _pointerY = py / PixelScale;
+        if (PickMove(x, y)) return;
 
         var hit = HitTestAll(x, y);
         UpdateHover(hit, x, y);
@@ -310,8 +311,10 @@ public sealed partial class UiHost
         _lastInputWasKeyboard = false;
         float x = _pointerX = px / PixelScale;
         float y = _pointerY = py / PixelScale;
+        if (PickPress(x, y, button)) return;
 
         var hit = HitTestAll(x, y);
+        DismissPassedOverlays(hit);
         UpdateHover(hit, x, y);
         int clicks = CountClick(button, x, y);
 
@@ -413,6 +416,7 @@ public sealed partial class UiHost
 
     private void SendKeyDown(Key key, KeyModifiers modifiers, bool repeat)
     {
+        if (PickKey(key)) return;
         _lastInputWasKeyboard = true;
         FillKey(key, modifiers, repeat);
         if (_focused is not null)

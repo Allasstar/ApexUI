@@ -31,6 +31,7 @@ public sealed class DesktopPlatform : IPlatform
     private GRContext?         _grContext;
     private GRBackendRenderTarget? _renderTarget;
     private SKSurface?         _surface;
+    private SKBitmap?          _pixel;
     private ContentScale?      _contentScale;
 
     // Framebuffer pixels per window coordinate: 1 on Windows and X11, 2 on Retina macOS.
@@ -167,6 +168,27 @@ public sealed class DesktopPlatform : IPlatform
     public void SetClipboardText(string text)
     {
         if (_keyboard is not null) _keyboard.ClipboardText = text;
+    }
+
+    public bool CanReadPixels => true;
+
+    // Called inside Render, before the frame is presented: after the swap the back buffer's content is undefined.
+    public bool TryReadPixel(int x, int y, out SKColor color)
+    {
+        color = default;
+        if (_surface is null || x < 0 || y < 0 || x >= _surfaceSize.X || y >= _surfaceSize.Y) return false;
+
+        _pixel ??= new SKBitmap(new SKImageInfo(1, 1, SKColorType.Rgba8888, SKAlphaType.Unpremul));
+        bool read = _surface.ReadPixels(_pixel.Info, _pixel.GetPixels(), _pixel.RowBytes, x, y);
+        if (!read)
+        {
+            // A multisampled target may refuse a direct read; a one-pixel snapshot resolves it first.
+            using var image = _surface.Snapshot(new SKRectI(x, y, x + 1, y + 1));
+            read = image is not null && image.ReadPixels(_pixel.Info, _pixel.GetPixels(), _pixel.RowBytes, 0, 0);
+        }
+
+        if (read) color = _pixel.GetPixel(0, 0);
+        return read;
     }
 
     public void SetCursor(CursorShape cursor)
@@ -337,6 +359,7 @@ public sealed class DesktopPlatform : IPlatform
         _listener!.Close();
         _timers.Clear();
         _surface?.Dispose();
+        _pixel?.Dispose();
         _renderTarget?.Dispose();
         _grContext?.Dispose();
         _input?.Dispose();

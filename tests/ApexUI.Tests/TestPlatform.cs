@@ -7,6 +7,7 @@ internal sealed class TestPlatform(int pixelWidth = 800, int pixelHeight = 600, 
 {
     private readonly List<TestTimer> _timers = [];
     private string? _clipboard;
+    private SKBitmap? _rendering;
 
     public IPlatformListener Listener { get; private set; } = null!;
     public CursorShape Cursor { get; private set; }
@@ -61,8 +62,20 @@ internal sealed class TestPlatform(int pixelWidth = 800, int pixelHeight = 600, 
     {
         var bitmap = new SKBitmap(pixelWidth, pixelHeight);
         using var canvas = new SKCanvas(bitmap);
+        _rendering = bitmap;
         Listener.Render(canvas, Now);
+        _rendering = null;
         return bitmap;
+    }
+
+    public bool CanReadPixels { get; set; } = true;
+
+    public bool TryReadPixel(int x, int y, out SKColor color)
+    {
+        color = default;
+        if (!CanReadPixels || _rendering is null || x < 0 || y < 0 || x >= pixelWidth || y >= pixelHeight) return false;
+        color = _rendering.GetPixel(x, y);
+        return true;
     }
 
     /// Renders one frame and returns how many frames were requested while rendering it.
