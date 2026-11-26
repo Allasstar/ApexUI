@@ -4,6 +4,12 @@ Newest first. **Breaking** marks changes that need edits in apps using ApexUI.
 
 ## Unreleased
 
+### DirectionPicker shading
+- `DirectionPicker` now draws a lit sphere: per pixel the sphere's normal is lit from the chosen direction (diffuse with a soft terminator) from `SphereShade` on the far side towards `SphereLit`, and a glossy highlight sits where the light reflects towards the viewer. It used to be a radial gradient centred on the handle, which read as a flat disc. The shader program compiles on first draw and is released on detach; the shader is rebuilt only when the direction, size or tokens change, so drawing again still allocates nothing.
+- `SphereShade` is now derived from `OnSurfaceMuted` at 45% brightness (was `OnSurfaceMuted`), so the shaded side reads on light and dark surfaces. Themes that set it keep their value.
+- Gallery: the Colors tab shows three fixed pickers lit at 80°, 45° and 10° elevation.
+- 2 new tests.
+
 ### DirectionPicker
 - New `DirectionPicker`: a shaded sphere for picking a direction, such as where a light comes from. Dragging sets `Azimuth` (degrees in [0, 360), clockwise on screen from the +x axis: the angle around the centre) and `Elevation` (0 on the rim to 90 in the middle). The sphere is lit from the chosen direction and a handle marks it. Left and Right turn the azimuth by `KeyStep` (5°), Up and Down raise or lower the elevation. `DirectionChanged(azimuth, elevation)` on every user change; `EditCompleted` once a drag that changed the direction ends, and after each key step. `SetDirection` (silent, wraps the azimuth and clamps the elevation), `DirectionAt(x, y)`, fluent `WithDirection`, `OnChange`, `OnCommit`. Its gradient is cached until the direction, size or tokens change, so drawing again allocates nothing.
 - New Theme tokens: `SphereLit` (derived: `Knob`), `SphereShade` (derived: `OnSurfaceMuted`), `DirectionPickerSize` (72, the diameter when no size is set). Also uses `Border`, `Primary`, `PrimaryHover`, `Knob`, `SliderThumbSize` (the handle).

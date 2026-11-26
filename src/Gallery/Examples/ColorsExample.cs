@@ -88,6 +88,11 @@ public class ColorsExample : Widget
                 new Label { Text = "DirectionPicker", Bold = true, Role = TextRole.Heading },
                 new Label { Text = "Drag on the sphere: the angle around the centre is the azimuth, the distance from the rim the elevation. Arrow keys step by 5 degrees.", WordWrap = true },
                 new Row(direction, directionText, largeDirection).WithSpacing(16f),
+                new Label { Text = "Lit from the upper left at 80°, 45° and 10° elevation: the far side falls into shade, the highlight follows the light.", WordWrap = true },
+                new Row(
+                    new DirectionPicker().WithDirection(225f, 80f),
+                    new DirectionPicker().WithDirection(225f, 45f),
+                    new DirectionPicker().WithDirection(225f, 10f)).WithSpacing(16f),
                 new Separator { Margin = new Thickness(0, 4f) },
                 new Label { Text = "Toast", Bold = true, Role = TextRole.Heading },
                 new Label { Text = "Appears at the bottom or the top of the window and hides itself; a new message replaces the old. The top one sits 8 px below the edge.", WordWrap = true },

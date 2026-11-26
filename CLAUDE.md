@@ -400,7 +400,7 @@ Thickness ButtonPadding, InputPadding, MenuItemPadding, PopupPadding, TooltipPad
           IconButtonPadding, SegmentPadding, SectionHeaderPadding
 float  CheckboxSize, RadioSize, ToggleWidth, ToggleHeight, SliderThumbSize, SliderTrackHeight, ProgressBarHeight, TabBarSize,
        IconSize, SplitterSize, SwatchSize, ColorAreaSize, ColorStripHeight, DirectionPickerSize
-SKColor SphereLit*, SphereShade*   // DirectionPicker: Knob, OnSurfaceMuted
+SKColor SphereLit*, SphereShade*   // DirectionPicker: Knob, OnSurfaceMuted at 45% brightness
 ```
 
 ### `ThemeRegistry`, `BuiltInThemes` · `lib/ApexUI/Core/`
@@ -787,7 +787,7 @@ readonly record struct ColorStop(float Offset, SKColor Color)   // stops keep th
 IReadOnlyList<ColorStop> Stops; int SelectedIndex; ColorStop SelectedStop; void SetStops(list) (silent), SetStopColor(i, c), SetStopOffset(i, t); bool RemoveStop(i)
 event Action? StopsChanged, EditCompleted; event Action<int>? SelectionChanged; static SKColor ColorAt(stops, offset)
 
-DirectionPicker()   // shaded sphere; drag: azimuth = angle around the centre (deg, clockwise from +x), elevation = distance from the rim (0..90)
+DirectionPicker()   // sphere lit from the direction (diffuse + highlight); drag: azimuth = angle around the centre (deg, clockwise from +x), elevation = distance from the rim (0..90)
 float Azimuth, Elevation; void SetDirection(az, el) (silent); (float, float) DirectionAt(x, y); const KeyStep = 5 (arrow keys)
 event Action<float, float>? DirectionChanged, EditCompleted   // EditCompleted once per changing drag or key step
 DirectionPicker WithDirection / OnChange / OnCommit   // tokens SphereLit*, SphereShade*, DirectionPickerSize

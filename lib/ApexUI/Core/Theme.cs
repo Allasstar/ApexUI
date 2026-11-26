@@ -118,10 +118,11 @@ public sealed record Theme
         init;
     }
 
-    /// The shaded rim of a DirectionPicker's sphere. Derived: OnSurfaceMuted.
+    /// The far side of a DirectionPicker's sphere, away from the light. Derived: OnSurfaceMuted at 45%
+    /// brightness, dark enough to read against light and dark surfaces alike.
     public SKColor SphereShade
     {
-        get => field == SKColor.Empty ? OnSurfaceMuted : field;
+        get => field == SKColor.Empty ? Darker(OnSurfaceMuted, 0.45f) : field;
         init;
     }
 
@@ -257,6 +258,9 @@ public sealed record Theme
     public float ColorStripHeight  { get; init; } = 12f;
     /// Diameter of a DirectionPicker's sphere when no size is set.
     public float DirectionPickerSize { get; init; } = 72f;
+
+    private static SKColor Darker(SKColor c, float brightness) =>
+        new((byte)(c.Red * brightness), (byte)(c.Green * brightness), (byte)(c.Blue * brightness), c.Alpha);
 }
 
 /// The font size a Label takes from the theme.

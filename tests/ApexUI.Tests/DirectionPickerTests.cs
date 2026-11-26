@@ -104,6 +104,32 @@ public class DirectionPickerTests
         Assert.Equal(0, events);
     }
 
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void The_sphere_is_lit_from_its_direction_with_a_highlight_and_a_dark_far_side(bool dark)
+    {
+        Theme theme = dark ? Theme.Dark : Theme.Light;
+        var picker = new DirectionPicker { Width = 100f }.WithDirection(225f, 45f);
+        using SKBitmap bitmap = TestCanvas.Render(picker, 100, 100, theme);
+
+        // Lit from the upper left: towards the light it is brighter than across the centre from it.
+        float near = Luma(bitmap.GetPixel(30, 30)), far = Luma(bitmap.GetPixel(70, 70)), middle = Luma(bitmap.GetPixel(50, 50));
+        Assert.True(near > middle && middle > far + 60, $"near {near}, middle {middle}, far {far}");
+        Assert.True(far < Luma(theme.OnSurfaceMuted), $"far {far}");
+
+        // The highlight sits where the light reflects to the viewer, about a third of the way out towards it.
+        float brightest = 0f;
+        for (int i = 0; i < 40; i++) brightest = Math.Max(brightest, Luma(bitmap.GetPixel(50 - i, 50 - i)));
+        Assert.True(brightest >= Luma(theme.SphereLit) - 8f, $"brightest {brightest}");
+
+        picker.SetDirection(45f, 45f);
+        using SKBitmap turned = TestCanvas.Render(picker, 100, 100, theme);
+        Assert.True(Luma(turned.GetPixel(70, 70)) > Luma(turned.GetPixel(30, 30)) + 60);
+    }
+
+    private static float Luma(SKColor c) => 0.3f * c.Red + 0.59f * c.Green + 0.11f * c.Blue;
+
     [Fact]
     public void Drawing_again_unchanged_allocates_nothing()
     {

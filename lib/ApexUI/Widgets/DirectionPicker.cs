@@ -3,7 +3,7 @@ namespace ApexUI.Widgets;
 /// A shaded sphere for picking a direction, such as where a light comes from. Dragging sets the
 /// azimuth (the angle around the centre, degrees clockwise on screen from the +x axis) and the
 /// elevation (0 on the rim, 90 in the middle, straight towards the viewer). The sphere is lit from
-/// the chosen direction and a handle marks it.
+/// the chosen direction, diffuse with a glossy highlight, and a handle marks it.
 public class DirectionPicker : Widget
 {
     /// Keyboard step in degrees: Left/Right turn the azimuth, Up/Down raise or lower the elevation.
@@ -11,8 +11,32 @@ public class DirectionPicker : Widget
 
     private const float RimInset = 2f;
 
+    // Per pixel: the sphere's normal lit as a matte surface (wrapped a little so the terminator is soft), from
+    // the shade on the far side to just short of the lit colour, then a highlight where the light reflects to
+    // the viewer brings it the rest of the way.
+    private const string SphereSource = """
+        uniform float2 centre;
+        uniform float radius;
+        uniform float3 light;
+        uniform half4 lit;
+        uniform half4 shade;
+
+        half4 main(float2 p) {
+            float2 q = (p - centre) / radius;
+            float z = sqrt(max(0.0, 1.0 - dot(q, q)));
+            float3 n = normalize(float3(q, z));
+            float diffuse = max(0.0, (dot(n, light) + 0.2) / 1.2);
+            float3 h = normalize(light + float3(0.0, 0.0, 1.0));
+            float shine = pow(max(dot(n, h), 0.0), 48.0);
+            half3 c = mix(shade.rgb, lit.rgb, half(0.85 * diffuse));
+            return half4(mix(c, lit.rgb, half(shine)), 1.0);
+        }
+        """;
+
     private bool _dragging;
     private bool _changedSincePress;
+    private SKRuntimeEffect? _effect;
+    private SKRuntimeEffectUniforms? _uniforms;
     private SKShader? _shader;
     private SKPaint? _paint;
     private (float Az, float El, Rect Bounds, SKColor Lit, SKColor Shade) _shaderKey;
@@ -141,6 +165,10 @@ public class DirectionPicker : Widget
     {
         _shader?.Dispose();
         _shader = null;
+        _uniforms?.Dispose();
+        _uniforms = null;
+        _effect?.Dispose();
+        _effect = null;
         _paint?.Dispose();
         _paint = null;
     }
@@ -185,14 +213,23 @@ public class DirectionPicker : Widget
         return (cx + MathF.Cos(az) * reach, cy + MathF.Sin(az) * reach);
     }
 
-    // A radial gradient from the lit point to the shaded rim reads as a sphere lit from there.
+    // Built again only when the direction, size or tokens change; the program compiles once.
     private void BuildShader(float cx, float cy, float r, (float Az, float El, Rect Bounds, SKColor Lit, SKColor Shade) key)
     {
         _shader?.Dispose();
-        var (hx, hy) = HandlePosition(cx, cy, r);
-        _shader = SKShader.CreateRadialGradient(new SKPoint(hx, hy), r * 1.6f, [key.Lit, key.Shade], [0f, 1f], SKShaderTileMode.Clamp);
+        _effect ??= SKRuntimeEffect.CreateShader(SphereSource, out string? errors) ?? throw new InvalidOperationException("DirectionPicker sphere: " + errors);
+        _uniforms ??= new SKRuntimeEffectUniforms(_effect);
+        float az = key.Az * MathF.PI / 180f, el = key.El * MathF.PI / 180f;
+        _uniforms["centre"] = new SKPoint(cx, cy);
+        _uniforms["radius"] = r;
+        _uniforms["light"] = new SKPoint3(MathF.Cos(el) * MathF.Cos(az), MathF.Cos(el) * MathF.Sin(az), MathF.Sin(el));
+        _uniforms["lit"] = ToFloats(key.Lit);
+        _uniforms["shade"] = ToFloats(key.Shade);
+        _shader = _effect.ToShader(_uniforms);
         _shaderKey = key;
     }
+
+    private static float[] ToFloats(SKColor c) => [c.Red / 255f, c.Green / 255f, c.Blue / 255f, 1f];
 
     private static float Normalize(float degrees)
     {
