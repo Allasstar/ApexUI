@@ -3,7 +3,7 @@ namespace ApexUI.Tests;
 public class ThemeTests
 {
     // Colors that read the same on light and dark backgrounds, or sit on the accent rather than the background.
-    private static readonly string[] SharedColors = [nameof(Theme.Knob), nameof(Theme.OnPrimary)];
+    private static readonly string[] SharedColors = [nameof(Theme.Knob), nameof(Theme.SphereLit), nameof(Theme.OnPrimary)];
 
     [Fact]
     public void Dark_theme_sets_every_color_instead_of_inheriting_light_values()

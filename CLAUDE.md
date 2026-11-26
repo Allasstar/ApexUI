@@ -399,7 +399,8 @@ float  SpacingXs, SpacingSm, SpacingMd, SpacingLg
 Thickness ButtonPadding, InputPadding, MenuItemPadding, PopupPadding, TooltipPadding, DialogPadding, TabPadding,
           IconButtonPadding, SegmentPadding, SectionHeaderPadding
 float  CheckboxSize, RadioSize, ToggleWidth, ToggleHeight, SliderThumbSize, SliderTrackHeight, ProgressBarHeight, TabBarSize,
-       IconSize, SplitterSize, SwatchSize, ColorAreaSize, ColorStripHeight
+       IconSize, SplitterSize, SwatchSize, ColorAreaSize, ColorStripHeight, DirectionPickerSize
+SKColor SphereLit*, SphereShade*   // DirectionPicker: Knob, OnSurfaceMuted
 ```
 
 ### `ThemeRegistry`, `BuiltInThemes` · `lib/ApexUI/Core/`
@@ -785,6 +786,11 @@ GradientBar(params ColorStop[] stops)   // strip + stop handles: click adds, dra
 readonly record struct ColorStop(float Offset, SKColor Color)   // stops keep their index whatever their offsets
 IReadOnlyList<ColorStop> Stops; int SelectedIndex; ColorStop SelectedStop; void SetStops(list) (silent), SetStopColor(i, c), SetStopOffset(i, t); bool RemoveStop(i)
 event Action? StopsChanged, EditCompleted; event Action<int>? SelectionChanged; static SKColor ColorAt(stops, offset)
+
+DirectionPicker()   // shaded sphere; drag: azimuth = angle around the centre (deg, clockwise from +x), elevation = distance from the rim (0..90)
+float Azimuth, Elevation; void SetDirection(az, el) (silent); (float, float) DirectionAt(x, y); const KeyStep = 5 (arrow keys)
+event Action<float, float>? DirectionChanged, EditCompleted   // EditCompleted once per changing drag or key step
+DirectionPicker WithDirection / OnChange / OnCommit   // tokens SphereLit*, SphereShade*, DirectionPickerSize
 
 Toast : Overlay   // bottom center, never hit-testable; a new Show replaces the message and restarts the timer
 TimeSpan Duration = 2.5 s; string Message; void Show(UiHost host, string message); void Hide()

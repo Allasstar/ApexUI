@@ -1,7 +1,7 @@
 namespace ApexUI.Gallery.Examples;
 
-/// ColorSwatch with its popup picker, an inline ColorPicker with swatch rows and the eyedropper, a GradientBar, and
-/// Toast messages.
+/// ColorSwatch with its popup picker, an inline ColorPicker with swatch rows and the eyedropper, a GradientBar, a
+/// DirectionPicker, and Toast messages.
 public class ColorsExample : Widget
 {
     public ColorsExample()
@@ -16,6 +16,18 @@ public class ColorsExample : Widget
                 hex.Text = ColorPicker.ToHex(c);
                 preview.Invalidate();
             });
+        var directionLabel = new Label { Text = "Azimuth 225°, elevation 45°" };
+        var committedLabel = new Label { Text = "Committed: none yet", ColorSource = t => t.OnSurfaceMuted };
+        var directionText = new Column(directionLabel, committedLabel) { Spacing = 4f, VAlign = VAlign.Center };
+        var largeDirection = new DirectionPicker { Width = 120f }.WithDirection(225f, 45f);
+        var direction = new DirectionPicker()
+            .WithDirection(225f, 45f)
+            .OnChange((az, el) =>
+            {
+                directionLabel.Text = $"Azimuth {az:0}°, elevation {el:0}°";
+                largeDirection.SetDirection(az, el);
+            })
+            .OnCommit((az, el) => committedLabel.Text = $"Committed: {az:0}°, {el:0}°");
         var opaque = new ColorSwatch(SKColor.FromHex("#FF6B5B")).WithAlpha(false);
         var readOnly = new ColorSwatch(SKColor.FromHex("#3DDC8480")).AsReadOnly();
 
@@ -72,6 +84,10 @@ public class ColorsExample : Widget
                 new Label { Text = "GradientBar", Bold = true, Role = TextRole.Heading },
                 new Label { Text = "Click the strip to add a stop, drag a handle to move it, drag it off or press Delete to remove it (never below two). The picker edits the selected stop.", WordWrap = true },
                 new Row(new Column(gradient, stopLabel, stopPicker).WithSpacing(8f)).WithSpacing(16f),
+                new Separator { Margin = new Thickness(0, 4f) },
+                new Label { Text = "DirectionPicker", Bold = true, Role = TextRole.Heading },
+                new Label { Text = "Drag on the sphere: the angle around the centre is the azimuth, the distance from the rim the elevation. Arrow keys step by 5 degrees.", WordWrap = true },
+                new Row(direction, directionText, largeDirection).WithSpacing(16f),
                 new Separator { Margin = new Thickness(0, 4f) },
                 new Label { Text = "Toast", Bold = true, Role = TextRole.Heading },
                 new Label { Text = "Appears at the bottom or the top of the window and hides itself; a new message replaces the old. The top one sits 8 px below the edge.", WordWrap = true },

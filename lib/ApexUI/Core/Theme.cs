@@ -111,6 +111,20 @@ public sealed record Theme
     /// Movable part of a toggle and the ring around a slider thumb.
     public SKColor Knob           { get; init; } = new(255, 255, 255);
 
+    /// The lit side of a DirectionPicker's sphere. Derived: Knob.
+    public SKColor SphereLit
+    {
+        get => field == SKColor.Empty ? Knob : field;
+        init;
+    }
+
+    /// The shaded rim of a DirectionPicker's sphere. Derived: OnSurfaceMuted.
+    public SKColor SphereShade
+    {
+        get => field == SKColor.Empty ? OnSurfaceMuted : field;
+        init;
+    }
+
     // ── Scrollbars ────────────────────────────────────────────────────────
 
     /// Derived: Border at 25%.
@@ -241,6 +255,8 @@ public sealed record Theme
     public float ColorAreaSize     { get; init; } = 180f;
     /// Height of a color picker's hue and alpha strips.
     public float ColorStripHeight  { get; init; } = 12f;
+    /// Diameter of a DirectionPicker's sphere when no size is set.
+    public float DirectionPickerSize { get; init; } = 72f;
 }
 
 /// The font size a Label takes from the theme.
