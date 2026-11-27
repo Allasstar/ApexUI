@@ -49,6 +49,9 @@ public class TextInput : Widget
 
     public bool IsValid => Validate is null || Validate(Value);
 
+    /// Room kept free at the right end of the text, for a control a parent lays over the field (a unit chip, a clear button).
+    public float TrailingInset { get; set => SetLayoutProperty(ref field, Math.Max(0f, value)); }
+
     public event Action<string>? ValueChanged;
     public event Action<string>? Submitted;   // Enter
 
@@ -122,6 +125,15 @@ public class TextInput : Widget
 
     protected override void ArrangeCore(Rect finalRect) => ScrollToCaret();
 
+    private Rect TextBounds
+    {
+        get
+        {
+            Rect c = ContentBounds;
+            return c with { Width = Math.Max(0f, c.Width - TrailingInset) };
+        }
+    }
+
     // ── Drawing ──────────────────────────────────────────────────────────────
 
     protected override void DrawCore(DrawContext ctx)
@@ -137,7 +149,7 @@ public class TextInput : Widget
         ctx.FillRoundRect(LayoutBounds, radius, enabled ? ctx.Theme.Background : ctx.Theme.Surface);
         ctx.StrokeRoundRect(LayoutBounds, radius, borderColor, IsFocused ? 2f : 1f);
 
-        var    inner   = ContentBounds;
+        var    inner   = TextBounds;
         float  textX   = inner.X - _scrollX;
         string display = DisplayText;
         float  sz      = ctx.Theme.FontSizeBody;
@@ -245,7 +257,7 @@ public class TextInput : Widget
     // Maps an X coordinate in this widget's layout space to the nearest character index in Value.
     private int HitTestCharIndex(float x)
     {
-        var inner = ContentBounds;
+        var inner = TextBounds;
         float relX = x - inner.X + _scrollX;
         if (relX <= 0) return 0;
 
@@ -315,7 +327,7 @@ public class TextInput : Widget
     // Shifts the text so the caret stays inside the field, and pulls it back when text is removed.
     private void ScrollToCaret()
     {
-        float width = ContentBounds.Width;
+        float width = TextBounds.Width;
         if (width <= 0f) { _scrollX = 0f; return; }
 
         float caret = CaretX(_cursorPos);

@@ -10,8 +10,8 @@ namespace ApexUI.Widgets;
 /// tree ends its scrub or typed edit the same way, so a handler that rebuilds its panel on ValueChanged
 /// must keep the field it is editing, or EditCompleted arrives in the middle of the rebuild.
 ///
-/// Units (optional): WithUnits("px", "%") shows the current unit after the field, on a small chip as wide as
-/// the widest unit so the field never shifts. Typing a value with a
+/// Units (optional): WithUnits("px", "%") shows the current unit inside the field at its right end, on a small chip
+/// as wide as the widest unit so the text never shifts. Typing a value with a
 /// unit suffix ("50%", "120 px") switches to that unit; clicking the unit button cycles to the next one,
 /// converting the value through ConvertUnit when set. A unit change raises UnitChanged before the
 /// ValueChanged of the same edit, and the edit ends with EditCompleted.
@@ -48,8 +48,8 @@ public class NumberField : Widget
         };
         _input.LostFocus += CommitText;
         _input.Placeholder = "Mixed";
-        _unitButton = new UnitButton { IsVisible = false, VAlign = VAlign.Center };
-        AddChild(new Row(_caption, _input, _unitButton) { SpacingSource = t => t.SpacingSm });
+        _unitButton = new UnitButton { IsVisible = false };
+        AddChild(new Row(_caption, new InputBox(_input, _unitButton)) { SpacingSource = t => t.SpacingSm });
 
         _value = value;
         SyncText();
@@ -278,14 +278,64 @@ public class NumberField : Widget
     }
 
     private void SyncText() => _input.Value = IsMixed ? "" : _value.ToString(Format, CultureInfo.InvariantCulture);
-    // The unit after the field, in the small font. With more than one unit it is a chip, since a click cycles them.
+
+    // The text field with the unit chip laid over its right end; the field keeps the chip's room free of text.
+    private sealed class InputBox : Widget
+    {
+        private const float MinTextWidth = 24f;
+
+        private readonly TextInput _input;
+        private readonly UnitButton _unit;
+
+        public InputBox(TextInput input, UnitButton unit)
+        {
+            _input = input;
+            _unit = unit;
+            Grow = 1f;
+            AddChild(input);
+            AddChild(unit);
+        }
+
+        private float ChipInset => Theme.SpacingXs;
+
+        protected override Size MeasureCore(Size available)
+        {
+            _input.Measure(available);
+            Size size = _input.DesiredSize;
+            if (!_unit.IsVisible) return size;
+            _unit.Measure(available);
+            return new Size(Math.Max(size.Width, _unit.DesiredSize.Width + ChipInset * 2f + MinTextWidth), size.Height);
+        }
+
+        protected override void ArrangeCore(Rect r)
+        {
+            if (!_unit.IsVisible)
+            {
+                _input.TrailingInset = 0f;
+                _input.Arrange(r);
+                return;
+            }
+
+            float margin = ChipInset;
+            float width = _unit.DesiredSize.Width;
+            float chipLeft = r.Right - margin - width;
+            _input.TrailingInset = Math.Max(0f, r.Right - _input.Padding.Right - (chipLeft - margin));
+            _input.Arrange(r);
+            _unit.Arrange(new Rect(chipLeft, r.Y + margin, width, Math.Max(0f, r.Height - margin * 2f)));
+        }
+    }
+
+    // The unit inside the field, in the small font. With more than one unit it is a chip with a swap mark,
+    // since a click cycles them.
     private sealed class UnitButton : Widget
     {
+        private const float MarkWidth = 7f;
+
         private readonly Label _label = new() { Role = TextRole.Small, HAlign = HAlign.Center, VAlign = VAlign.Center, IsHitTestVisible = false };
 
         public UnitButton()
         {
-            _label.ColorSource = t => Cycles && IsEnabledInTree ? t.OnSurface : t.OnSurfaceMuted;
+            _label.ColorSource = t => !Cycles || !IsEnabledInTree ? t.OnSurfaceMuted : IsHovered || IsPressed ? t.OnSurface : t.OnSurfaceMuted;
             AddChild(_label);
         }
 
@@ -307,11 +357,15 @@ public class NumberField : Widget
 
         private bool Cycles => Units.Count > 1;
 
-        protected override Thickness DefaultPadding(Theme theme) => new(theme.SpacingXs * 1.25f, theme.SpacingXs * 0.5f);
+        protected override Thickness DefaultPadding(Theme theme)
+        {
+            float side = theme.SpacingXs * 1.5f;
+            return new Thickness(side, 0f, Cycles ? side + MarkWidth : side, 0f);
+        }
 
         protected override float DefaultCornerRadius(Theme theme) => theme.CornerRadiusSmall;
 
-        // As wide as the widest unit, so switching units never moves the field.
+        // As wide as the widest unit, so switching units never moves the text.
         protected override Size MeasureCore(Size available)
         {
             Size label = base.MeasureCore(available);
@@ -325,10 +379,19 @@ public class NumberField : Widget
         protected override void DrawCore(DrawContext ctx)
         {
             if (!Cycles) return;
+            var t = ctx.Theme;
             bool enabled = IsEnabledInTree;
-            var fill = !enabled ? ctx.Theme.Surface : IsPressed ? ctx.Theme.SurfacePressed : IsHovered ? ctx.Theme.SurfaceHover : ctx.Theme.Surface;
-            ctx.FillRoundRect(LayoutBounds, CornerRadius, fill);
-            ctx.StrokeRoundRect(LayoutBounds, CornerRadius, enabled ? ctx.Theme.Border : ctx.Theme.BorderSubtle);
+            var b = LayoutBounds;
+            if (enabled && IsPressed) ctx.FillRoundRect(b, CornerRadius, t.Primary.WithAlpha(0.28f));
+            else if (enabled && IsHovered) ctx.FillRoundRect(b, CornerRadius, t.Primary.WithAlpha(0.16f));
+            else ctx.FillRoundRect(b, CornerRadius, t.OnSurface.WithAlpha(0.07f));
+
+            // Two small chevrons, up over down: the chip switches between values.
+            var mark = !enabled ? t.OnSurfaceMuted.WithAlpha(0.5f) : IsHovered || IsPressed ? t.Primary : t.OnSurfaceMuted;
+            float cx = ContentBounds.Right + MarkWidth * 0.5f;
+            float cy = b.CenterY;
+            ctx.DrawChevron(cx, cy - 2.5f, 2.25f, pointUp: true, mark, 1.25f);
+            ctx.DrawChevron(cx, cy + 2.5f, 2.25f, pointUp: false, mark, 1.25f);
         }
     }
 }

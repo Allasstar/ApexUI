@@ -159,7 +159,7 @@ public class NumberFieldTests
         platform.Render().Dispose();
         var completed = new List<float>();
         field.EditCompleted += completed.Add;
-        var input = field.Children[0].Children[1];
+        var input = field.Children[0].Children[1].Children[0];
 
         input.Focus();
         platform.Key(Key.A, KeyModifiers.Control);
@@ -180,7 +180,7 @@ public class NumberFieldTests
     public void A_negative_number_or_a_point_can_be_typed_over_the_selected_text()
     {
         var (field, platform) = Show(12.5f);
-        var input = (TextInput)field.Children[0].Children[1];
+        var input = (TextInput)field.Children[0].Children[1].Children[0];
 
         input.Focus();
         platform.Key(Key.A, KeyModifiers.Control);
@@ -199,7 +199,7 @@ public class NumberFieldTests
         var field = new NumberField("W", value) { Width = 200 }.WithUnits("px", "%");
         var (host, platform) = TestPlatform.Show(new Column(field, new Button("Other")));
         platform.Render().Dispose();
-        return (field, (TextInput)field.Children[0].Children[1], host, platform);
+        return (field, (TextInput)field.Children[0].Children[1].Children[0], host, platform);
     }
 
     private static void TypeAndSubmit(TestPlatform platform, TextInput input, string text)
@@ -257,7 +257,7 @@ public class NumberFieldTests
         field.ConvertUnit = (value, from, to) => from == "px" && to == "%" ? value / 4f : value * 4f;
         var completed = new List<float>();
         field.EditCompleted += completed.Add;
-        Rect unit = field.Children[0].Children[2].LayoutBounds;
+        Rect unit = field.Children[0].Children[1].Children[1].LayoutBounds;
 
         platform.Click(unit.CenterX, unit.CenterY);
         Assert.Equal("%", field.Unit);
@@ -273,17 +273,39 @@ public class NumberFieldTests
     public void The_unit_button_keeps_its_size_and_the_field_its_place_when_the_unit_changes()
     {
         var (field, input, _, platform) = ShowWithUnits(200f);
-        Rect unit = field.Children[0].Children[2].LayoutBounds;
+        Rect unit = field.Children[0].Children[1].Children[1].LayoutBounds;
         Rect text = input.LayoutBounds;
 
         platform.Click(unit.CenterX, unit.CenterY);
         platform.Render().Dispose();
 
         Assert.Equal("%", field.Unit);
-        Assert.Equal(unit, field.Children[0].Children[2].LayoutBounds);
+        Assert.Equal(unit, field.Children[0].Children[1].Children[1].LayoutBounds);
         Assert.Equal(text, input.LayoutBounds);
         Assert.True(unit.Height < text.Height);
         Assert.Equal(text.CenterY, unit.CenterY, 0.5f);
+    }
+
+    [Fact]
+    public void The_unit_chip_sits_inside_the_field_and_the_text_stops_short_of_it()
+    {
+        var (field, input, _, _) = ShowWithUnits(200f);
+        Rect unit = field.Children[0].Children[1].Children[1].LayoutBounds;
+        Rect box = input.LayoutBounds;
+
+        Assert.True(unit.X > box.X && unit.Right < box.Right);
+        Assert.True(unit.Y > box.Y && unit.Bottom < box.Bottom);
+        Assert.True(input.ContentBounds.Right - input.TrailingInset < unit.X);
+    }
+
+    [Fact]
+    public void A_field_without_units_keeps_its_whole_width_for_text()
+    {
+        var field = new NumberField("X", 1f) { Width = 200 };
+        var (_, platform) = TestPlatform.Show(new Column(field));
+        platform.Render().Dispose();
+
+        Assert.Equal(0f, ((TextInput)field.Children[0].Children[1].Children[0]).TrailingInset);
     }
 
     [Fact]

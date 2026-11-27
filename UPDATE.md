@@ -4,6 +4,12 @@ Newest first. **Breaking** marks changes that need edits in apps using ApexUI.
 
 ## Unreleased
 
+### Section headers and the NumberField unit chip
+- `Section`: the header is now a tinted band (`OnSurface` at 4%, 8% hovered, 12% pressed) with the disclosure chevron on its left, pointing right while folded and down while open. An open section marks its header with a 2 px `Primary` strip at the left edge and a `BorderSubtle` line under it, so the start and end of each section read at a glance. The title starts after the chevron.
+- `NumberField`: the unit now sits inside the text field at its right end. With more than one unit it is a chip (`OnSurface` at 7%, `Primary` tint on hover and press) with a small up-and-down mark that turns `Primary` on hover. **Breaking** (tree shape): the text field and the unit chip are now children of an inner box, the second child of the field's row.
+- New `TextInput.TrailingInset`: room kept free of text at the right end of the field, for a control a parent lays over it.
+- 2 new tests (445 in total).
+
 ### ReorderList folding
 - **Breaking** (behaviour): only the grip, the dots at the header's left, starts a drag, and only it shows the Move cursor. The grip is now its own widget, the first child of the header, so header children after it move up by one index.
 - An item with a body now folds the body away and back from a click on its header outside the grip and buttons, from a chevron between the title and ×, or from Space or Enter on a focused header. Each fold raises `OpenChanged(index, open)`. New `AddItem(title, body, isOn, open = true)` parameter, `IsOpen(index)` (always true for an item without a body) and `SetOpen(index, open)` (silent), fluent `OnOpenChange`. The list keeps no model, so an app that rebuilds its items passes each one's open state back to `AddItem`. The chevron points up while open and down while folded, as on `Section`.

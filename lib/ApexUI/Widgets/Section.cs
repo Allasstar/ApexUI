@@ -1,7 +1,8 @@
 namespace ApexUI.Widgets;
 
 /// A titled group whose body can be collapsed by clicking the header (or Space/Enter on it).
-/// Sections stacked in a Column read as an inspector: each draws a quiet line along its top edge.
+/// Sections stacked in a Column read as an inspector: each header is a tinted band with a disclosure chevron
+/// on its left, and an open section marks its header with an accent strip.
 public class Section : Widget
 {
     private sealed class Header : Widget
@@ -31,7 +32,7 @@ public class Section : Widget
 
         protected override Thickness DefaultPadding(Theme theme) => theme.SectionHeaderPadding;
 
-        private float ChevronRoom => Theme.IconSize + Theme.SpacingSm;
+        private float ChevronRoom => Theme.IconSize + Theme.SpacingXs;
 
         protected override Size MeasureCore(Size available)
         {
@@ -40,7 +41,7 @@ public class Section : Widget
         }
 
         protected override void ArrangeCore(Rect r)
-            => _title.Arrange(new Rect(r.X, r.Y, Math.Max(0f, r.Width - ChevronRoom), r.Height));
+            => _title.Arrange(new Rect(r.X + ChevronRoom, r.Y, Math.Max(0f, r.Width - ChevronRoom), r.Height));
 
         protected override void OnClick(PointerEventArgs e)
         {
@@ -55,16 +56,38 @@ public class Section : Widget
             _owner.IsExpanded = !_owner.IsExpanded;
         }
 
+        // A tinted band with a disclosure chevron on the left, so every header reads as a clickable bar;
+        // an open section also gets an accent strip and a line closing the band off from its body.
         protected override void DrawCore(DrawContext ctx)
         {
-            var t = ctx.Theme;
-            if (IsHovered) ctx.FillRect(LayoutBounds, t.SurfaceHover);
-            var   c    = ContentBounds;
-            float half = t.IconSize * 0.5f;
-            // Points up while expanded (click folds it away), down while collapsed.
-            ctx.DrawChevron(c.Right - half, c.CenterY, half * 0.5f, _owner.IsExpanded, t.OnSurfaceMuted);
+            var   t        = ctx.Theme;
+            var   b        = LayoutBounds;
+            bool  expanded = _owner.IsExpanded;
+            ctx.FillRect(b, t.OnSurface.WithAlpha(IsPressed ? 0.12f : IsHovered ? 0.08f : 0.04f));
+            ctx.DrawLine(b.X, b.Y + 0.5f, b.Right, b.Y + 0.5f, t.BorderSubtle, 1f, SKStrokeCap.Butt);
+            if (expanded)
+            {
+                ctx.DrawLine(b.X, b.Bottom - 0.5f, b.Right, b.Bottom - 0.5f, t.BorderSubtle, 1f, SKStrokeCap.Butt);
+                ctx.FillRect(new Rect(b.X, b.Y, AccentWidth, b.Height), t.Primary);
+            }
+
+            var   c     = ContentBounds;
+            float cx    = c.X + t.IconSize * 0.5f;
+            float cy    = c.CenterY;
+            float arm   = t.IconSize * 0.22f;
+            var   color = IsHovered || expanded ? t.OnSurface : t.OnSurfaceMuted;
+            if (expanded)
+            {
+                ctx.DrawChevron(cx, cy, arm, pointUp: false, color, 1.75f);
+                return;
+            }
+
+            ctx.DrawLine(cx - arm * 0.5f, cy - arm, cx + arm * 0.5f, cy, color, 1.75f);
+            ctx.DrawLine(cx + arm * 0.5f, cy, cx - arm * 0.5f, cy + arm, color, 1.75f);
         }
     }
+
+    private const float AccentWidth = 2f;
 
     private readonly Header _header;
 
@@ -126,9 +149,4 @@ public class Section : Widget
             Content.Arrange(new Rect(r.X, r.Y + headerH, r.Width, Math.Max(0f, r.Height - headerH)));
     }
 
-    protected override void DrawCore(DrawContext ctx)
-    {
-        var b = LayoutBounds;
-        ctx.DrawLine(b.X, b.Y + 0.5f, b.Right, b.Y + 0.5f, ctx.Theme.BorderSubtle, 1f, SKStrokeCap.Butt);
-    }
 }
