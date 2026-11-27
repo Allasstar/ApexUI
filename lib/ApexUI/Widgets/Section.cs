@@ -5,12 +5,12 @@ namespace ApexUI.Widgets;
 /// on its left, and an open section marks its header with an accent strip.
 public class Section : Widget
 {
-    private sealed class Header : Widget
+    private sealed class HeaderBar : Widget
     {
         private readonly Section _owner;
         private readonly Label   _title;
 
-        public Header(Section owner, string title)
+        public HeaderBar(Section owner, string title)
         {
             _owner = owner;
             _title = new Label
@@ -89,17 +89,19 @@ public class Section : Widget
 
     private const float AccentWidth = 2f;
 
-    private readonly Header _header;
+    private readonly HeaderBar _header;
 
     public Section(string title, Widget content, bool expanded = true)
     {
-        _header    = new Header(this, title);
+        _header    = new HeaderBar(this, title);
         Content    = content;
         IsExpanded = expanded;
         content.IsVisible = expanded;
         AddChild(_header);
         AddChild(content);
     }
+
+    public Widget Header => _header;
 
     public Widget Content { get; }
 

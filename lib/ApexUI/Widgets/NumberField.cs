@@ -148,6 +148,11 @@ public class NumberField : Widget
     public NumberField WithUnits(params string[] units)      { Units = units; return this; }
     public NumberField WithUnitConversion(Func<float, string, string, float> convert) { ConvertUnit = convert; return this; }
     public NumberField OnUnitChange(Action<string> action)   { UnitChanged += action; return this; }
+    public NumberField WithReset(Func<bool> isDefault, Action reset, Action<ContextMenu>? extendMenu = null)
+    {
+        ResetHook.Attach(this, isDefault, reset, extendMenu: extendMenu);
+        return this;
+    }
 
     public NumberField Bind(Bindable<float> source)
     {

@@ -44,6 +44,11 @@ public class Toggle : Widget
     public Toggle WithLabel(string label)        { Label = label; return this; }
     public Toggle WithChecked(bool value)        { IsChecked = value; return this; }
     public Toggle OnChange(Action<bool> action)  { CheckedChanged += action; return this; }
+    public Toggle WithReset(Func<bool> isDefault, Action reset, Action<ContextMenu>? extendMenu = null)
+    {
+        ResetHook.Attach(this, isDefault, reset, extendMenu: extendMenu);
+        return this;
+    }
 
     public Toggle Bind(Bindable<bool> source)
     {

@@ -40,11 +40,19 @@ public sealed class ContextMenu
         };
     }
 
+    public bool IsOpen => _overlay.IsVisible;
+
     // ── Fluent builder ────────────────────────────────────────────────────────
 
     public ContextMenu AddItem(string label, Action action, bool enabled = true)
     {
         _items.AddItem(label, action, enabled);
+        return this;
+    }
+
+    public ContextMenu AddItem(string label, Action action, Func<bool> isEnabled)
+    {
+        _items.AddItem(label, action, isEnabled);
         return this;
     }
 
@@ -63,6 +71,12 @@ public sealed class ContextMenu
     public ContextMenu AddHeader(string text)
     {
         _items.AddHeader(text);
+        return this;
+    }
+
+    public ContextMenu Clear()
+    {
+        _items.Clear();
         return this;
     }
 
@@ -85,7 +99,7 @@ public sealed class ContextMenu
     /// Shows the menu at (x, y) in host's window, in logical units.
     public void Show(UiHost host, float x, float y)
     {
-        if (_builtVersion != _items.Version)
+        if (_builtVersion != _items.Version || _items.HasDynamicItems)
         {
             _overlay.Content = _items.Build(Close, MinWidth);
             _builtVersion = _items.Version;

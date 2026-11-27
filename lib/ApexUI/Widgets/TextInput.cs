@@ -92,6 +92,11 @@ public class TextInput : Widget
     public TextInput WithAllowedChars(string chars)        { AllowedChars = chars; return this; }
     public TextInput WithBlockedChars(string chars)        { BlockedChars = chars; return this; }
     public TextInput WithValidation(Func<string, bool> fn) { Validate = fn; return this; }
+    public TextInput WithReset(Func<bool> isDefault, Action reset, Action<ContextMenu>? extendMenu = null)
+    {
+        ResetHook.Attach(this, isDefault, reset, extendMenu: extendMenu);
+        return this;
+    }
 
     // ── Binding ───────────────────────────────────────────────────────────────
 

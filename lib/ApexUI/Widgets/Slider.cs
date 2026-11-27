@@ -74,6 +74,11 @@ public class Slider : Widget
     public Slider WithStep(float step)      { Step  = step;  return this; }
     public Slider WithValue(float value)    { Value = value; return this; }
     public Slider OnChange(Action<float> a) { ValueChanged += a; return this; }
+    public Slider WithReset(Func<bool> isDefault, Action reset, Action<ContextMenu>? extendMenu = null)
+    {
+        ResetHook.Attach(this, isDefault, reset, extendMenu: extendMenu);
+        return this;
+    }
 
     // ── Binding ───────────────────────────────────────────────────────────────
 

@@ -73,6 +73,11 @@ public class ColorSwatch : Widget
     public ColorSwatch OnEditCompleted(Action<SKColor> action) { EditCompleted += action; return this; }
     public ColorSwatch WithAlpha(bool show) { ShowAlpha = show; return this; }
     public ColorSwatch AsReadOnly() { IsReadOnly = true; return this; }
+    public ColorSwatch WithReset(Func<bool> isDefault, Action reset, Action<ContextMenu>? extendMenu = null)
+    {
+        ResetHook.Attach(this, isDefault, reset, extendMenu: extendMenu);
+        return this;
+    }
 
     public void Open()
     {

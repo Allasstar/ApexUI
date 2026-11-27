@@ -4,6 +4,14 @@ Newest first. **Breaking** marks changes that need edits in apps using ApexUI.
 
 ## Unreleased
 
+### Reset hook and dynamic ContextMenu items
+- `ContextMenu`: new `AddItem(label, action, Func<bool> isEnabled)` overload whose enabled state is re-evaluated each time the menu opens, plus `Clear()` and `IsOpen`. Disabled menu items stay muted and ignore hover and clicks.
+- New `ResetHook`: optional reset-to-default hook for value widgets (`NumberField`, `TextInput`, `ColorSwatch`, `Toggle`, `Checkbox`, `ToggleGroup<T>`, `Dropdown<T>`, `Slider`, `DirectionPicker`) via `WithReset(isDefault, reset, extendMenu)` and for any widget via `ResetHook.Attach`. Right-clicking opens a `ContextMenu` with a Reset item disabled while already at the default, plus any host-added items.
+- `Label`: new `Target` / `For(widget)` to forward right-clicks to a widget's reset hook, and `WithReset(...)` for labels that reset a group of values together.
+- `Section`: exposes `Header` so hosts can attach a context menu or reset hook to the header bar alone.
+- Gallery: Inputs tab has a Reset to default sample.
+- 9 new tests (454 in total).
+
 ### Section headers and the NumberField unit chip
 - `Section`: the header is now a tinted band (`OnSurface` at 4%, 8% hovered, 12% pressed) with the disclosure chevron on its left, pointing right while folded and down while open. An open section marks its header with a 2 px `Primary` strip at the left edge and a `BorderSubtle` line under it, so the start and end of each section read at a glance. The title starts after the chevron.
 - `NumberField`: the unit now sits inside the text field at its right end. With more than one unit it is a chip (`OnSurface` at 7%, `Primary` tint on hover and press) with a small up-and-down mark that turns `Primary` on hover. **Breaking** (tree shape): the text field and the unit chip are now children of an inner box, the second child of the field's row.

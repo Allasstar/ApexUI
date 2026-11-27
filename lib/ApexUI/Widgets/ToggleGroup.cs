@@ -102,6 +102,11 @@ public class ToggleGroup<T> : LinearPanel
 
     public ToggleGroup<T> WithSelected(T value)         { SelectedValue = value; return this; }
     public ToggleGroup<T> OnChange(Action<T?> action)   { SelectionChanged += action; return this; }
+    public ToggleGroup<T> WithReset(Func<bool> isDefault, Action reset, Action<ContextMenu>? extendMenu = null)
+    {
+        ResetHook.Attach(this, isDefault, reset, extendMenu: extendMenu);
+        return this;
+    }
 
     public ToggleGroup<T> Bind(Bindable<T> source)
     {

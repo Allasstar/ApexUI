@@ -42,6 +42,11 @@ public class Checkbox : Widget
     public Checkbox WithLabel(string label)       { Label     = label; return this; }
     public Checkbox WithChecked(bool value)       { IsChecked = value; return this; }
     public Checkbox OnChange(Action<bool> action) { CheckedChanged += action; return this; }
+    public Checkbox WithReset(Func<bool> isDefault, Action reset, Action<ContextMenu>? extendMenu = null)
+    {
+        ResetHook.Attach(this, isDefault, reset, extendMenu: extendMenu);
+        return this;
+    }
 
     public Checkbox Bind(Bindable<bool> source)
     {

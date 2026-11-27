@@ -47,12 +47,22 @@ public class Label : Widget
     /// (a button's hover, a tab's selection); whatever changes that state must invalidate.
     public Func<Theme, SKColor>? ColorSource { get; set => SetRenderProperty(ref field, value); }
 
+    /// Optional widget this label names. Right-clicking the label opens that widget's ResetHook menu
+    /// when the label does not have its own reset hook.
+    public Widget? Target { get; set; }
+
     public Label WithText(string text)    { Text = text;  return this; }
     public Label WithSize(float size)     { FontSize = size; return this; }
     public Label WithRole(TextRole role)  { Role = role; return this; }
     public Label WithColor(SKColor color) { Color = color; return this; }
     public Label AsBold()                 { Bold = true;  return this; }
     public Label WithWordWrap()           { WordWrap = true; return this; }
+    public Label For(Widget target)       { Target = target; return this; }
+    public Label WithReset(Func<bool> isDefault, Action reset, Action<ContextMenu>? extendMenu = null)
+    {
+        ResetHook.Attach(this, isDefault, reset, extendMenu: extendMenu);
+        return this;
+    }
 
     // Text measurement results, reused until text, font or wrap width change.
     private readonly List<string> _lines = [];
@@ -100,6 +110,17 @@ public class Label : Widget
         {
             var lineRect = new Rect(content.X, content.Y + i * lineH, content.Width, lineH);
             ctx.DrawText(blobs[i], lineRect, color, fontSize, Bold);
+        }
+    }
+
+    protected override void OnPointerReleased(PointerEventArgs e)
+    {
+        if (e.Button != PointerButton.Right || Host is not { } host) return;
+        if (AttachedReset is not null) return;
+        if (Target is { IsEnabledInTree: true, AttachedReset: { } reset })
+        {
+            e.Handled = true;
+            reset.Show(host, e.WindowX, e.WindowY);
         }
     }
 

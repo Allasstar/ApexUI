@@ -89,6 +89,11 @@ public class Dropdown<T> : Widget
     public Dropdown<T> WithSelected(T value) { SelectedValue = value; return this; }
 
     public Dropdown<T> OnChange(Action<T?> action) { SelectionChanged += action; return this; }
+    public Dropdown<T> WithReset(Func<bool> isDefault, Action reset, Action<ContextMenu>? extendMenu = null)
+    {
+        ResetHook.Attach(this, isDefault, reset, extendMenu: extendMenu);
+        return this;
+    }
 
     public Dropdown<T> Bind(Bindable<T> source)
     {

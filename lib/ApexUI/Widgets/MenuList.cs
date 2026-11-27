@@ -61,7 +61,7 @@ internal sealed class MenuItemWidget : Widget
         {
             Text             = text,
             IsHitTestVisible = false,
-            ColorSource      = enabled ? t => t.OnSurface : t => t.OnSurfaceMuted,
+            ColorSource      = t => IsEnabledInTree ? t.OnSurface : t.OnSurfaceMuted,
         });
     }
 
@@ -76,6 +76,7 @@ internal sealed class MenuItemWidget : Widget
 
     protected override void OnClick(PointerEventArgs e)
     {
+        if (!IsEnabledInTree) return;
         e.Handled = true;
         _onActivate();
     }
@@ -83,7 +84,8 @@ internal sealed class MenuItemWidget : Widget
     protected override void DrawCore(DrawContext ctx)
     {
         var t  = ctx.Theme;
-        var bg = IsPressed ? t.SurfacePressed
+        var bg = !IsEnabledInTree ? SKColor.Empty
+               : IsPressed ? t.SurfacePressed
                : IsHovered ? t.SurfaceHover
                : SKColor.Empty;
 

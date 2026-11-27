@@ -85,6 +85,11 @@ public class DirectionPicker : Widget
     public DirectionPicker WithDirection(float azimuth, float elevation) { SetDirection(azimuth, elevation); return this; }
     public DirectionPicker OnChange(Action<float, float> a)              { DirectionChanged += a; return this; }
     public DirectionPicker OnCommit(Action<float, float> a)              { EditCompleted += a; return this; }
+    public DirectionPicker WithReset(Func<bool> isDefault, Action reset, Action<ContextMenu>? extendMenu = null)
+    {
+        ResetHook.Attach(this, isDefault, reset, extendMenu: extendMenu);
+        return this;
+    }
 
     // ── Input ────────────────────────────────────────────────────────────────
 

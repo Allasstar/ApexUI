@@ -165,11 +165,65 @@ public class InputsExample : Widget
                 // ── Combined form ──────────────────────────────────────────────
                 new Label { Text = "Combined — RadioGroup + NumberInput", Bold = true, Role = TextRole.Heading },
 
-                MakeCard(BuildCombinedForm())
+                MakeCard(BuildCombinedForm()),
+
+                new Separator { Margin = new Thickness(0, 4f) },
+
+                // ── Reset to default ───────────────────────────────────────────
+                new Label { Text = "Reset to default", Bold = true, Role = TextRole.Heading },
+
+                MakeCard(BuildResetSample())
 
             ).WithSpacing(16f),
             new Thickness(24f)
         ));
+    }
+
+    private static Widget BuildResetSample()
+    {
+        var scale  = new NumberField("Scale", 1f) { Width = 140f }.WithRange(0.1f, 4f).WithStep(0.1f);
+        scale.WithReset(() => MathF.Abs(scale.Value - 1f) < 1e-4f, () => scale.Value = 1f);
+        var scaleLabel = new Label { Text = "Scale", Width = 80f, VAlign = VAlign.Center }.For(scale);
+
+        var enabled = new Toggle(isChecked: true, label: "Enabled");
+        enabled.WithReset(() => enabled.IsChecked, () => enabled.IsChecked = true);
+
+        var defaultAccent = SKColor.FromHex("#3B82F6");
+        var accent = new ColorSwatch(defaultAccent);
+        accent.WithReset(() => accent.Color == defaultAccent, () => accent.Color = defaultAccent,
+            menu => menu.AddItem("Set Neutral", () => accent.Color = SKColor.FromHex("#64748B")));
+        var accentLabel = new Label { Text = "Accent", Width = 80f, VAlign = VAlign.Center }.For(accent);
+
+        var mode = new ToggleGroup<string>()
+            .AddOption("Auto", "Auto")
+            .AddOption("Manual", "Manual")
+            .WithSelected("Auto");
+        mode.WithReset(() => mode.SelectedValue == "Auto", () => mode.SelectedValue = "Auto");
+        var modeLabel = new Label { Text = "Mode", Width = 80f, VAlign = VAlign.Center }.For(mode);
+
+        var section = new Section("Right-click header to reset all", new Column(
+            new Row(scaleLabel, scale).WithSpacing(8f),
+            enabled,
+            new Row(accentLabel, accent).WithSpacing(8f),
+            new Row(modeLabel, mode).WithSpacing(8f)
+        ).WithSpacing(8f));
+        ResetHook.Attach(
+            section.Header,
+            isDefault: () => MathF.Abs(scale.Value - 1f) < 1e-4f && enabled.IsChecked
+                          && accent.Color == defaultAccent && mode.SelectedValue == "Auto",
+            reset: () =>
+            {
+                scale.Value = 1f;
+                enabled.IsChecked = true;
+                accent.Color = defaultAccent;
+                mode.SelectedValue = "Auto";
+            },
+            label: "Reset section");
+
+        return new Column(
+            new Label { Text = "Right-click any control, its label, or the section header to reset to default. Reset is disabled when already at the default.", WordWrap = true },
+            section
+        ).WithSpacing(8f);
     }
 
     // ── Combined game-settings form ───────────────────────────────────────────

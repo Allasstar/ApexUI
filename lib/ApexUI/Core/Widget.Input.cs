@@ -46,6 +46,8 @@ public abstract partial class Widget
 
     internal bool CanFocus => Focusable && IsEnabled && IsVisibleInTree;
 
+    internal ResetHook? AttachedReset { get; set; }
+
     private bool IsVisibleInTree
     {
         get
@@ -113,7 +115,18 @@ public abstract partial class Widget
         switch (kind)
         {
             case InputKind.PointerPressed:  { var p = (PointerEventArgs)e; OnPointerPressed(p);  PointerPressed?.Invoke(p);  break; }
-            case InputKind.PointerReleased: { var p = (PointerEventArgs)e; OnPointerReleased(p); PointerReleased?.Invoke(p); break; }
+            case InputKind.PointerReleased:
+            {
+                var p = (PointerEventArgs)e;
+                OnPointerReleased(p);
+                PointerReleased?.Invoke(p);
+                if (!p.Handled && p.Button == PointerButton.Right && AttachedReset is { } reset && Host is { } host)
+                {
+                    p.Handled = true;
+                    reset.Show(host, p.WindowX, p.WindowY);
+                }
+                break;
+            }
             case InputKind.PointerMoved:    { var p = (PointerEventArgs)e; OnPointerMoved(p);    PointerMoved?.Invoke(p);    break; }
             case InputKind.PointerEntered:  { var p = (PointerEventArgs)e; OnPointerEntered(p);  PointerEntered?.Invoke(p);  break; }
             case InputKind.PointerExited:   { var p = (PointerEventArgs)e; OnPointerExited(p);   PointerExited?.Invoke(p);   break; }
