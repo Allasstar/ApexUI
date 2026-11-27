@@ -4,6 +4,12 @@ Newest first. **Breaking** marks changes that need edits in apps using ApexUI.
 
 ## Unreleased
 
+### ReorderList folding
+- **Breaking** (behaviour): only the grip, the dots at the header's left, starts a drag, and only it shows the Move cursor. The grip is now its own widget, the first child of the header, so header children after it move up by one index.
+- An item with a body now folds the body away and back from a click on its header outside the grip and buttons, from a chevron between the title and ×, or from Space or Enter on a focused header. Each fold raises `OpenChanged(index, open)`. New `AddItem(title, body, isOn, open = true)` parameter, `IsOpen(index)` (always true for an item without a body) and `SetOpen(index, open)` (silent), fluent `OnOpenChange`. The list keeps no model, so an app that rebuilds its items passes each one's open state back to `AddItem`. The chevron points up while open and down while folded, as on `Section`.
+- Gallery: the Lists tab's adjustment steps fold and keep their state across rebuilds.
+- 7 new tests.
+
 ### DirectionPicker shading
 - `DirectionPicker` now draws a lit sphere: per pixel the sphere's normal is lit from the chosen direction (diffuse with a soft terminator) from `SphereShade` on the far side towards `SphereLit`, and a glossy highlight sits where the light reflects towards the viewer. It used to be a radial gradient centred on the handle, which read as a flat disc. The shader program compiles on first draw and is released on detach; the shader is rebuilt only when the direction, size or tokens change, so drawing again still allocates nothing.
 - `SphereShade` is now derived from `OnSurfaceMuted` at 45% brightness (was `OnSurfaceMuted`), so the shaded side reads on light and dark surfaces. Themes that set it keep their value.

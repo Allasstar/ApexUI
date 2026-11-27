@@ -2,7 +2,7 @@ namespace ApexUI.Gallery.Examples;
 
 /// ListView with selection, keyboard navigation and drag reordering; rows rename in place with EditableLabel.
 /// TreeView with expand/collapse, multi-select and drag into folders.
-/// ReorderList: items with their own fields, an eye and a remove button, dragged by the header.
+/// ReorderList: items with their own fields, an eye, a fold chevron and a remove button, dragged by the grip; a header click folds.
 /// FoldList: rows that fold open onto their fields, several at once, with Expand all, Collapse all and a row cap.
 public class ListsExample : Widget
 {
@@ -77,6 +77,7 @@ public class ListsExample : Widget
         public string Name { get; } = name;
         public float Amount { get; set; } = amount;
         public bool On { get; set; } = true;
+        public bool Open { get; set; } = true;
     }
 
     private static Widget BuildSteps()
@@ -99,7 +100,7 @@ public class ListsExample : Widget
             {
                 var amount = new NumberField("Amount", step.Amount).WithRange(0f, 100f).WithStep(0.5f)
                     .OnChange(v => { step.Amount = v; Describe(); });
-                list.AddItem(step.Name, amount, step.On);
+                list.AddItem(step.Name, amount, step.On, step.Open);
             }
 
             Describe();
@@ -113,7 +114,8 @@ public class ListsExample : Widget
                 Rebuild();
             })
             .OnToggle((index, on) => { steps[index].On = on; Describe(); })
-            .OnRemove(index => { steps.RemoveAt(index); Rebuild(); });
+            .OnRemove(index => { steps.RemoveAt(index); Rebuild(); })
+            .OnOpenChange((index, open) => steps[index].Open = open);
         Rebuild();
 
         var add = new MenuButton("Add") { HAlign = HAlign.Left };

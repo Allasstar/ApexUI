@@ -695,12 +695,13 @@ ListView<T> WithReorder(bool = true) / OnSelectionChange / OnReorder   // WithIt
 ### `ReorderList` · `lib/ApexUI/Widgets/ReorderList.cs`
 
 ```csharp
-// Items of any height: header (grip, eye, title, ×) over an optional body. Drag a header (or Alt+Up/Down) to reorder.
+// Items of any height: header (grip, eye, title, fold chevron, ×) over an optional body. Drag the grip (or Alt+Up/Down) to reorder.
 // Never moves or removes items itself: the app changes its model and rebuilds.
-int AddItem(string title, Widget? body = null, bool isOn = true);  void ClearItems();  int Count
+int AddItem(string title, Widget? body = null, bool isOn = true, bool open = true);  void ClearItems();  int Count
 string TitleOf(int); Widget? BodyOf(int); bool IsOn(int); void SetOn(int, bool) (silent); bool IsDragging
-event Action<int, int>? Reordered;  event Action<int, bool>? Toggled;  event Action<int>? Removed
-ReorderList OnReorder / OnToggle / OnRemove
+bool IsOpen(int); void SetOpen(int, bool) (silent)   // header click (outside grip and buttons), chevron, Space or Enter folds the body; no body = always open
+event Action<int, int>? Reordered;  event Action<int, bool>? Toggled, OpenChanged;  event Action<int>? Removed
+ReorderList OnReorder / OnToggle / OnRemove / OnOpenChange
 ```
 
 ### `FoldList` · `lib/ApexUI/Widgets/FoldList.cs`

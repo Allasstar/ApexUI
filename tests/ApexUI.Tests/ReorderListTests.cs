@@ -19,8 +19,12 @@ public class ReorderListTests
 
     private static Rect HeaderBounds(ReorderList list, int index) => Header(list, index).LayoutBounds;
 
-    // The grip sits in the header's left padding, clear of the eye button.
-    private static float GripX(ReorderList list) => HeaderBounds(list, 0).X + 3f;
+    private static Rect GripBounds(ReorderList list, int index) => Header(list, index).Children[0].LayoutBounds;
+
+    private static float GripX(ReorderList list) => GripBounds(list, 0).CenterX;
+
+    // On the header, right of the title's text and clear of the buttons.
+    private static float TitleX(ReorderList list, int index) => Header(list, index).Children[2].LayoutBounds.CenterX;
 
     private static void Drag(TestPlatform platform, float x, float fromY, float toY)
     {
@@ -102,7 +106,7 @@ public class ReorderListTests
         var (list, _, platform) = Show();
         var toggles = new List<(int, bool)>();
         list.Toggled += (index, on) => toggles.Add((index, on));
-        Rect eye = Header(list, 1).Children[0].LayoutBounds;
+        Rect eye = Header(list, 1).Children[1].LayoutBounds;
 
         platform.Click(eye.CenterX, eye.CenterY);
         Assert.False(list.IsOn(1));
@@ -131,7 +135,7 @@ public class ReorderListTests
         var (list, _, platform) = Show();
         var removed = new List<int>();
         list.Removed += removed.Add;
-        Rect remove = Header(list, 2).Children[2].LayoutBounds;
+        Rect remove = Header(list, 2).Children[3].LayoutBounds;
 
         platform.Click(remove.CenterX, remove.CenterY);
 
@@ -151,6 +155,124 @@ public class ReorderListTests
         platform.Key(Key.Down, KeyModifiers.Alt);
 
         Assert.Equal([(0, 1)], moves);
+    }
+
+    [Fact]
+    public void The_chevron_folds_the_body_away_and_back_and_reports_each_change()
+    {
+        var (list, _, platform) = Show(bodies: true);
+        var changes = new List<(int, bool)>();
+        list.OpenChanged += (index, open) => changes.Add((index, open));
+        float open = ItemBounds(list, 1).Height;
+        Rect chevron = Header(list, 1).Children[3].LayoutBounds;
+
+        platform.Click(chevron.CenterX, chevron.CenterY);
+        platform.Render().Dispose();
+
+        Assert.False(list.IsOpen(1));
+        Assert.False(list.BodyOf(1)!.IsVisible);
+        Assert.True(ItemBounds(list, 1).Height < open - 29);
+        Assert.True(ItemBounds(list, 2).Y < ItemBounds(list, 1).Bottom + 10);
+
+        platform.Click(chevron.CenterX, chevron.CenterY);
+        platform.Render().Dispose();
+
+        Assert.True(list.IsOpen(1));
+        Assert.Equal(open, ItemBounds(list, 1).Height);
+        Assert.Equal([(1, false), (1, true)], changes);
+    }
+
+    [Fact]
+    public void Only_the_grip_starts_a_drag()
+    {
+        var (list, _, platform) = Show(bodies: true);
+        var moves = new List<(int, int)>();
+        list.Reordered += (from, to) => moves.Add((from, to));
+
+        Drag(platform, TitleX(list, 0), HeaderBounds(list, 0).CenterY, ItemBounds(list, 2).Bottom - 1);
+
+        Assert.Empty(moves);
+        Assert.False(list.IsDragging);
+    }
+
+    [Fact]
+    public void A_click_on_the_header_folds_the_item_but_a_click_on_the_grip_does_not()
+    {
+        var (list, _, platform) = Show(bodies: true);
+        var changes = new List<(int, bool)>();
+        list.OpenChanged += (index, open) => changes.Add((index, open));
+        float y = HeaderBounds(list, 1).CenterY;
+
+        platform.Click(GripBounds(list, 1).CenterX, y);
+        platform.Click(TitleX(list, 1), y);
+
+        Assert.Equal([(1, false)], changes);
+        Assert.False(list.IsOpen(1));
+    }
+
+    [Fact]
+    public void A_drag_from_the_grip_does_not_fold_the_item()
+    {
+        var (list, _, platform) = Show(bodies: true);
+        var changes = new List<(int, bool)>();
+        list.OpenChanged += (index, open) => changes.Add((index, open));
+        float y = HeaderBounds(list, 1).CenterY;
+
+        Drag(platform, GripBounds(list, 1).CenterX, y, y + 6);
+        platform.Move(GripBounds(list, 1).CenterX, y);
+
+        Assert.Empty(changes);
+        Assert.True(list.IsOpen(1));
+    }
+
+    [Fact]
+    public void Enter_on_a_focused_header_folds_its_item()
+    {
+        var (list, _, platform) = Show(bodies: true);
+        var changes = new List<(int, bool)>();
+        list.OpenChanged += (index, open) => changes.Add((index, open));
+        Assert.True(Header(list, 0).Focus());
+
+        platform.Key(Key.Enter);
+        platform.Key(Key.Space);
+        platform.Key(Key.Space);
+
+        Assert.Equal([(0, false), (0, true), (0, false)], changes);
+    }
+
+    [Fact]
+    public void An_item_without_a_body_has_no_chevron_and_is_always_open()
+    {
+        var (list, _, platform) = Show();
+        var changes = new List<(int, bool)>();
+        list.OpenChanged += (index, open) => changes.Add((index, open));
+        Assert.True(Header(list, 0).Focus());
+
+        platform.Key(Key.Enter);
+        list.SetOpen(0, false);
+
+        Assert.Equal(4, Header(list, 0).Children.Count);
+        Assert.True(list.IsOpen(0));
+        Assert.Empty(changes);
+    }
+
+    [Fact]
+    public void Items_can_start_folded_and_set_open_from_code_raises_nothing()
+    {
+        var list = new ReorderList();
+        list.AddItem("Folded", new FixedBox(100, 30), open: false);
+        var (_, platform) = TestPlatform.Show(list, 300, 400);
+        platform.Render().Dispose();
+        var changes = new List<(int, bool)>();
+        list.OpenChanged += (index, open) => changes.Add((index, open));
+        Assert.False(list.IsOpen(0));
+
+        list.SetOpen(0, true);
+        platform.Render().Dispose();
+
+        Assert.True(list.IsOpen(0));
+        Assert.True(list.BodyOf(0)!.LayoutBounds.Height >= 30);
+        Assert.Empty(changes);
     }
 
     [Fact]
